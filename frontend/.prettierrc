@@ -1,0 +1,24 @@
+{
+	"trailingComma": "es5",
+	"tabWidth": 4,
+	"singleQuote": false,
+	"semi": true,
+	"importOrder": [
+		"^@/shadcn/(.*)$",
+		"^@/components/(.*)$",
+		"^@/db/(.*)$",
+		"^@/lib/(.*)$",
+		"^@/data-access/(.*)$",
+		"^@/use-cases/(.*)$",
+		"^@/constants/(.*)$",
+  		"^@bindings$",   
+		"^[./]"
+	],
+	"importOrderSeparation": true,
+	"importOrderSortSpecifiers": true,
+	"tailwindConfig": "./src/index.css",
+	"plugins": [
+		"@trivago/prettier-plugin-sort-imports",
+		"prettier-plugin-tailwindcss"
+	]
+}

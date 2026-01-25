@@ -1,0 +1,39 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/shadcn/*": [
+        "./src/components/ui/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/db/*": [
+        "./src/lib/db/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/data-access/*": [
+        "./src/data-access/*"
+      ],
+      "@/use-cases/*": [
+        "./src/use-cases/*"
+      ],
+      "@/constants/*": [
+        "./src/constants/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@bindings": [
+	"./bindings/changeme"
+      ]
+    }
+  }
+}
