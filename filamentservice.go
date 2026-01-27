@@ -12,7 +12,7 @@ type Spool struct {
 	Material     string `db:"material" json:"material"`
 	MaterialType string `db:"material_type" json:"materialType"`
 	Color        string `db:"color" json:"color"`
-	ColorRGB     string `db:"color_rgb" json:"colorRGB"`
+	ColorHex     string `db:"color_hex" json:"colorHex"`
 
 	TotalWeight int `db:"total_weight" json:"totalWeight"`
 	UsedWeight  int `db:"used_weight" json:"usedWeight"`
@@ -41,7 +41,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 
 	query := `
 	INSERT INTO spools (
-		vendor, material, material_type, color, color_rgb,
+		vendor, material, material_type, color, color_hex,
 		total_weight, used_weight,
 		cost, reference_link, notes,
 		first_used_at, last_used_at,
@@ -61,7 +61,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		spool.Material,
 		spool.MaterialType,
 		spool.Color,
-		spool.ColorRGB,
+		spool.ColorHex,
 		spool.TotalWeight,
 		spool.UsedWeight,
 		spool.Cost,
@@ -90,7 +90,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		material = ?,
 		material_type = ?,
 		color = ?,
-		color_rgb = ?,
+		color_hex = ?,
 		total_weight = ?,
 		used_weight = ?,
 		cost = ?,
@@ -108,7 +108,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		spool.Material,
 		spool.MaterialType,
 		spool.Color,
-		spool.ColorRGB,
+		spool.ColorHex,
 		spool.TotalWeight,
 		spool.UsedWeight,
 		spool.Cost,

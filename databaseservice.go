@@ -45,7 +45,7 @@ func (d *Database) initSchema() error {
 		material TEXT NOT NULL,
 		material_type TEXT,
 		color TEXT,
-		color_rgb TEXT,
+		color_hex TEXT,
 
 		total_weight INTEGER NOT NULL,
 		used_weight INTEGER NOT NULL DEFAULT 0,

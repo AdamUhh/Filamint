@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -20,7 +21,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
     InputGroup,
@@ -40,16 +46,18 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Spool, SpoolService } from "@bindings";
 
+import { ColorPicker } from "./ui/custom/color-picker";
+
 const spoolSchema = z.object({
     vendor: z.string().min(1, "Vendor is required"),
     material: z.string().min(1, "Material is required"),
     materialType: z.string().min(1, "Material type is required"),
     color: z.string().min(1, "Color is required"),
-    colorRGB: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format"),
+    colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format"),
     totalWeight: z.number().min(0, "Must be 0 or greater"),
     usedWeight: z.number().min(0, "Must be 0 or greater"),
     cost: z.number().min(0, "Must be 0 or greater"),
-    referenceLink: z.string().url("Invalid URL").or(z.literal("")),
+    referenceLink: z.url("Invalid URL").or(z.literal("")),
     notes: z.string(),
 });
 
@@ -60,6 +68,7 @@ export default function SpoolsPage() {
     const [editingId, setEditingId] = useState<number>(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
+    const [originalSpool, setOriginalSpool] = useState<Spool | null>(null);
 
     const fetchSpools = async () => {
         try {
@@ -82,13 +91,14 @@ export default function SpoolsPage() {
             material: "",
             materialType: "",
             color: "",
-            colorRGB: "#000000",
+            colorHex: "#000000",
             totalWeight: 0,
             usedWeight: 0,
             cost: 0,
             referenceLink: "",
             notes: "",
         },
+        validators: { onChange: spoolSchema },
         onSubmit: async ({ value }) => {
             const now = new Date().toISOString();
             const spoolToSave: Spool = {
@@ -143,18 +153,27 @@ export default function SpoolsPage() {
         setEditDialogOpen(true);
     };
 
+    const resetToOriginal = (field: keyof Spool) => {
+        if (!originalSpool) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        form.setFieldValue(field as any, originalSpool[field]);
+    };
+
     const handleEdit = (spool: Spool) => {
         setEditingId(spool.id);
+        setOriginalSpool(spool);
+
         form.setFieldValue("vendor", spool.vendor);
         form.setFieldValue("material", spool.material);
         form.setFieldValue("materialType", spool.materialType);
         form.setFieldValue("color", spool.color);
-        form.setFieldValue("colorRGB", spool.colorRGB || "#000000");
+        form.setFieldValue("colorHex", spool.colorHex || "#000000");
         form.setFieldValue("totalWeight", spool.totalWeight);
         form.setFieldValue("usedWeight", spool.usedWeight);
         form.setFieldValue("cost", spool.cost);
         form.setFieldValue("referenceLink", spool.referenceLink);
         form.setFieldValue("notes", spool.notes);
+
         setEditDialogOpen(true);
     };
 
@@ -164,7 +183,9 @@ export default function SpoolsPage() {
         <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Filament Spools</h1>
-                <Button onClick={handleAddNew}>Add New Spool</Button>
+                <Button onClick={handleAddNew}>
+                    <PlusIcon /> Add Spool
+                </Button>
             </div>
 
             <div className="rounded-lg border">
@@ -201,12 +222,12 @@ export default function SpoolsPage() {
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             {spool.color}
-                                            {spool.colorRGB && (
+                                            {spool.colorHex && (
                                                 <div
                                                     className="h-4 w-4 rounded border"
                                                     style={{
                                                         backgroundColor:
-                                                            spool.colorRGB,
+                                                            spool.colorHex,
                                                     }}
                                                 />
                                             )}
@@ -263,388 +284,759 @@ export default function SpoolsPage() {
                         <FieldGroup>
                             <form.Field
                                 name="vendor"
-                                validators={{
-                                    onChange: spoolSchema.shape.vendor,
-                                }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="vendor">
-                                            Vendor
-                                        </FieldLabel>
-                                        <Input
-                                            id="vendor"
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder="e.g., Hatchbox, Prusa"
-                                        />
-                                        {field.state.meta.errors?.[0]
-                                            ?.message && (
-                                            <p className="text-sm text-red-600">
-                                                {
-                                                    field.state.meta.errors[0]
-                                                        .message
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Vendor
+                                                </FieldLabel>
+                                                {editingId > 0 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                        onClick={() =>
+                                                            resetToOriginal(
+                                                                field.name
+                                                            )
+                                                        }
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <Input
+                                                id={field.name}
+                                                name={field.name}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value
+                                                    )
                                                 }
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                                                aria-invalid={isInvalid}
+                                                placeholder="e.g., Hatchbox, Prusa"
+                                                autoComplete="off"
+                                            />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
 
                             <form.Field
                                 name="material"
-                                validators={{
-                                    onChange: spoolSchema.shape.material,
-                                }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="material">
-                                            Material
-                                        </FieldLabel>
-                                        <Input
-                                            id="material"
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder="e.g., PLA, PETG, ABS"
-                                        />
-                                        {field.state.meta.errors?.[0]
-                                            ?.message && (
-                                            <p className="text-sm text-red-600">
-                                                {
-                                                    field.state.meta.errors[0]
-                                                        .message
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Material
+                                                </FieldLabel>
+                                                {editingId > 0 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                        onClick={() =>
+                                                            resetToOriginal(
+                                                                field.name
+                                                            )
+                                                        }
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <Input
+                                                id={field.name}
+                                                name={field.name}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value
+                                                    )
                                                 }
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                                                aria-invalid={isInvalid}
+                                                placeholder="e.g., PLA, PETG, ABS"
+                                                autoComplete="off"
+                                            />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
 
                             <form.Field
                                 name="materialType"
-                                validators={{
-                                    onChange: spoolSchema.shape.materialType,
-                                }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="materialType">
-                                            Material Type
-                                        </FieldLabel>
-                                        <Input
-                                            id="materialType"
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder="e.g., Standard, Pro, Silk"
-                                        />
-                                        {field.state.meta.errors?.[0]
-                                            ?.message && (
-                                            <p className="text-sm text-red-600">
-                                                {
-                                                    field.state.meta.errors[0]
-                                                        .message
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Material Type
+                                                </FieldLabel>
+                                                {editingId > 0 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                        onClick={() =>
+                                                            resetToOriginal(
+                                                                field.name
+                                                            )
+                                                        }
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <Input
+                                                id={field.name}
+                                                name={field.name}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value
+                                                    )
                                                 }
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                                                aria-invalid={isInvalid}
+                                                placeholder="e.g., Standard, Pro, Silk"
+                                                autoComplete="off"
+                                            />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
 
                             <div className="grid grid-cols-2 gap-4">
                                 <form.Field
                                     name="color"
-                                    validators={{
-                                        onChange: spoolSchema.shape.color,
-                                    }}
-                                >
-                                    {(field) => (
-                                        <Field>
-                                            <FieldLabel htmlFor="color">
-                                                Color
-                                            </FieldLabel>
-                                            <Input
-                                                id="color"
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="e.g., Red, Blue"
-                                            />
-                                            {field.state.meta.errors?.[0]
-                                                ?.message && (
-                                                <p className="text-sm text-red-600">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0].message
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
+                                                    >
+                                                        Color
+                                                    </FieldLabel>
+                                                    {editingId > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                            onClick={() =>
+                                                                resetToOriginal(
+                                                                    field.name
+                                                                )
+                                                            }
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    id={field.name}
+                                                    name={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            e.target.value
+                                                        )
                                                     }
-                                                </p>
-                                            )}
-                                        </Field>
-                                    )}
-                                </form.Field>
+                                                    aria-invalid={isInvalid}
+                                                    placeholder="e.g., Red, Blue"
+                                                    autoComplete="off"
+                                                />
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
+                                    }}
+                                />
 
                                 <form.Field
-                                    name="colorRGB"
-                                    validators={{
-                                        onChange: spoolSchema.shape.colorRGB,
-                                    }}
-                                >
-                                    {(field) => (
-                                        <Field>
-                                            <FieldLabel htmlFor="colorRGB">
-                                                Color Picker
-                                            </FieldLabel>
-                                            <Input
-                                                id="colorRGB"
-                                                type="color"
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                className="h-10 hover:cursor-pointer"
-                                            />
-                                            {field.state.meta.errors?.[0]
-                                                ?.message && (
-                                                <p className="text-sm text-red-600">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0].message
+                                    name="colorHex"
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
+                                                    >
+                                                        Color Hex
+                                                    </FieldLabel>
+                                                    {editingId > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                            onClick={() =>
+                                                                resetToOriginal(
+                                                                    field.name
+                                                                )
+                                                            }
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <ColorPicker
+                                                    value={field.state.value}
+                                                    onChange={(color) =>
+                                                        field.handleChange(
+                                                            color
+                                                        )
                                                     }
-                                                </p>
-                                            )}
-                                        </Field>
-                                    )}
-                                </form.Field>
+                                                    onBlur={field.handleBlur}
+                                                />
+
+                                                {/* <Input */}
+                                                {/*     id={field.name} */}
+                                                {/*     name={field.name} */}
+                                                {/*     type="color" */}
+                                                {/*     value={field.state.value} */}
+                                                {/*     onBlur={field.handleBlur} */}
+                                                {/*     onChange={(e) => */}
+                                                {/*         field.handleChange( */}
+                                                {/*             e.target.value */}
+                                                {/*         ) */}
+                                                {/*     } */}
+                                                {/*     aria-invalid={isInvalid} */}
+                                                {/*     className="h-10 hover:cursor-pointer" */}
+                                                {/* /> */}
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
+                                    }}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <form.Field
                                     name="totalWeight"
-                                    validators={{
-                                        onChange: spoolSchema.shape.totalWeight,
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex h-6 items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
+                                                    >
+                                                        Remaining Weight
+                                                    </FieldLabel>
+                                                    <div className="hidden items-center gap-1 group-hover:flex">
+                                                        {editingId > 0 && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-auto px-2 py-0 text-xs"
+                                                                onClick={() =>
+                                                                    resetToOriginal(
+                                                                        field.name
+                                                                    )
+                                                                }
+                                                            >
+                                                                Reset
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 w-6 p-0"
+                                                            onClick={() =>
+                                                                field.handleChange(
+                                                                    Math.max(
+                                                                        0,
+                                                                        field
+                                                                            .state
+                                                                            .value -
+                                                                            1
+                                                                    )
+                                                                )
+                                                            }
+                                                        >
+                                                            -
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 w-6 p-0"
+                                                            onClick={() =>
+                                                                field.handleChange(
+                                                                    field.state
+                                                                        .value +
+                                                                        1
+                                                                )
+                                                            }
+                                                        >
+                                                            +
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <InputGroup>
+                                                    <InputGroupAddon align="inline-end">
+                                                        <InputGroupText>
+                                                            grams
+                                                        </InputGroupText>
+                                                    </InputGroupAddon>
+                                                    <InputGroupInput
+                                                        id={field.name}
+                                                        name={field.name}
+                                                        type="number"
+                                                        value={
+                                                            field.state.value
+                                                        }
+                                                        onBlur={
+                                                            field.handleBlur
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.handleChange(
+                                                                parseInt(
+                                                                    e.target
+                                                                        .value
+                                                                ) || 0
+                                                            )
+                                                        }
+                                                        aria-invalid={isInvalid}
+                                                        placeholder="1000"
+                                                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    />
+                                                </InputGroup>
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
                                     }}
-                                >
-                                    {(field) => (
-                                        <Field>
-                                            <FieldLabel htmlFor="totalWeight">
-                                                Remaining Weight
-                                            </FieldLabel>
-                                            <InputGroup>
-                                                <InputGroupAddon align="inline-end">
-                                                    <InputGroupText>
-                                                        grams
-                                                    </InputGroupText>
-                                                </InputGroupAddon>
-                                                <InputGroupInput
-                                                    id="totalWeight"
-                                                    type="number"
-                                                    value={field.state.value}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            parseInt(
-                                                                e.target.value
-                                                            ) || 0
-                                                        )
-                                                    }
-                                                    onBlur={field.handleBlur}
-                                                    placeholder="1000"
-                                                />
-                                            </InputGroup>
-                                            {field.state.meta.errors?.[0]
-                                                ?.message && (
-                                                <p className="text-sm text-red-600">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0].message
-                                                    }
-                                                </p>
-                                            )}
-                                        </Field>
-                                    )}
-                                </form.Field>
+                                />
 
                                 <form.Field
                                     name="usedWeight"
-                                    validators={{
-                                        onChange: spoolSchema.shape.usedWeight,
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex h-6 items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
+                                                    >
+                                                        Used Weight
+                                                    </FieldLabel>
+                                                    <div className="hidden items-center gap-1 group-hover:flex">
+                                                        {editingId > 0 && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-auto px-2 py-0 text-xs"
+                                                                onClick={() =>
+                                                                    resetToOriginal(
+                                                                        field.name
+                                                                    )
+                                                                }
+                                                            >
+                                                                Reset
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 w-6 p-0"
+                                                            onClick={() =>
+                                                                field.handleChange(
+                                                                    Math.max(
+                                                                        0,
+                                                                        field
+                                                                            .state
+                                                                            .value -
+                                                                            1
+                                                                    )
+                                                                )
+                                                            }
+                                                        >
+                                                            -
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 w-6 p-0"
+                                                            onClick={() =>
+                                                                field.handleChange(
+                                                                    field.state
+                                                                        .value +
+                                                                        1
+                                                                )
+                                                            }
+                                                        >
+                                                            +
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <InputGroup>
+                                                    <InputGroupAddon align="inline-end">
+                                                        <InputGroupText>
+                                                            grams
+                                                        </InputGroupText>
+                                                    </InputGroupAddon>
+                                                    <InputGroupInput
+                                                        id={field.name}
+                                                        name={field.name}
+                                                        type="number"
+                                                        value={
+                                                            field.state.value
+                                                        }
+                                                        onBlur={
+                                                            field.handleBlur
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.handleChange(
+                                                                parseInt(
+                                                                    e.target
+                                                                        .value
+                                                                ) || 0
+                                                            )
+                                                        }
+                                                        aria-invalid={isInvalid}
+                                                        placeholder="0"
+                                                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    />
+                                                </InputGroup>
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
                                     }}
-                                >
-                                    {(field) => (
-                                        <Field>
-                                            <FieldLabel htmlFor="usedWeight">
-                                                Used Weight
-                                            </FieldLabel>
-                                            <InputGroup>
-                                                <InputGroupAddon align="inline-end">
-                                                    <InputGroupText>
-                                                        grams
-                                                    </InputGroupText>
-                                                </InputGroupAddon>
-                                                <InputGroupInput
-                                                    id="usedWeight"
-                                                    type="number"
-                                                    value={field.state.value}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            parseInt(
-                                                                e.target.value
-                                                            ) || 0
-                                                        )
-                                                    }
-                                                    onBlur={field.handleBlur}
-                                                    placeholder="0"
-                                                />
-                                            </InputGroup>
-                                            {field.state.meta.errors?.[0]
-                                                ?.message && (
-                                                <p className="text-sm text-red-600">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0].message
-                                                    }
-                                                </p>
-                                            )}
-                                        </Field>
-                                    )}
-                                </form.Field>
+                                />
                             </div>
 
                             <form.Field
                                 name="cost"
-                                validators={{
-                                    onChange: spoolSchema.shape.cost,
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex h-6 items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Cost
+                                                </FieldLabel>
+                                                <div className="hidden items-center gap-1 group-hover:flex">
+                                                    {editingId > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                            onClick={() =>
+                                                                resetToOriginal(
+                                                                    field.name
+                                                                )
+                                                            }
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0"
+                                                        onClick={() =>
+                                                            field.handleChange(
+                                                                Math.max(
+                                                                    0,
+                                                                    field.state
+                                                                        .value -
+                                                                        1
+                                                                )
+                                                            )
+                                                        }
+                                                    >
+                                                        -
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0"
+                                                        onClick={() =>
+                                                            field.handleChange(
+                                                                field.state
+                                                                    .value + 1
+                                                            )
+                                                        }
+                                                    >
+                                                        +
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <InputGroup>
+                                                <InputGroupAddon>
+                                                    <InputGroupText>
+                                                        AED
+                                                    </InputGroupText>
+                                                </InputGroupAddon>
+                                                <InputGroupInput
+                                                    id={field.name}
+                                                    name={field.name}
+                                                    type="number"
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            parseFloat(
+                                                                e.target.value
+                                                            ) || 0
+                                                        )
+                                                    }
+                                                    aria-invalid={isInvalid}
+                                                    placeholder="20"
+                                                    step="0.01"
+                                                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                />
+                                            </InputGroup>
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
                                 }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="cost">
-                                            Cost
-                                        </FieldLabel>
-                                        <InputGroup>
-                                            <InputGroupAddon>
-                                                <InputGroupText>
-                                                    AED
-                                                </InputGroupText>
-                                            </InputGroupAddon>
-                                            <InputGroupInput
-                                                id="cost"
-                                                type="number"
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        parseFloat(
-                                                            e.target.value
-                                                        ) || 0
-                                                    )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="20"
-                                            />
-                                        </InputGroup>
-                                        {field.state.meta.errors?.[0]
-                                            ?.message && (
-                                            <p className="text-sm text-red-600">
-                                                {
-                                                    field.state.meta.errors[0]
-                                                        .message
-                                                }
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                            />
 
                             <form.Field
                                 name="referenceLink"
-                                validators={{
-                                    onChange: spoolSchema.shape.referenceLink,
-                                }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="referenceLink">
-                                            Reference Link
-                                        </FieldLabel>
-                                        <Input
-                                            id="referenceLink"
-                                            type="url"
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder="https://..."
-                                        />
-                                        {field.state.meta.errors && (
-                                            <p className="text-sm text-red-600">
-                                                {field.state.meta.errors.join(
-                                                    ", "
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Reference Link
+                                                </FieldLabel>
+                                                {editingId > 0 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                        onClick={() =>
+                                                            resetToOriginal(
+                                                                field.name
+                                                            )
+                                                        }
+                                                    >
+                                                        Reset
+                                                    </Button>
                                                 )}
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                                            </div>
+                                            <Input
+                                                id={field.name}
+                                                name={field.name}
+                                                type="url"
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                aria-invalid={isInvalid}
+                                                placeholder="https://..."
+                                                autoComplete="off"
+                                            />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
 
                             <form.Field
                                 name="notes"
-                                validators={{
-                                    onChange: spoolSchema.shape.notes,
-                                }}
-                            >
-                                {(field) => (
-                                    <Field>
-                                        <FieldLabel htmlFor="notes">
-                                            Notes
-                                        </FieldLabel>
-                                        <Textarea
-                                            id="notes"
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder="Add any additional notes..."
-                                            rows={3}
-                                        />
-                                        {field.state.meta.errors?.[0]
-                                            ?.message && (
-                                            <p className="text-sm text-red-600">
-                                                {
-                                                    field.state.meta.errors[0]
-                                                        .message
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            className="group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                >
+                                                    Notes
+                                                </FieldLabel>
+                                                {editingId > 0 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                        onClick={() =>
+                                                            resetToOriginal(
+                                                                field.name
+                                                            )
+                                                        }
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <Textarea
+                                                id={field.name}
+                                                name={field.name}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value
+                                                    )
                                                 }
-                                            </p>
-                                        )}
-                                    </Field>
-                                )}
-                            </form.Field>
+                                                aria-invalid={isInvalid}
+                                                placeholder="Add any additional notes..."
+                                                rows={3}
+                                            />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
                         </FieldGroup>
 
                         <DialogFooter>

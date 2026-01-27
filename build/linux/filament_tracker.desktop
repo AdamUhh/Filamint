@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=filament_tracker
+Exec=filament_tracker
+Icon=filament_tracker
+Categories=Development;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false

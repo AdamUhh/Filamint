@@ -15,7 +15,7 @@ export class Spool {
     "material": string;
     "materialType": string;
     "color": string;
-    "colorRGB": string;
+    "colorHex": string;
     "totalWeight": number;
     "usedWeight": number;
     "cost": number;
@@ -43,8 +43,8 @@ export class Spool {
         if (!("color" in $$source)) {
             this["color"] = "";
         }
-        if (!("colorRGB" in $$source)) {
-            this["colorRGB"] = "";
+        if (!("colorHex" in $$source)) {
+            this["colorHex"] = "";
         }
         if (!("totalWeight" in $$source)) {
             this["totalWeight"] = 0;
