@@ -20,6 +20,7 @@ type Spool struct {
 	Cost          int    `db:"cost" json:"cost"`
 	ReferenceLink string `db:"reference_link" json:"referenceLink"`
 	Notes         string `db:"notes" json:"notes"`
+	IsTemplate    bool   `db:"is_template" json:"isTemplate"`
 
 	FirstUsedAt *time.Time `db:"first_used_at" json:"firstUsedAt"`
 	LastUsedAt  *time.Time `db:"last_used_at" json:"lastUsedAt"`
@@ -43,13 +44,13 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 	INSERT INTO spools (
 		vendor, material, material_type, color, color_hex,
 		total_weight, used_weight,
-		cost, reference_link, notes,
+		cost, reference_link, notes, is_template,
 		first_used_at, last_used_at,
 		created_at, updated_at
 	) VALUES (
 		?, ?, ?, ?, ?,
 		?, ?,
-		?, ?, ?,
+		?, ?, ?, ?,
 		?, ?,
 		?, ?
 	)
@@ -67,6 +68,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
+		spool.IsTemplate,
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		now,
@@ -96,6 +98,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		cost = ?,
 		reference_link = ?,
 		notes = ?,
+		is_template = ?,
 		first_used_at = ?,
 		last_used_at = ?,
 		updated_at = ?
@@ -114,6 +117,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
+		spool.IsTemplate,
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		time.Now(),

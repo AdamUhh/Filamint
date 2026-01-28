@@ -21,6 +21,7 @@ export class Spool {
     "cost": number;
     "referenceLink": string;
     "notes": string;
+    "isTemplate": boolean;
     "firstUsedAt": time$0.Time | null;
     "lastUsedAt": time$0.Time | null;
     "createdAt": time$0.Time;
@@ -60,6 +61,9 @@ export class Spool {
         }
         if (!("notes" in $$source)) {
             this["notes"] = "";
+        }
+        if (!("isTemplate" in $$source)) {
+            this["isTemplate"] = false;
         }
         if (!("firstUsedAt" in $$source)) {
             this["firstUsedAt"] = null;

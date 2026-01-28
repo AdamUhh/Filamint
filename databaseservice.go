@@ -54,6 +54,8 @@ func (d *Database) initSchema() error {
 		reference_link TEXT,
 		notes TEXT,
 
+		is_template BOOL,
+
 		first_used_at DATETIME,
 		last_used_at DATETIME,
 

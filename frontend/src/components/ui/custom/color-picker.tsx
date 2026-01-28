@@ -1,5 +1,7 @@
 "use client";
 
+// Source: https://github.com/vatsalpipalava/shadcn-input-color
+//
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
@@ -21,8 +23,6 @@ import {
 } from "@/components/ui/select";
 
 import { cn } from "@/lib/utils";
-
-// Source: https://github.com/vatsalpipalava/shadcn-input-color
 
 // Helpers
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -132,6 +132,7 @@ const colorSchema = z
     .transform((val) => val.toUpperCase());
 
 interface ColorPickerProps {
+    name: string;
     value: string;
     onChange: (value: string) => void;
     onBlur?: () => void;
@@ -147,6 +148,7 @@ interface ColorValues {
 }
 
 export function ColorPicker({
+    name,
     value,
     onChange,
     onBlur,
@@ -169,11 +171,8 @@ export function ColorPicker({
     const [hexInputValue, setHexInputValue] = useState(value);
     const [hexInputError, setHexInputError] = useState<string | null>(null);
 
-    // Update all color formats when color changes
-
-    // Initialize color values on mount and when value changes from outside
     useEffect(() => {
-        setHexInputValue(value.toUpperCase());
+        setHexInputValue(value);
     }, [value]);
 
     // Handle color picker change
@@ -253,7 +252,6 @@ export function ColorPicker({
 
     return (
         <div className={cn("w-full", className)}>
-            {/* <Label className="mb-3">{label}</Label> */}
             <div className="flex w-full items-center gap-1">
                 <Popover onOpenChange={handlePopoverChange}>
                     <PopoverTrigger asChild>
@@ -305,7 +303,7 @@ export function ColorPicker({
                                 </Select>
                                 {colorFormat === "HEX" ? (
                                     <Input
-                                        className="h-5 w-40 rounded-sm text-sm"
+                                        className="h-7 w-40 rounded-sm text-sm"
                                         value={getCurrentHexValue()}
                                         onChange={(e) =>
                                             handleHexChange(e.target.value)
@@ -316,7 +314,7 @@ export function ColorPicker({
                                 ) : colorFormat === "RGB" ? (
                                     <div className="flex items-center">
                                         <Input
-                                            className="h-5 w-13 rounded-l-sm rounded-r-none text-center text-sm"
+                                            className="h-7 w-13 rounded-l-sm rounded-r-none text-center text-sm"
                                             value={colorValues.rgb.r}
                                             onChange={(e) =>
                                                 handleRgbChange(
@@ -398,6 +396,8 @@ export function ColorPicker({
                 </Popover>
                 <div className="relative flex-1">
                     <Input
+                        id={name}
+                        name={name}
                         value={getCurrentHexValue()}
                         onChange={(e) => handleHexChange(e.target.value)}
                         onBlur={onBlur}

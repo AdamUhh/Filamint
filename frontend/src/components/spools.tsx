@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import {
     Field,
+    FieldContent,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -46,6 +48,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Spool, SpoolService } from "@bindings";
 
+import { Checkbox } from "./ui/checkbox";
 import { ColorPicker } from "./ui/custom/color-picker";
 
 const spoolSchema = z.object({
@@ -59,6 +62,7 @@ const spoolSchema = z.object({
     cost: z.number().min(0, "Must be 0 or greater"),
     referenceLink: z.url("Invalid URL").or(z.literal("")),
     notes: z.string(),
+    isTemplate: z.boolean(),
 });
 
 export default function SpoolsPage() {
@@ -97,6 +101,7 @@ export default function SpoolsPage() {
             cost: 0,
             referenceLink: "",
             notes: "",
+            isTemplate: false,
         },
         validators: { onChange: spoolSchema },
         onSubmit: async ({ value }) => {
@@ -221,21 +226,22 @@ export default function SpoolsPage() {
                                     <TableCell>{spool.materialType}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            {spool.color}
                                             {spool.colorHex && (
                                                 <div
-                                                    className="h-4 w-4 rounded border"
+                                                    className="-mt-0.5 h-4 w-4 rounded"
                                                     style={{
                                                         backgroundColor:
                                                             spool.colorHex,
                                                     }}
                                                 />
                                             )}
+
+                                            {spool.color}
                                         </div>
                                     </TableCell>
                                     <TableCell>{spool.totalWeight}</TableCell>
                                     <TableCell>{spool.usedWeight}</TableCell>
-                                    <TableCell>${spool.cost}</TableCell>
+                                    <TableCell>AED {spool.cost}</TableCell>
                                     <TableCell>
                                         <div className="flex gap-2">
                                             <Button
@@ -281,7 +287,7 @@ export default function SpoolsPage() {
                             form.handleSubmit();
                         }}
                     >
-                        <FieldGroup>
+                        <FieldGroup className="pb-4">
                             <form.Field
                                 name="vendor"
                                 children={(field) => {
@@ -326,7 +332,7 @@ export default function SpoolsPage() {
                                                     )
                                                 }
                                                 aria-invalid={isInvalid}
-                                                placeholder="e.g., Hatchbox, Prusa"
+                                                placeholder="e.g., CC3D, Elegoo"
                                                 autoComplete="off"
                                             />
                                             {isInvalid && (
@@ -341,123 +347,127 @@ export default function SpoolsPage() {
                                 }}
                             />
 
-                            <form.Field
-                                name="material"
-                                children={(field) => {
-                                    const isInvalid =
-                                        field.state.meta.isTouched &&
-                                        !field.state.meta.isValid;
-                                    return (
-                                        <Field
-                                            data-invalid={isInvalid}
-                                            className="group"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <FieldLabel
-                                                    htmlFor={field.name}
-                                                >
-                                                    Material
-                                                </FieldLabel>
-                                                {editingId > 0 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                                                        onClick={() =>
-                                                            resetToOriginal(
-                                                                field.name
-                                                            )
-                                                        }
+                            <div className="grid grid-cols-2 gap-4">
+                                <form.Field
+                                    name="material"
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
                                                     >
-                                                        Reset
-                                                    </Button>
-                                                )}
-                                            </div>
-                                            <Input
-                                                id={field.name}
-                                                name={field.name}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                aria-invalid={isInvalid}
-                                                placeholder="e.g., PLA, PETG, ABS"
-                                                autoComplete="off"
-                                            />
-                                            {isInvalid && (
-                                                <FieldError
-                                                    errors={
-                                                        field.state.meta.errors
+                                                        Material
+                                                    </FieldLabel>
+                                                    {editingId > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                            onClick={() =>
+                                                                resetToOriginal(
+                                                                    field.name
+                                                                )
+                                                            }
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    id={field.name}
+                                                    name={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            e.target.value
+                                                        )
                                                     }
+                                                    aria-invalid={isInvalid}
+                                                    placeholder="e.g., PLA, PETG, ABS"
+                                                    autoComplete="off"
                                                 />
-                                            )}
-                                        </Field>
-                                    );
-                                }}
-                            />
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
+                                    }}
+                                />
 
-                            <form.Field
-                                name="materialType"
-                                children={(field) => {
-                                    const isInvalid =
-                                        field.state.meta.isTouched &&
-                                        !field.state.meta.isValid;
-                                    return (
-                                        <Field
-                                            data-invalid={isInvalid}
-                                            className="group"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <FieldLabel
-                                                    htmlFor={field.name}
-                                                >
-                                                    Material Type
-                                                </FieldLabel>
-                                                {editingId > 0 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                                                        onClick={() =>
-                                                            resetToOriginal(
-                                                                field.name
-                                                            )
-                                                        }
+                                <form.Field
+                                    name="materialType"
+                                    children={(field) => {
+                                        const isInvalid =
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid;
+                                        return (
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="group"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <FieldLabel
+                                                        htmlFor={field.name}
                                                     >
-                                                        Reset
-                                                    </Button>
-                                                )}
-                                            </div>
-                                            <Input
-                                                id={field.name}
-                                                name={field.name}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                aria-invalid={isInvalid}
-                                                placeholder="e.g., Standard, Pro, Silk"
-                                                autoComplete="off"
-                                            />
-                                            {isInvalid && (
-                                                <FieldError
-                                                    errors={
-                                                        field.state.meta.errors
+                                                        Material Type
+                                                    </FieldLabel>
+                                                    {editingId > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                                                            onClick={() =>
+                                                                resetToOriginal(
+                                                                    field.name
+                                                                )
+                                                            }
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    id={field.name}
+                                                    name={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            e.target.value
+                                                        )
                                                     }
+                                                    aria-invalid={isInvalid}
+                                                    placeholder="e.g., Basic, Pro, Silk"
+                                                    autoComplete="off"
                                                 />
-                                            )}
-                                        </Field>
-                                    );
-                                }}
-                            />
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </Field>
+                                        );
+                                    }}
+                                />
+                            </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <form.Field
@@ -504,7 +514,7 @@ export default function SpoolsPage() {
                                                         )
                                                     }
                                                     aria-invalid={isInvalid}
-                                                    placeholder="e.g., Red, Blue"
+                                                    placeholder="e.g., Black, Blue"
                                                     autoComplete="off"
                                                 />
                                                 {isInvalid && (
@@ -554,6 +564,7 @@ export default function SpoolsPage() {
                                                     )}
                                                 </div>
                                                 <ColorPicker
+                                                    name={field.name}
                                                     error={isInvalid}
                                                     value={field.state.value}
                                                     onChange={(color) =>
@@ -657,9 +668,9 @@ export default function SpoolsPage() {
                                                         id={field.name}
                                                         name={field.name}
                                                         type="number"
-                                                        value={
+                                                        value={Number(
                                                             field.state.value
-                                                        }
+                                                        ).toString()}
                                                         onBlur={
                                                             field.handleBlur
                                                         }
@@ -672,7 +683,6 @@ export default function SpoolsPage() {
                                                             )
                                                         }
                                                         aria-invalid={isInvalid}
-                                                        placeholder="1000"
                                                         className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                     />
                                                 </InputGroup>
@@ -768,9 +778,9 @@ export default function SpoolsPage() {
                                                         id={field.name}
                                                         name={field.name}
                                                         type="number"
-                                                        value={
+                                                        value={Number(
                                                             field.state.value
-                                                        }
+                                                        ).toString()}
                                                         onBlur={
                                                             field.handleBlur
                                                         }
@@ -783,7 +793,6 @@ export default function SpoolsPage() {
                                                             )
                                                         }
                                                         aria-invalid={isInvalid}
-                                                        placeholder="0"
                                                         className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                     />
                                                 </InputGroup>
@@ -878,7 +887,9 @@ export default function SpoolsPage() {
                                                     id={field.name}
                                                     name={field.name}
                                                     type="number"
-                                                    value={field.state.value}
+                                                    value={Number(
+                                                        field.state.value
+                                                    ).toString()}
                                                     onBlur={field.handleBlur}
                                                     onChange={(e) =>
                                                         field.handleChange(
@@ -888,7 +899,6 @@ export default function SpoolsPage() {
                                                         )
                                                     }
                                                     aria-invalid={isInvalid}
-                                                    placeholder="20"
                                                     step="0.01"
                                                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                 />
@@ -1012,6 +1022,47 @@ export default function SpoolsPage() {
                                                 placeholder="Add any additional notes..."
                                                 rows={3}
                                             />
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            />
+
+                            <form.Field
+                                name="isTemplate"
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <Field
+                                            data-invalid={isInvalid}
+                                            orientation="horizontal"
+                                        >
+                                            <Checkbox
+                                                id="isTemplate"
+                                                name="isTemplate"
+                                                onCheckedChange={(e: boolean) =>
+                                                    field.handleChange(
+                                                        e === true
+                                                    )
+                                                }
+                                            />
+                                            <FieldContent>
+                                                <FieldLabel htmlFor="isTemplate">
+                                                    Is a template?
+                                                </FieldLabel>
+                                                <FieldDescription>
+                                                    Use this Spool as a template
+                                                    for other Spools?
+                                                </FieldDescription>
+                                            </FieldContent>
                                             {isInvalid && (
                                                 <FieldError
                                                     errors={
