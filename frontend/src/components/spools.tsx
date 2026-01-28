@@ -554,6 +554,7 @@ export default function SpoolsPage() {
                                                     )}
                                                 </div>
                                                 <ColorPicker
+                                                    error={isInvalid}
                                                     value={field.state.value}
                                                     onChange={(color) =>
                                                         field.handleChange(
@@ -562,21 +563,6 @@ export default function SpoolsPage() {
                                                     }
                                                     onBlur={field.handleBlur}
                                                 />
-
-                                                {/* <Input */}
-                                                {/*     id={field.name} */}
-                                                {/*     name={field.name} */}
-                                                {/*     type="color" */}
-                                                {/*     value={field.state.value} */}
-                                                {/*     onBlur={field.handleBlur} */}
-                                                {/*     onChange={(e) => */}
-                                                {/*         field.handleChange( */}
-                                                {/*             e.target.value */}
-                                                {/*         ) */}
-                                                {/*     } */}
-                                                {/*     aria-invalid={isInvalid} */}
-                                                {/*     className="h-10 hover:cursor-pointer" */}
-                                                {/* /> */}
                                                 {isInvalid && (
                                                     <FieldError
                                                         errors={
