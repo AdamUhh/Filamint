@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, StarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
     Dialog,
     DialogContent,
@@ -69,6 +70,7 @@ export default function SpoolsPage() {
     const [spools, setSpools] = useState<Spool[]>([]);
     const [loading, setLoading] = useState(true);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number>(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
@@ -152,6 +154,10 @@ export default function SpoolsPage() {
         }
     };
 
+    const handleViewTemplate = () => {
+        setTemplateDialogOpen(true);
+    };
+
     const handleAddNew = () => {
         setEditingId(0);
         form.reset();
@@ -189,12 +195,16 @@ export default function SpoolsPage() {
         <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Filament Spools</h1>
-                <Button onClick={handleAddNew}>
-                    <PlusIcon /> Add Spool
-                </Button>
+                <ButtonGroup>
+                    <Button variant="outline" onClick={handleViewTemplate}>
+                        <StarIcon /> View Templates
+                    </Button>
+                    <Button onClick={handleAddNew}>
+                        <PlusIcon /> Add Spool
+                    </Button>
+                </ButtonGroup>
             </div>
 
-            {JSON.stringify(spools, null, 2)}
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -221,57 +231,169 @@ export default function SpoolsPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            spools.map((spool) => (
-                                <TableRow key={spool.id}>
-                                    <TableCell>{spool.vendor}</TableCell>
-                                    <TableCell>{spool.material}</TableCell>
-                                    <TableCell>{spool.materialType}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {spool.colorHex && (
-                                                <div
-                                                    className="-mt-0.5 h-4 w-4 rounded"
-                                                    style={{
-                                                        backgroundColor:
-                                                            spool.colorHex,
-                                                    }}
-                                                />
-                                            )}
+                            spools
+                                .filter((spool) => !spool.isTemplate)
+                                .map((spool) => (
+                                    <TableRow key={spool.id}>
+                                        <TableCell>{spool.vendor}</TableCell>
+                                        <TableCell>{spool.material}</TableCell>
+                                        <TableCell>
+                                            {spool.materialType}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {spool.colorHex && (
+                                                    <div
+                                                        className="-mt-0.5 h-4 w-4 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                spool.colorHex,
+                                                        }}
+                                                    />
+                                                )}
 
-                                            {spool.color}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{spool.totalWeight}</TableCell>
-                                    <TableCell>{spool.usedWeight}</TableCell>
-                                    <TableCell>AED {spool.cost}</TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    handleEdit(spool)
-                                                }
-                                            >
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={() =>
-                                                    handleDeleteClick(spool.id)
-                                                }
-                                            >
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                                {spool.color}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {spool.totalWeight}
+                                        </TableCell>
+                                        <TableCell>
+                                            {spool.usedWeight}
+                                        </TableCell>
+                                        <TableCell>AED {spool.cost}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        handleEdit(spool)
+                                                    }
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    onClick={() =>
+                                                        handleDeleteClick(
+                                                            spool.id
+                                                        )
+                                                    }
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
                         )}
                     </TableBody>
                 </Table>
             </div>
+
+            <Dialog
+                open={templateDialogOpen}
+                onOpenChange={setTemplateDialogOpen}
+            >
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>View Templates</DialogTitle>
+                    </DialogHeader>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Vendor</TableHead>
+                                <TableHead>Material</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Color</TableHead>
+                                <TableHead>Remaining (g)</TableHead>
+                                <TableHead>Used (g)</TableHead>
+                                <TableHead>Cost</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {spools.length === 0 ? (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={8}
+                                        className="h-24 text-center text-muted-foreground"
+                                    >
+                                        No templates found. Add your first
+                                        template spool to get started.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                spools
+                                    .filter((spool) => spool.isTemplate)
+                                    .map((spool) => (
+                                        <TableRow key={spool.id}>
+                                            <TableCell>
+                                                {spool.vendor}
+                                            </TableCell>
+                                            <TableCell>
+                                                {spool.material}
+                                            </TableCell>
+                                            <TableCell>
+                                                {spool.materialType}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {spool.colorHex && (
+                                                        <div
+                                                            className="-mt-0.5 h-4 w-4 rounded"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    spool.colorHex,
+                                                            }}
+                                                        />
+                                                    )}
+
+                                                    {spool.color}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {spool.totalWeight}
+                                            </TableCell>
+                                            <TableCell>
+                                                {spool.usedWeight}
+                                            </TableCell>
+                                            <TableCell>
+                                                AED {spool.cost}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            handleEdit(spool)
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            handleDeleteClick(
+                                                                spool.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit/Create Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -1074,11 +1196,11 @@ export default function SpoolsPage() {
                                             />
                                             <FieldContent>
                                                 <FieldLabel htmlFor="isTemplate">
-                                                    Is a template?
+                                                    Use as template?
                                                 </FieldLabel>
                                                 <FieldDescription>
-                                                    Use this Spool as a template
-                                                    for other duplicate Spools?
+                                                    Reuse this spool when buying
+                                                    the same filament again.
                                                 </FieldDescription>
                                             </FieldContent>
                                             {isInvalid && (
