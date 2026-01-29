@@ -67,6 +67,8 @@ func main() {
 		},
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",
+		Width:            1200,
+		Height:           700,
 	})
 
 	// Create a goroutine that emits an event containing the current time every second.

@@ -35,6 +35,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
     InputGroupText,
+    InputGroupTextarea,
 } from "@/components/ui/input-group";
 import {
     Table,
@@ -44,7 +45,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
 import { Spool, SpoolService } from "@bindings";
 
@@ -52,16 +52,16 @@ import { Checkbox } from "./ui/checkbox";
 import { ColorPicker } from "./ui/custom/color-picker";
 
 const spoolSchema = z.object({
-    vendor: z.string().min(1, "Vendor is required"),
-    material: z.string().min(1, "Material is required"),
-    materialType: z.string().min(1, "Material type is required"),
-    color: z.string().min(1, "Color is required"),
+    vendor: z.string().min(1, "Vendor is required").max(100),
+    material: z.string().min(1, "Material is required").max(100),
+    materialType: z.string().min(1, "Material type is required").max(100),
+    color: z.string().min(1, "Color is required").max(100),
     colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format"),
-    totalWeight: z.number().min(0, "Must be 0 or greater"),
-    usedWeight: z.number().min(0, "Must be 0 or greater"),
-    cost: z.number().min(0, "Must be 0 or greater"),
+    totalWeight: z.number().min(0, "Must be 0 or greater").max(10000),
+    usedWeight: z.number().min(0, "Must be 0 or greater").max(10000),
+    cost: z.number().min(0, "Must be 0 or greater").max(1_000_000_000), // 1 billion, _ improves readability
     referenceLink: z.url("Invalid URL").or(z.literal("")),
-    notes: z.string(),
+    notes: z.string().max(2000),
     isTemplate: z.boolean(),
 });
 
@@ -178,6 +178,7 @@ export default function SpoolsPage() {
         form.setFieldValue("cost", spool.cost);
         form.setFieldValue("referenceLink", spool.referenceLink);
         form.setFieldValue("notes", spool.notes);
+        form.setFieldValue("isTemplate", spool.isTemplate);
 
         setEditDialogOpen(true);
     };
@@ -193,6 +194,7 @@ export default function SpoolsPage() {
                 </Button>
             </div>
 
+            {JSON.stringify(spools, null, 2)}
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -1008,27 +1010,39 @@ export default function SpoolsPage() {
                                                     </Button>
                                                 )}
                                             </div>
-                                            <Textarea
-                                                id={field.name}
-                                                name={field.name}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                aria-invalid={isInvalid}
-                                                placeholder="Add any additional notes..."
-                                                rows={3}
-                                            />
-                                            {isInvalid && (
-                                                <FieldError
-                                                    errors={
-                                                        field.state.meta.errors
+                                            <InputGroup>
+                                                <InputGroupTextarea
+                                                    id={field.name}
+                                                    name={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            e.target.value
+                                                        )
                                                     }
+                                                    aria-invalid={isInvalid}
+                                                    placeholder="Add any additional notes..."
+                                                    rows={3}
                                                 />
-                                            )}
+                                                <InputGroupAddon align="block-end">
+                                                    <InputGroupText className="ml-auto">
+                                                        {
+                                                            field.state.value
+                                                                .length
+                                                        }
+                                                        /2000
+                                                    </InputGroupText>
+                                                </InputGroupAddon>
+                                                {isInvalid && (
+                                                    <FieldError
+                                                        errors={
+                                                            field.state.meta
+                                                                .errors
+                                                        }
+                                                    />
+                                                )}
+                                            </InputGroup>
                                         </Field>
                                     );
                                 }}
@@ -1040,6 +1054,7 @@ export default function SpoolsPage() {
                                     const isInvalid =
                                         field.state.meta.isTouched &&
                                         !field.state.meta.isValid;
+
                                     return (
                                         <Field
                                             data-invalid={isInvalid}
@@ -1048,7 +1063,10 @@ export default function SpoolsPage() {
                                             <Checkbox
                                                 id="isTemplate"
                                                 name="isTemplate"
-                                                onCheckedChange={(e: boolean) =>
+                                                checked={
+                                                    field.state.value === true
+                                                }
+                                                onCheckedChange={(e) =>
                                                     field.handleChange(
                                                         e === true
                                                     )
@@ -1060,7 +1078,7 @@ export default function SpoolsPage() {
                                                 </FieldLabel>
                                                 <FieldDescription>
                                                     Use this Spool as a template
-                                                    for other Spools?
+                                                    for other duplicate Spools?
                                                 </FieldDescription>
                                             </FieldContent>
                                             {isInvalid && (
@@ -1075,7 +1093,6 @@ export default function SpoolsPage() {
                                 }}
                             />
                         </FieldGroup>
-
                         <DialogFooter>
                             <Button
                                 type="button"

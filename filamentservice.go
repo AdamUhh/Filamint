@@ -37,6 +37,13 @@ func NewSpoolService(db *Database) *SpoolService {
 	return &SpoolService{db: db}
 }
 
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 	now := time.Now()
 
@@ -68,7 +75,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
-		spool.IsTemplate,
+		boolToInt(spool.IsTemplate), // convert bool → 0/1
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		now,
@@ -117,7 +124,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
-		spool.IsTemplate,
+		boolToInt(spool.IsTemplate), // convert bool → 0/1
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		time.Now(),

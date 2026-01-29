@@ -126,5 +126,15 @@
     html {
         @apply font-sans;
     }
-}
 
+    /* For WebKit browsers (Chrome, Edge, Safari) */
+    ::-webkit-scrollbar {
+        width: 2px !important; /* adjust thickness */
+        height: 2px !important; /* for horizontal scrollbar */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: var(--ring); /* or any color you like */
+        border-radius: 3px;
+    }
+}
