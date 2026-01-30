@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
 Name=My Product
-Comment=A filament_tracker application
+Comment=My Product Description
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/filament_tracker.exe %u
+Exec=/usr/local/bin/ %u
 Terminal=false
 Type=Application
-Icon=filament_tracker.exe
+Icon=
 Categories=Utility;
-StartupWMClass=filament_tracker.exe
+StartupWMClass=
 
  
