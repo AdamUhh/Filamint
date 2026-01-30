@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { PlusIcon, StarIcon } from "lucide-react";
+import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -70,7 +70,7 @@ export default function SpoolsPage() {
     const [spools, setSpools] = useState<Spool[]>([]);
     const [loading, setLoading] = useState(true);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+    const [templateOpen, setTemplateOpen] = useState(false);
     const [editingId, setEditingId] = useState<number>(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
@@ -155,7 +155,7 @@ export default function SpoolsPage() {
     };
 
     const handleViewTemplate = () => {
-        setTemplateDialogOpen(true);
+        setTemplateOpen((prev) => !prev);
     };
 
     const handleAddNew = () => {
@@ -194,10 +194,21 @@ export default function SpoolsPage() {
     return (
         <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Filament Spools</h1>
+                <h1 className="text-3xl font-bold">
+                    Filament Spools {templateOpen && "- Templates"}
+                </h1>
                 <ButtonGroup>
                     <Button variant="outline" onClick={handleViewTemplate}>
-                        <StarIcon /> View Templates
+                        {templateOpen ? (
+                            <>
+                                <MenuIcon />
+                                Back to Spools
+                            </>
+                        ) : (
+                            <>
+                                <StarIcon /> View Templates
+                            </>
+                        )}
                     </Button>
                     <Button onClick={handleAddNew}>
                         <PlusIcon /> Add Spool
@@ -232,7 +243,11 @@ export default function SpoolsPage() {
                             </TableRow>
                         ) : (
                             spools
-                                .filter((spool) => !spool.isTemplate)
+                                .filter((spool) =>
+                                    templateOpen
+                                        ? spool.isTemplate
+                                        : !spool.isTemplate
+                                )
                                 .map((spool) => (
                                     <TableRow key={spool.id}>
                                         <TableCell>{spool.vendor}</TableCell>
@@ -292,108 +307,6 @@ export default function SpoolsPage() {
                     </TableBody>
                 </Table>
             </div>
-
-            <Dialog
-                open={templateDialogOpen}
-                onOpenChange={setTemplateDialogOpen}
-            >
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
-                    <DialogHeader>
-                        <DialogTitle>View Templates</DialogTitle>
-                    </DialogHeader>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Vendor</TableHead>
-                                <TableHead>Material</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Color</TableHead>
-                                <TableHead>Remaining (g)</TableHead>
-                                <TableHead>Used (g)</TableHead>
-                                <TableHead>Cost</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {spools.length === 0 ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={8}
-                                        className="h-24 text-center text-muted-foreground"
-                                    >
-                                        No templates found. Add your first
-                                        template spool to get started.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                spools
-                                    .filter((spool) => spool.isTemplate)
-                                    .map((spool) => (
-                                        <TableRow key={spool.id}>
-                                            <TableCell>
-                                                {spool.vendor}
-                                            </TableCell>
-                                            <TableCell>
-                                                {spool.material}
-                                            </TableCell>
-                                            <TableCell>
-                                                {spool.materialType}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {spool.colorHex && (
-                                                        <div
-                                                            className="-mt-0.5 h-4 w-4 rounded"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    spool.colorHex,
-                                                            }}
-                                                        />
-                                                    )}
-
-                                                    {spool.color}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {spool.totalWeight}
-                                            </TableCell>
-                                            <TableCell>
-                                                {spool.usedWeight}
-                                            </TableCell>
-                                            <TableCell>
-                                                AED {spool.cost}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            handleEdit(spool)
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            handleDeleteClick(
-                                                                spool.id
-                                                            )
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </DialogContent>
-            </Dialog>
 
             {/* Edit/Create Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
