@@ -1,4 +1,4 @@
-import SpoolsPage from "./components/spools";
+import { SpoolsPage } from "./components/Spools/";
 
 export function App() {
     return (
