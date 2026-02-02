@@ -63,7 +63,30 @@ func (d *Database) initSchema() error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
-	CREATE INDEX IF NOT EXISTS idx_spools_material ON spools(material);
+	CREATE INDEX IF NOT EXISTS idx_spools_is_template ON spools(is_template);
+
+
+	CREATE TABLE IF NOT EXISTS prints (
+	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+	    name TEXT NOT NULL,
+
+	    spool_id INTEGER NOT NULL,
+	    grams_used INTEGER NOT NULL,
+
+	    status TEXT NOT NULL,
+
+	    notes TEXT,
+
+	    date_printed DATETIME,
+
+	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+	    FOREIGN KEY (spool_id) REFERENCES spools(id)
+		ON DELETE RESTRICT
+		ON UPDATE CASCADE
+	);
 	`
 	_, err := d.db.Exec(schema)
 	return err

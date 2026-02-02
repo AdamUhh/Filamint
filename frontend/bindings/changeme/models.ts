@@ -9,6 +9,59 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as time$0 from "../time/models.js";
 
+export class Print {
+    "id": number;
+    "name": string;
+    "spoolId": number;
+    "gramsUsed": number;
+    "status": string;
+    "notes": string;
+    "datePrinted": time$0.Time | null;
+    "createdAt": time$0.Time;
+    "updatedAt": time$0.Time;
+
+    /** Creates a new Print instance. */
+    constructor($$source: Partial<Print> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("spoolId" in $$source)) {
+            this["spoolId"] = 0;
+        }
+        if (!("gramsUsed" in $$source)) {
+            this["gramsUsed"] = 0;
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("notes" in $$source)) {
+            this["notes"] = "";
+        }
+        if (!("datePrinted" in $$source)) {
+            this["datePrinted"] = null;
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+        if (!("updatedAt" in $$source)) {
+            this["updatedAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Print instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Print {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Print($$parsedSource as Partial<Print>);
+    }
+}
+
 export class Spool {
     "id": number;
     "vendor": string;

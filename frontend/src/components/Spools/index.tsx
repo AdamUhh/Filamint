@@ -1,3 +1,4 @@
+import { Events } from "@wailsio/runtime";
 import {
     CopyPlusIcon,
     EllipsisIcon,
@@ -9,8 +10,10 @@ import {
     StarIcon,
     TrashIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
+
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import {
     AlertDialog,
@@ -138,39 +141,32 @@ export function SpoolsPage() {
         },
     });
 
-    const handleDeleteClick = (id: number) => {
-        setSpoolToDelete(id);
-        setDeleteDialogOpen(true);
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (spoolToDelete === null) return;
-        try {
-            await SpoolService.DeleteSpool(spoolToDelete);
-            fetchSpools();
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setDeleteDialogOpen(false);
-            setSpoolToDelete(null);
-        }
-    };
-
-    const handleViewTemplate = () => {
+    const handleViewTemplate = useCallback(() => {
         setTemplateOpen((prev) => !prev);
-    };
-
-    const handleAddNew = () => {
-        setEditingId(0);
-        form.reset();
-        setEditDialogOpen(true);
-    };
+    }, []);
 
     const resetToOriginal = (field: keyof Spool) => {
         if (!originalSpool) return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         form.setFieldValue(field as any, originalSpool[field]);
     };
+
+    const handleCreate = useCallback(() => {
+        setEditingId(0);
+        form.reset();
+        setEditDialogOpen(true);
+    }, [form]);
+
+    useEffect(() => {
+        Events.On("spool:create", handleCreate);
+        Events.On("spool:toggle_template", handleViewTemplate);
+
+        return () => {
+            Events.Off("spool:create");
+            Events.Off("spool:toggle_template");
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleEdit = (spool: Spool) => {
         setEditingId(spool.id);
@@ -191,6 +187,43 @@ export function SpoolsPage() {
         setEditDialogOpen(true);
     };
 
+    const handleDuplicate = (spool: Spool) => {
+        setEditingId(0);
+        setOriginalSpool(spool);
+
+        form.setFieldValue("vendor", spool.vendor);
+        form.setFieldValue("material", spool.material);
+        form.setFieldValue("materialType", spool.materialType);
+        form.setFieldValue("color", spool.color);
+        form.setFieldValue("colorHex", spool.colorHex || "#000000");
+        form.setFieldValue("totalWeight", spool.totalWeight);
+        form.setFieldValue("usedWeight", spool.usedWeight);
+        form.setFieldValue("cost", spool.cost);
+        form.setFieldValue("referenceLink", spool.referenceLink);
+        form.setFieldValue("notes", spool.notes);
+        form.setFieldValue("isTemplate", false);
+
+        setEditDialogOpen(true);
+    };
+
+    const handleDelete = (id: number) => {
+        setSpoolToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (spoolToDelete === null) return;
+        try {
+            await SpoolService.DeleteSpool(spoolToDelete);
+            fetchSpools();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setDeleteDialogOpen(false);
+            setSpoolToDelete(null);
+        }
+    };
+
     if (loading) return <p className="p-6">Loading spools...</p>;
 
     return (
@@ -200,21 +233,39 @@ export function SpoolsPage() {
                     Filament Spools {templateOpen && "- Templates"}
                 </h1>
                 <ButtonGroup>
-                    <Button variant="outline" onClick={handleViewTemplate}>
-                        {templateOpen ? (
-                            <>
-                                <MenuIcon />
-                                Back to Spools
-                            </>
-                        ) : (
-                            <>
-                                <StarIcon /> View Templates
-                            </>
-                        )}
-                    </Button>
-                    <Button onClick={handleAddNew}>
-                        <PlusIcon /> Add Spool
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                onClick={handleViewTemplate}
+                            >
+                                {templateOpen ? (
+                                    <>
+                                        <MenuIcon />
+                                        Back to Spools
+                                    </>
+                                ) : (
+                                    <>
+                                        <StarIcon /> View Templates
+                                    </>
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Ctrl + T</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button onClick={handleCreate}>
+                                <PlusIcon /> Add Spool
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Ctrl + N</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </ButtonGroup>
             </div>
 
@@ -224,8 +275,9 @@ export function SpoolsPage() {
                     <MyTableBody
                         spools={spools}
                         templateOpen={templateOpen}
-                        handleEdit={handleEdit}
-                        handleDeleteClick={handleDeleteClick}
+                        onEdit={handleEdit}
+                        onDuplicate={handleDuplicate}
+                        onDelete={handleDelete}
                     />
                 </Table>
             </div>
@@ -252,7 +304,7 @@ export function SpoolsPage() {
                                 children={(field) => (
                                     <field.SpoolVendorFormField
                                         editingId={editingId}
-                                        resetToOriginal={resetToOriginal}
+                                        onReset={resetToOriginal}
                                     />
                                 )}
                             />
@@ -262,7 +314,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolMaterialFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -272,7 +324,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolMaterialFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -284,7 +336,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolColorFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -294,7 +346,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolColorHexFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -306,7 +358,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolTotalWeightFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -316,7 +368,7 @@ export function SpoolsPage() {
                                     children={(field) => (
                                         <field.SpoolUsedWeightFormField
                                             editingId={editingId}
-                                            resetToOriginal={resetToOriginal}
+                                            onReset={resetToOriginal}
                                         />
                                     )}
                                 />
@@ -327,7 +379,7 @@ export function SpoolsPage() {
                                 children={(field) => (
                                     <field.SpoolCostFormField
                                         editingId={editingId}
-                                        resetToOriginal={resetToOriginal}
+                                        onReset={resetToOriginal}
                                     />
                                 )}
                             />
@@ -337,7 +389,7 @@ export function SpoolsPage() {
                                 children={(field) => (
                                     <field.SpoolReferenceLinkFormField
                                         editingId={editingId}
-                                        resetToOriginal={resetToOriginal}
+                                        onReset={resetToOriginal}
                                     />
                                 )}
                             />
@@ -347,7 +399,7 @@ export function SpoolsPage() {
                                 children={(field) => (
                                     <field.SpoolNotesFormField
                                         editingId={editingId}
-                                        resetToOriginal={resetToOriginal}
+                                        onReset={resetToOriginal}
                                     />
                                 )}
                             />
@@ -408,13 +460,15 @@ export function SpoolsPage() {
 function MyTableBody({
     spools,
     templateOpen,
-    handleEdit,
-    handleDeleteClick,
+    onEdit,
+    onDuplicate,
+    onDelete,
 }: {
     spools: Spool[];
     templateOpen: boolean;
-    handleEdit: (spool: Spool) => void;
-    handleDeleteClick: (id: number) => void;
+    onEdit: (spool: Spool) => void;
+    onDuplicate: (spool: Spool) => void;
+    onDelete: (id: number) => void;
 }) {
     return (
         <TableBody>
@@ -465,7 +519,7 @@ function MyTableBody({
 
                                             <DropdownMenuItem
                                                 onSelect={() =>
-                                                    handleEdit(spool)
+                                                    onDuplicate(spool)
                                                 }
                                             >
                                                 <CopyPlusIcon className="mb-0.5" />
@@ -479,17 +533,13 @@ function MyTableBody({
                                             </DropdownMenuLabel>
 
                                             <DropdownMenuItem
-                                                onSelect={() =>
-                                                    handleEdit(spool)
-                                                }
+                                                onSelect={() => onEdit(spool)}
                                             >
                                                 <FilePlusIcon className="mb-0.5" />
                                                 <span>Log a print</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                                onSelect={() =>
-                                                    handleEdit(spool)
-                                                }
+                                                onSelect={() => onEdit(spool)}
                                             >
                                                 <HistoryIcon className="mb-0.5" />
                                                 <span>View Print History</span>
@@ -502,9 +552,7 @@ function MyTableBody({
                                                 Options
                                             </DropdownMenuLabel>
                                             <DropdownMenuItem
-                                                onSelect={() =>
-                                                    handleEdit(spool)
-                                                }
+                                                onSelect={() => onEdit(spool)}
                                             >
                                                 <PencilIcon className="mb-0.5" />
                                                 <span>
@@ -517,7 +565,7 @@ function MyTableBody({
 
                                             <DropdownMenuItem
                                                 onSelect={() =>
-                                                    handleDeleteClick(spool.id)
+                                                    onDelete(spool.id)
                                                 }
                                                 variant="destructive"
                                             >

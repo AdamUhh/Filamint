@@ -23,11 +23,11 @@ import { useFieldContext } from "./form-hook";
 
 export function SpoolVendorFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["vendor"]>();
 
@@ -43,7 +43,7 @@ export function SpoolVendorFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -66,11 +66,11 @@ export function SpoolVendorFormField({
 
 export function SpoolMaterialFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["material"]>();
 
@@ -86,7 +86,7 @@ export function SpoolMaterialFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -109,11 +109,11 @@ export function SpoolMaterialFormField({
 
 export function SpoolMaterialTypeFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["materialType"]>();
 
@@ -129,7 +129,7 @@ export function SpoolMaterialTypeFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -152,11 +152,11 @@ export function SpoolMaterialTypeFormField({
 
 export function SpoolColorFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["color"]>();
 
@@ -172,7 +172,7 @@ export function SpoolColorFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -194,11 +194,11 @@ export function SpoolColorFormField({
 }
 export function SpoolColorHexFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["colorHex"]>();
 
@@ -214,7 +214,7 @@ export function SpoolColorHexFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -234,11 +234,11 @@ export function SpoolColorHexFormField({
 
 export function SpoolTotalWeightFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["totalWeight"]>();
 
@@ -255,7 +255,7 @@ export function SpoolTotalWeightFormField({
                             variant="ghost"
                             size="sm"
                             className="h-auto px-2 py-0 text-xs"
-                            onClick={() => resetToOriginal(field.name)}
+                            onClick={() => onReset(field.name)}
                         >
                             Reset
                         </Button>
@@ -309,11 +309,11 @@ export function SpoolTotalWeightFormField({
 }
 export function SpoolUsedWeightFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["usedWeight"]>();
 
@@ -330,7 +330,7 @@ export function SpoolUsedWeightFormField({
                             variant="ghost"
                             size="sm"
                             className="h-auto px-2 py-0 text-xs"
-                            onClick={() => resetToOriginal(field.name)}
+                            onClick={() => onReset(field.name)}
                         >
                             Reset
                         </Button>
@@ -385,11 +385,11 @@ export function SpoolUsedWeightFormField({
 
 export function SpoolCostFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["cost"]>();
 
@@ -406,7 +406,7 @@ export function SpoolCostFormField({
                             variant="ghost"
                             size="sm"
                             className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                            onClick={() => resetToOriginal(field.name)}
+                            onClick={() => onReset(field.name)}
                         >
                             Reset
                         </Button>
@@ -462,11 +462,11 @@ export function SpoolCostFormField({
 
 export function SpoolReferenceLinkFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["referenceLink"]>();
 
@@ -482,7 +482,7 @@ export function SpoolReferenceLinkFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>
@@ -506,11 +506,11 @@ export function SpoolReferenceLinkFormField({
 
 export function SpoolNotesFormField({
     editingId,
-    resetToOriginal,
+    onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resetToOriginal: (name: any) => void;
+    onReset: (name: any) => void;
 }) {
     const field = useFieldContext<Spool["notes"]>();
 
@@ -526,7 +526,7 @@ export function SpoolNotesFormField({
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => resetToOriginal(field.name)}
+                        onClick={() => onReset(field.name)}
                     >
                         Reset
                     </Button>

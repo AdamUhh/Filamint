@@ -44,6 +44,7 @@ func main() {
 		Description: "A 3D printing filament manager to keep track of spools, usage, and stock",
 		Services: []application.Service{
 			application.NewService(NewSpoolService(db)),
+			application.NewService(NewPrintService(db)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -52,6 +53,8 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+
+	KeyboardShortcuts(app)
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
