@@ -58,6 +58,10 @@ func PrintShortcuts(app *application.App) {
 	app.KeyBinding.Add(Ctrl+"Shift+P", func(window application.Window) {
 		window.EmitEvent("print:redirect", nil)
 	})
+
+	app.KeyBinding.Add(Ctrl+"N", func(window application.Window) {
+		window.EmitEvent("print:create", nil)
+	})
 }
 
 func KeyboardShortcuts(app *application.App) {

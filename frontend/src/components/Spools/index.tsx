@@ -480,7 +480,7 @@ function MyTableBody({
                         templateOpen ? spool.isTemplate : !spool.isTemplate
                     )
                     .map((spool) => (
-                        <TableRow key={spool.id}>
+                        <TableRow key={spool.id} className="capitalize">
                             <TableCell>{spool.vendor}</TableCell>
                             <TableCell>{spool.material}</TableCell>
                             <TableCell>{spool.materialType}</TableCell>
