@@ -40,6 +40,7 @@ func (d *Database) initSchema() error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS spools (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		spool_code TEXT NOT NULL UNIQUE,
 
 		vendor TEXT NOT NULL,
 		material TEXT NOT NULL,
@@ -64,6 +65,7 @@ func (d *Database) initSchema() error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_spools_is_template ON spools(is_template);
+	CREATE INDEX IF NOT EXISTS idx_spools_spool_code ON spools(spool_code);
 
 
 	CREATE TABLE IF NOT EXISTS prints (

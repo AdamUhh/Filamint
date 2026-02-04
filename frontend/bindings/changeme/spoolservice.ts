@@ -23,6 +23,12 @@ export function GetSpool(id: number): $CancellablePromise<$models.Spool | null> 
     });
 }
 
+export function GetSpoolByCode(code: string): $CancellablePromise<$models.Spool | null> {
+    return $Call.ByID(2094543505, code).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function ListSpools(): $CancellablePromise<$models.Spool[]> {
     return $Call.ByID(2639247538).then(($result: any) => {
         return $$createType2($result);

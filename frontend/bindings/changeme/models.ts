@@ -64,6 +64,7 @@ export class Print {
 
 export class Spool {
     "id": number;
+    "spoolCode": string;
     "vendor": string;
     "material": string;
     "materialType": string;
@@ -84,6 +85,9 @@ export class Spool {
     constructor($$source: Partial<Spool> = {}) {
         if (!("id" in $$source)) {
             this["id"] = 0;
+        }
+        if (!("spoolCode" in $$source)) {
+            this["spoolCode"] = "";
         }
         if (!("vendor" in $$source)) {
             this["vendor"] = "";

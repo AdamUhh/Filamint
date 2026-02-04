@@ -364,10 +364,7 @@ function MyTableBody({
                         <TableCell>{print.gramsUsed}</TableCell>
                         <TableCell>{print.status}</TableCell>
                         <TableCell>
-                            {format(
-                                print.datePrinted,
-                                "MMM d, yyyy hh:mm:ss a"
-                            )}
+                            {format(print.datePrinted, "PPp")}
                         </TableCell>
                         <TableCell>
                             <DropdownMenu>

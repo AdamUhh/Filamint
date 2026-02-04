@@ -232,7 +232,7 @@ export function PrintCalendarFormField({
                         className="justify-between"
                     >
                         {field.state.value
-                            ? format(new Date(field.state.value), "PPP")
+                            ? format(new Date(field.state.value), "PPp")
                             : "Select date"}
                         <ChevronDownIcon data-icon="inline-end" />
                     </Button>
@@ -407,10 +407,7 @@ export function PrintDateTimeFormField({
                         <div className="flex items-center gap-2">
                             <CalendarIcon />
                             {field.state.value
-                                ? format(
-                                      new Date(field.state.value),
-                                      "PPP hh:mm aa"
-                                  )
+                                ? format(new Date(field.state.value), "PPp")
                                 : "Select date & time"}
                         </div>
                         <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />

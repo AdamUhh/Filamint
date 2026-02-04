@@ -1,5 +1,8 @@
 import { Events } from "@wailsio/runtime";
+import { format } from "date-fns";
 import {
+    CheckIcon,
+    ClipboardIcon,
     CopyPlusIcon,
     EllipsisIcon,
     FilePlusIcon,
@@ -52,6 +55,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+
+import { cn } from "@/lib/utils";
 
 import { Spool, SpoolService } from "@bindings";
 
@@ -115,6 +120,7 @@ export function SpoolsPage() {
             const now = new Date().toISOString();
             const spoolToSave: Spool = {
                 id: editingId,
+                spoolCode: String(editingId), // auto generated backend
                 ...value,
                 firstUsedAt: null,
                 lastUsedAt: null,
@@ -322,7 +328,7 @@ export function SpoolsPage() {
                                 <form.AppField
                                     name="materialType"
                                     children={(field) => (
-                                        <field.SpoolMaterialFormField
+                                        <field.SpoolMaterialTypeFormField
                                             editingId={editingId}
                                             onReset={resetToOriginal}
                                         />
@@ -411,17 +417,23 @@ export function SpoolsPage() {
                                 )}
                             />
                         </FieldGroup>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setEditDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit">
-                                {editingId > 0 ? "Update" : "Create"}
-                            </Button>
+                        <DialogFooter className="relative">
+                            <div className="absolute top-1/2 left-4 -translate-y-1/2">
+                                {editingId > 0 &&
+                                    `Created On: ${format(originalSpool?.createdAt, "PPp")}`}
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setEditDialogOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit">
+                                    {editingId > 0 ? "Update" : "Create"}
+                                </Button>
+                            </div>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -481,6 +493,16 @@ function MyTableBody({
                     )
                     .map((spool) => (
                         <TableRow key={spool.id} className="capitalize">
+                            <TableCell>
+                                {format(spool.updatedAt, "PPp")}
+                            </TableCell>
+                            <TableCell className="group flex items-center gap-2">
+                                <span>{spool.spoolCode}</span>
+                                <CopyToClipboard
+                                    textToCopy={spool.spoolCode}
+                                    tooltipContent="Copy Spool Code"
+                                />
+                            </TableCell>
                             <TableCell>{spool.vendor}</TableCell>
                             <TableCell>{spool.material}</TableCell>
                             <TableCell>{spool.materialType}</TableCell>
@@ -605,6 +627,8 @@ function MyTableHeaders() {
     return (
         <TableHeader>
             <TableRow>
+                <TableHead>Last Updated</TableHead>
+                <TableHead>Spool Code</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Material</TableHead>
                 <TableHead>Type</TableHead>
@@ -615,5 +639,52 @@ function MyTableHeaders() {
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>
+    );
+}
+
+export function CopyToClipboard({
+    textToCopy,
+    tooltipContent,
+}: {
+    textToCopy: string;
+    tooltipContent: string;
+}) {
+    const [copied, setCopied] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setOpen(true);
+
+        setTimeout(() => {
+            setCopied(false);
+            setOpen(false);
+        }, 2000);
+    };
+
+    return (
+        <Tooltip open={open} onOpenChange={setOpen}>
+            <TooltipTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCopy}
+                    className={cn(
+                        "pointer-events-none opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100",
+                        copied && "bg-green-500 hover:bg-green-500"
+                    )}
+                >
+                    {copied ? (
+                        <CheckIcon className="size-3.25" />
+                    ) : (
+                        <ClipboardIcon className="size-3.25" />
+                    )}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                {copied ? "Copied" : tooltipContent}
+            </TooltipContent>
+        </Tooltip>
     );
 }
