@@ -1,10 +1,9 @@
 import { format } from "date-fns";
 import { ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import { Calendar } from "@/shadcn/calendar";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/shadcn/field";
+import { Field, FieldError, FieldLabel } from "@/shadcn/field";
 import { Input } from "@/shadcn/input";
 import {
     InputGroup,
@@ -207,15 +206,73 @@ export function PrintCalendarFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-    const [open, setOpen] = useState(false);
-    const [date, setDate] = useState<Date | undefined>(undefined);
-    const [time, setTime] = useState<string>("10:30:00 AM");
+    return (
+        <Field data-invalid={isInvalid} className="group">
+            <div className="flex h-6 items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Date Printed</FieldLabel>
+                {editingId > 0 && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        onClick={() => onReset(field.name)}
+                    >
+                        Reset
+                    </Button>
+                )}
+            </div>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        id={field.name}
+                        variant="outline"
+                        className="justify-between"
+                    >
+                        {field.state.value
+                            ? format(new Date(field.state.value), "PPP")
+                            : "Select date"}
+                        <ChevronDownIcon data-icon="inline-end" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-auto overflow-hidden p-0"
+                    align="start"
+                >
+                    <Calendar
+                        mode="single"
+                        selected={field.state.value}
+                        captionLayout="dropdown"
+                        defaultMonth={field.state.value}
+                        onSelect={(date) => {
+                            if (!date) return;
+                            field.handleChange(format(date, "yyyy-MM-dd"));
+                        }}
+                    />
+                </PopoverContent>
+            </Popover>
+            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+        </Field>
+    );
+}
+
+export function PrintTimeFormField({
+    editingId,
+    onReset,
+}: {
+    editingId: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReset: (name: any) => void;
+}) {
+    const field = useFieldContext<Print["datePrinted"]>();
+
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
-        <FieldGroup className="flex-row gap-2">
-            <Field data-invalid={isInvalid} className="group">
-                <div className="flex h-6 items-center justify-between">
-                    <FieldLabel htmlFor={field.name}>Date Printed</FieldLabel>
+        <Field data-invalid={isInvalid} className="group">
+            <div className="flex h-6 items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Time</FieldLabel>
+                <div className="hidden items-center gap-1 group-hover:flex">
                     {editingId > 0 && (
                         <Button
                             type="button"
@@ -227,86 +284,45 @@ export function PrintCalendarFormField({
                             Reset
                         </Button>
                     )}
-                </div>
-                <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                        <Button
-                            id={field.name}
-                            variant="outline"
-                            className="justify-between"
-                        >
-                            {date ? format(date, "PPP") : "Select date"}
-                            <ChevronDownIcon data-icon="inline-end" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                        className="w-auto overflow-hidden p-0"
-                        align="start"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() =>
+                            field.handleChange(
+                                Math.max(0, field.state.value - 1)
+                            )
+                        }
                     >
-                        <Calendar
-                            mode="single"
-                            selected={date}
-                            captionLayout="dropdown"
-                            defaultMonth={date}
-                            onSelect={(date) => {
-                                setDate(date);
-                                setOpen(false);
-                            }}
-                        />
-                    </PopoverContent>
-                </Popover>
-            </Field>
-            <Field className="group">
-                <div className="flex h-6 items-center justify-between">
-                    <FieldLabel htmlFor="time-picker">Time</FieldLabel>
-                    <div className="hidden items-center gap-1 group-hover:flex">
-                        {editingId > 0 && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                                onClick={() => onReset(field.name)}
-                            >
-                                Reset
-                            </Button>
-                        )}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() =>
-                                field.handleChange(
-                                    Math.max(0, field.state.value - 1)
-                                )
-                            }
-                        >
-                            -
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() =>
-                                field.handleChange(field.state.value + 1)
-                            }
-                        >
-                            +
-                        </Button>
-                    </div>
+                        -
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() =>
+                            field.handleChange(field.state.value + 1)
+                        }
+                    >
+                        +
+                    </Button>
                 </div>
+            </div>
 
-                <Input
-                    id="time-picker"
-                    type="time"
-                    step="1"
-                    defaultValue="10:30:00"
-                    className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                />
-            </Field>
+            <Input
+                id={field.name}
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                type="time"
+                step="1"
+                className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                aria-invalid={isInvalid}
+            />
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
-        </FieldGroup>
+        </Field>
     );
 }

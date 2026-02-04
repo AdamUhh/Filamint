@@ -1,4 +1,5 @@
 import { Events } from "@wailsio/runtime";
+import { format } from "date-fns";
 import {
     CopyPlusIcon,
     EllipsisIcon,
@@ -58,8 +59,10 @@ const printSchema = z.object({
     gramsUsed: z.number().min(0, "Must be 0 or greater").max(10000),
     status: z.string().min(1).max(50),
     notes: z.string().max(2000),
-    datePrinted: z.iso.datetime(),
-    timePrinted: z.iso.time(),
+
+    datePrinted: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    timePrinted: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+
     // TODO: Print file(s)
 });
 export function PrintsPage() {
@@ -91,17 +94,22 @@ export function PrintsPage() {
             name: "",
             spoolId: 0,
             gramsUsed: 0,
-            status: "",
+            status: "completed",
             notes: "",
-            datePrinted: new Date().toISOString(),
-            timePrinted: new Date().toTimeString(),
+            datePrinted: format(new Date(), "yyyy-MM-dd"),
+            timePrinted: format(new Date(), "HH:mm:ss"),
         },
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
             const now = new Date().toISOString();
+            const dateTime = new Date(
+                `${value.datePrinted}T${value.timePrinted}`
+            ).toISOString();
+
             const printToSave: Print = {
                 id: editingId,
                 ...value,
+                datePrinted: dateTime,
                 createdAt:
                     editingId > 0
                         ? prints.find((s) => s.id === editingId)?.createdAt ||
@@ -154,8 +162,11 @@ export function PrintsPage() {
         form.setFieldValue("spoolId", print.spoolId);
         form.setFieldValue("gramsUsed", print.gramsUsed);
         form.setFieldValue("status", print.status);
-        form.setFieldValue("datePrinted", print.datePrinted);
         form.setFieldValue("notes", print.notes);
+
+        const d = new Date(print.datePrinted);
+        form.setFieldValue("datePrinted", format(d, "yyyy-MM-dd"));
+        form.setFieldValue("timePrinted", format(d, "HH:mm:ss"));
 
         setEditDialogOpen(true);
     };
@@ -168,8 +179,11 @@ export function PrintsPage() {
         form.setFieldValue("spoolId", print.spoolId);
         form.setFieldValue("gramsUsed", print.gramsUsed);
         form.setFieldValue("status", print.status);
-        form.setFieldValue("datePrinted", print.datePrinted);
         form.setFieldValue("notes", print.notes);
+
+        const d = new Date(print.datePrinted);
+        form.setFieldValue("datePrinted", format(d, "yyyy-MM-dd"));
+        form.setFieldValue("timePrinted", format(d, "HH:mm:ss"));
 
         setEditDialogOpen(true);
     };
@@ -257,15 +271,28 @@ export function PrintsPage() {
                                     />
                                 )}
                             />
-                            <form.AppField
-                                name="datePrinted"
-                                children={(field) => (
-                                    <field.PrintCalendarFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                    />
-                                )}
-                            />
+
+                            <FieldGroup className="flex-row gap-2">
+                                <form.AppField
+                                    name="datePrinted"
+                                    children={(field) => (
+                                        <field.PrintCalendarFormField
+                                            editingId={editingId}
+                                            onReset={resetToOriginal}
+                                        />
+                                    )}
+                                />
+
+                                <form.AppField
+                                    name="timePrinted"
+                                    children={(field) => (
+                                        <field.PrintTimeFormField
+                                            editingId={editingId}
+                                            onReset={resetToOriginal}
+                                        />
+                                    )}
+                                />
+                            </FieldGroup>
                             <form.AppField
                                 name="status"
                                 children={(field) => (
@@ -344,7 +371,12 @@ function MyTableBody({
                         <TableCell>{print.spoolId}</TableCell>
                         <TableCell>{print.gramsUsed}</TableCell>
                         <TableCell>{print.status}</TableCell>
-                        <TableCell>{print.datePrinted}</TableCell>
+                        <TableCell>
+                            {format(
+                                print.datePrinted,
+                                "MMM d, yyyy hh:mm:ss a"
+                            )}
+                        </TableCell>
                         <TableCell>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
