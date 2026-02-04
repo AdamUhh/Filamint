@@ -2,6 +2,7 @@ import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 
 import {
     PrintCalendarFormField,
+    PrintDateTimeFormField,
     PrintGramsUsedFormField,
     PrintNameFormField,
     PrintStatusFormField,
@@ -20,6 +21,7 @@ export const { useAppForm } = createFormHook({
         PrintStatusFormField,
         PrintCalendarFormField,
         PrintTimeFormField,
+        PrintDateTimeFormField,
     },
     formComponents: {},
 });

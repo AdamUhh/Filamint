@@ -12,6 +12,7 @@ import {
     InputGroupText,
 } from "@/shadcn/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shadcn/popover";
+import { ScrollArea } from "@/shadcn/scroll-area";
 import {
     Select,
     SelectContent,
@@ -322,6 +323,195 @@ export function PrintTimeFormField({
                 className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 aria-invalid={isInvalid}
             />
+            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+        </Field>
+    );
+}
+
+export function PrintDateTimeFormField({
+    editingId,
+    onReset,
+}: {
+    editingId: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReset: (name: any) => void;
+}) {
+    // Source: https://github.com/rudrodip/shadcn-date-time-picker
+    const field = useFieldContext<Print["datePrinted"]>();
+
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+    const handleDateSelect = (selectedDate: Date | undefined) => {
+        if (!selectedDate) return;
+        const newDate = field.state.value
+            ? new Date(field.state.value)
+            : new Date();
+        newDate.setFullYear(
+            selectedDate.getFullYear(),
+            selectedDate.getMonth(),
+            selectedDate.getDate()
+        );
+        field.handleChange(newDate.toISOString());
+    };
+
+    const handleTimeChange = (
+        type: "hour" | "minute" | "ampm",
+        value: string
+    ) => {
+        if (!field.state.value) return;
+        const newDate = new Date(field.state.value);
+        if (type === "hour") {
+            newDate.setHours(
+                (parseInt(value) % 12) + (newDate.getHours() >= 12 ? 12 : 0)
+            );
+        } else if (type === "minute") {
+            newDate.setMinutes(parseInt(value));
+        } else if (type === "ampm") {
+            const currentHours = newDate.getHours();
+            newDate.setHours(
+                value === "PM" ? currentHours + 12 : currentHours - 12
+            );
+        }
+        field.handleChange(newDate.toISOString());
+    };
+
+    const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    const ampm = ["AM", "PM"];
+
+    return (
+        <Field data-invalid={isInvalid} className="group">
+            <div className="flex h-6 items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Date Printed</FieldLabel>
+                {editingId > 0 && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        onClick={() => onReset(field.name)}
+                    >
+                        Reset
+                    </Button>
+                )}
+            </div>
+
+            <Popover modal>
+                <PopoverTrigger asChild>
+                    <Button
+                        id={field.name}
+                        variant="outline"
+                        className="w-full justify-between"
+                    >
+                        {field.state.value
+                            ? format(
+                                  new Date(field.state.value),
+                                  "PPP hh:mm aa"
+                              )
+                            : "Select date & time"}
+                        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <div className="sm:flex">
+                        <Calendar
+                            mode="single"
+                            selected={
+                                field.state.value
+                                    ? new Date(field.state.value)
+                                    : undefined
+                            }
+                            onSelect={handleDateSelect}
+                        />
+                        <div className="flex flex-col divide-y sm:h-75 sm:flex-row sm:divide-x sm:divide-y-0">
+                            <ScrollArea className="w-64 sm:w-auto">
+                                <div className="flex p-2 sm:flex-col">
+                                    {hours.reverse().map((hour) => (
+                                        <Button
+                                            key={hour}
+                                            size="icon"
+                                            variant={
+                                                field.state.value &&
+                                                new Date(
+                                                    field.state.value
+                                                ).getHours() %
+                                                    12 ===
+                                                    hour % 12
+                                                    ? "default"
+                                                    : "ghost"
+                                            }
+                                            className="aspect-square shrink-0 sm:w-full"
+                                            onClick={() =>
+                                                handleTimeChange(
+                                                    "hour",
+                                                    hour.toString()
+                                                )
+                                            }
+                                        >
+                                            {hour}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <ScrollArea className="w-64 sm:w-auto">
+                                <div className="flex p-2 sm:flex-col">
+                                    {minutes.map((minute) => (
+                                        <Button
+                                            key={minute}
+                                            size="icon"
+                                            variant={
+                                                field.state.value &&
+                                                new Date(
+                                                    field.state.value
+                                                ).getMinutes() === minute
+                                                    ? "default"
+                                                    : "ghost"
+                                            }
+                                            className="aspect-square shrink-0 sm:w-full"
+                                            onClick={() =>
+                                                handleTimeChange(
+                                                    "minute",
+                                                    minute.toString()
+                                                )
+                                            }
+                                        >
+                                            {minute}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <div className="flex p-2 sm:flex-col">
+                                {ampm.map((ap) => (
+                                    <Button
+                                        key={ap}
+                                        size="icon"
+                                        variant={
+                                            field.state.value &&
+                                            ((ap === "AM" &&
+                                                new Date(
+                                                    field.state.value
+                                                ).getHours() < 12) ||
+                                                (ap === "PM" &&
+                                                    new Date(
+                                                        field.state.value
+                                                    ).getHours() >= 12))
+                                                ? "default"
+                                                : "ghost"
+                                        }
+                                        className="aspect-square shrink-0 sm:w-full"
+                                        onClick={() =>
+                                            handleTimeChange("ampm", ap)
+                                        }
+                                    >
+                                        {ap}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </PopoverContent>
+            </Popover>
+
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );

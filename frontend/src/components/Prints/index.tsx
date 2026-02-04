@@ -60,8 +60,9 @@ const printSchema = z.object({
     status: z.string().min(1).max(50),
     notes: z.string().max(2000),
 
-    datePrinted: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    timePrinted: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+    datePrinted: z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: "Invalid date",
+    }),
 
     // TODO: Print file(s)
 });
@@ -96,20 +97,15 @@ export function PrintsPage() {
             gramsUsed: 0,
             status: "completed",
             notes: "",
-            datePrinted: format(new Date(), "yyyy-MM-dd"),
-            timePrinted: format(new Date(), "HH:mm:ss"),
+            datePrinted: new Date().toISOString(),
         },
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
             const now = new Date().toISOString();
-            const dateTime = new Date(
-                `${value.datePrinted}T${value.timePrinted}`
-            ).toISOString();
 
             const printToSave: Print = {
                 id: editingId,
                 ...value,
-                datePrinted: dateTime,
                 createdAt:
                     editingId > 0
                         ? prints.find((s) => s.id === editingId)?.createdAt ||
@@ -164,9 +160,7 @@ export function PrintsPage() {
         form.setFieldValue("status", print.status);
         form.setFieldValue("notes", print.notes);
 
-        const d = new Date(print.datePrinted);
-        form.setFieldValue("datePrinted", format(d, "yyyy-MM-dd"));
-        form.setFieldValue("timePrinted", format(d, "HH:mm:ss"));
+        form.setFieldValue("datePrinted", print.datePrinted);
 
         setEditDialogOpen(true);
     };
@@ -181,9 +175,7 @@ export function PrintsPage() {
         form.setFieldValue("status", print.status);
         form.setFieldValue("notes", print.notes);
 
-        const d = new Date(print.datePrinted);
-        form.setFieldValue("datePrinted", format(d, "yyyy-MM-dd"));
-        form.setFieldValue("timePrinted", format(d, "HH:mm:ss"));
+        form.setFieldValue("datePrinted", print.datePrinted);
 
         setEditDialogOpen(true);
     };
@@ -263,9 +255,9 @@ export function PrintsPage() {
                             />
 
                             <form.AppField
-                                name="gramsUsed"
+                                name="datePrinted"
                                 children={(field) => (
-                                    <field.PrintGramsUsedFormField
+                                    <field.PrintDateTimeFormField
                                         editingId={editingId}
                                         onReset={resetToOriginal}
                                     />
@@ -274,34 +266,24 @@ export function PrintsPage() {
 
                             <FieldGroup className="flex-row gap-2">
                                 <form.AppField
-                                    name="datePrinted"
+                                    name="status"
                                     children={(field) => (
-                                        <field.PrintCalendarFormField
+                                        <field.PrintStatusFormField
                                             editingId={editingId}
                                             onReset={resetToOriginal}
                                         />
                                     )}
                                 />
-
                                 <form.AppField
-                                    name="timePrinted"
+                                    name="gramsUsed"
                                     children={(field) => (
-                                        <field.PrintTimeFormField
+                                        <field.PrintGramsUsedFormField
                                             editingId={editingId}
                                             onReset={resetToOriginal}
                                         />
                                     )}
                                 />
                             </FieldGroup>
-                            <form.AppField
-                                name="status"
-                                children={(field) => (
-                                    <field.PrintStatusFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                    />
-                                )}
-                            />
                         </FieldGroup>
                         <DialogFooter>
                             <Button

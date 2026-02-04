@@ -128,13 +128,25 @@
     }
 
     /* For WebKit browsers (Chrome, Edge, Safari) */
+    /* ::-webkit-scrollbar { */
+    /*     width: 2px !important; /* adjust thickness */
+    /*     height: 2px !important; /* for horizontal scrollbar */
+    /* } */
+    /**/
+    /* ::-webkit-scrollbar-thumb { */
+    /*     background-color: var(--ring); /* or any color you like */
+    /*     border-radius: 3px; */
+    /* } */
+
     ::-webkit-scrollbar {
-        width: 2px !important; /* adjust thickness */
-        height: 2px !important; /* for horizontal scrollbar */
+        @apply h-0.5 w-0.5;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
     }
 
     ::-webkit-scrollbar-thumb {
-        background-color: var(--ring); /* or any color you like */
-        border-radius: 3px;
+        @apply rounded-full border border-solid border-transparent bg-border bg-clip-padding;
     }
 }
