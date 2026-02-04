@@ -284,6 +284,16 @@ export function PrintsPage() {
                                     )}
                                 />
                             </FieldGroup>
+
+                            <form.AppField
+                                name="notes"
+                                children={(field) => (
+                                    <field.PrintNotesFormField
+                                        editingId={editingId}
+                                        onReset={resetToOriginal}
+                                    />
+                                )}
+                            />
                         </FieldGroup>
                         <DialogFooter>
                             <Button

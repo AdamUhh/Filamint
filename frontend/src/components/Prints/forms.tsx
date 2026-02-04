@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ChevronDownIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
 import { Calendar } from "@/shadcn/calendar";
@@ -10,6 +10,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
     InputGroupText,
+    InputGroupTextarea,
 } from "@/shadcn/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shadcn/popover";
 import { ScrollArea } from "@/shadcn/scroll-area";
@@ -403,12 +404,15 @@ export function PrintDateTimeFormField({
                         variant="outline"
                         className="w-full justify-between"
                     >
-                        {field.state.value
-                            ? format(
-                                  new Date(field.state.value),
-                                  "PPP hh:mm aa"
-                              )
-                            : "Select date & time"}
+                        <div className="flex items-center gap-2">
+                            <CalendarIcon />
+                            {field.state.value
+                                ? format(
+                                      new Date(field.state.value),
+                                      "PPP hh:mm aa"
+                                  )
+                                : "Select date & time"}
+                        </div>
                         <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
                     </Button>
                 </PopoverTrigger>
@@ -513,6 +517,57 @@ export function PrintDateTimeFormField({
             </Popover>
 
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
+        </Field>
+    );
+}
+
+export function PrintNotesFormField({
+    editingId,
+    onReset,
+}: {
+    editingId: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReset: (name: any) => void;
+}) {
+    const field = useFieldContext<Print["notes"]>();
+
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+    return (
+        <Field data-invalid={isInvalid} className="group">
+            <div className="flex items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Notes</FieldLabel>
+                {editingId > 0 && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        onClick={() => onReset(field.name)}
+                    >
+                        Reset
+                    </Button>
+                )}
+            </div>
+            <InputGroup>
+                <InputGroupTextarea
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    aria-invalid={isInvalid}
+                    placeholder="Add any additional notes..."
+                    rows={3}
+                />
+                <InputGroupAddon align="block-end">
+                    <InputGroupText className="ml-auto">
+                        {field.state.value.length}
+                        /2000
+                    </InputGroupText>
+                </InputGroupAddon>
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            </InputGroup>
         </Field>
     );
 }
