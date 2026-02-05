@@ -1,49 +1,79 @@
 import {
     type ReactNode,
-    createContext,
-    useContext,
+    useCallback,
     useEffect,
+    useMemo,
     useState,
 } from "react";
 
-import { type Spool, SpoolService } from "@bindings";
+import { SpoolService } from "@bindings";
 
-interface SpoolContextValue {
-    spools: Spool[];
-    refresh: () => Promise<void>;
-    options: { currency: string; currencyAlign: "left" | "right" };
-}
-
-const SpoolContext = createContext<SpoolContextValue | undefined>(undefined);
+import { SpoolContext, type SpoolContextValue } from "./useContext";
 
 export function SpoolProvider({ children }: { children: ReactNode }) {
-    const [spools, setSpools] = useState<Spool[]>([]);
+    const [spools, setSpools] = useState<SpoolContextValue["spools"]>([]);
+    const [selectedSpool, setSelectedSpool] =
+        useState<SpoolContextValue["selectedSpool"]>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
 
-    const fetchSpools = async () => {
-        const result = await SpoolService.ListSpools();
-        setSpools(result);
-    };
+    // add handlers that saves and fetches from localstorage or DB
+    const options = useMemo(
+        () => ({
+            currency: "AED",
+            currencyAlign: "left" as const,
+        }),
+        []
+    );
+
+    const fetchSpools = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const result = await SpoolService.ListSpools();
+            setSpools(result);
+        } catch (err) {
+            setError(
+                err instanceof Error ? err : new Error("Failed to fetch spools")
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         fetchSpools();
-    }, []);
+    }, [fetchSpools]);
+
+    const selectSpool = useCallback(
+        (spool: SpoolContextValue["spools"][number]) => {
+            setSelectedSpool(spool);
+        },
+        []
+    );
+
+    const value = useMemo<SpoolContextValue>(
+        () => ({
+            spools,
+            selectedSpool,
+            selectSpool,
+            isLoading,
+            error,
+            refresh: fetchSpools,
+            options,
+        }),
+        [
+            spools,
+            selectedSpool,
+            selectSpool,
+            isLoading,
+            error,
+            fetchSpools,
+            options,
+        ]
+    );
 
     return (
-        <SpoolContext.Provider
-            value={{
-                spools,
-                refresh: fetchSpools,
-                options: { currency: "AED", currencyAlign: "left" },
-            }}
-        >
-            {children}
-        </SpoolContext.Provider>
+        <SpoolContext.Provider value={value}>{children}</SpoolContext.Provider>
     );
-}
-
-// Hook for components
-export function useSpools() {
-    const ctx = useContext(SpoolContext);
-    if (!ctx) throw new Error("useSpools must be used inside a SpoolProvider");
-    return ctx;
 }

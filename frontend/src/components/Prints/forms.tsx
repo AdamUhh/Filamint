@@ -3,6 +3,14 @@ import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
 import { Calendar } from "@/shadcn/calendar";
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from "@/shadcn/combobox";
 import { Field, FieldError, FieldLabel } from "@/shadcn/field";
 import { Input } from "@/shadcn/input";
 import {
@@ -23,7 +31,7 @@ import {
     SelectValue,
 } from "@/shadcn/select";
 
-import type { Print } from "@bindings";
+import type { Print, Spool } from "@bindings";
 
 import { useFieldContext } from "./form-hook";
 
@@ -146,6 +154,85 @@ export function PrintGramsUsedFormField({
     );
 }
 
+export function PrintSpoolFormField({
+    editingId,
+    onReset,
+    spools,
+}: {
+    editingId: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReset: (name: any) => void;
+    spools: Spool[];
+}) {
+    const field = useFieldContext<Print["spoolId"]>();
+
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+    return (
+        <Field data-invalid={isInvalid} className="group">
+            <div className="flex items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Spools</FieldLabel>
+                {editingId > 0 && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        onClick={() => onReset(field.name)}
+                    >
+                        Reset
+                    </Button>
+                )}
+            </div>
+            {/* // TODO: make it multiple, because a single print can use multiple spools for colors */}
+            <Combobox
+                modal
+                name={field.name}
+                onValueChange={(e) => field.handleChange(e ? parseInt(e) : 0)}
+                value={String(field.state.value)}
+                items={spools}
+            >
+                <ComboboxInput placeholder="Select a spool" />
+                <ComboboxContent>
+                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                    <ComboboxList className="pointer-events-auto">
+                        {(spool: Spool) => (
+                            <ComboboxItem
+                                key={spool.id}
+                                value={String(spool.id)}
+                            >
+                                <div className="grid w-full grid-cols-[auto_1fr_auto] gap-x-3 gap-y-1 font-mono hover:cursor-pointer">
+                                    {/* Primary identifier */}
+                                    <span className="col-span-3 font-medium">
+                                        {spool.spoolCode}
+                                    </span>
+
+                                    {/* Vendor + color */}
+                                    <span className="truncate text-muted-foreground">
+                                        {spool.vendor} · {spool.color}
+                                    </span>
+
+                                    {/* Material */}
+                                    <span className="truncate text-muted-foreground">
+                                        {spool.material}
+                                    </span>
+
+                                    {/* Remaining weight */}
+                                    <span className="text-right text-muted-foreground">
+                                        {spool.totalWeight}g
+                                    </span>
+                                </div>
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+
+            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+        </Field>
+    );
+}
+
 export function PrintStatusFormField({
     editingId,
     onReset,
@@ -160,7 +247,7 @@ export function PrintStatusFormField({
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex items-center justify-between">
+            <div className="flex h-6 items-center justify-between">
                 <FieldLabel htmlFor={field.name}>Print Name</FieldLabel>
                 {editingId > 0 && (
                     <Button

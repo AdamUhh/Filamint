@@ -1,3 +1,4 @@
+import { useSpools } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
 import { format } from "date-fns";
 import {
@@ -77,29 +78,14 @@ const spoolSchema = z.object({
 });
 
 export function SpoolsPage() {
-    const [spools, setSpools] = useState<Spool[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { spools, isLoading, refresh } = useSpools();
+    const [originalSpool, setOriginalSpool] = useState<Spool | null>(null);
+    const [editingId, setEditingId] = useState<number>(0);
+    const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
+
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [templateOpen, setTemplateOpen] = useState(false);
-    const [editingId, setEditingId] = useState<number>(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
-    const [originalSpool, setOriginalSpool] = useState<Spool | null>(null);
-
-    const fetchSpools = async () => {
-        try {
-            const list = await SpoolService.ListSpools();
-            setSpools(list);
-        } catch (err) {
-            console.error("Failed to fetch spools:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchSpools();
-    }, []);
 
     const form = useAppForm({
         defaultValues: {
@@ -140,7 +126,7 @@ export function SpoolsPage() {
                 }
                 setEditDialogOpen(false);
                 form.reset();
-                fetchSpools();
+                refresh();
             } catch (err) {
                 console.error("Failed to save spool:", err);
             }
@@ -221,7 +207,7 @@ export function SpoolsPage() {
         if (spoolToDelete === null) return;
         try {
             await SpoolService.DeleteSpool(spoolToDelete);
-            fetchSpools();
+            refresh();
         } catch (err) {
             console.error(err);
         } finally {
@@ -230,7 +216,7 @@ export function SpoolsPage() {
         }
     };
 
-    if (loading) return <p className="p-6">Loading spools...</p>;
+    if (isLoading) return <p className="p-6">Loading spools...</p>;
 
     return (
         <div className="space-y-6 p-6">
@@ -482,6 +468,8 @@ function MyTableBody({
     onDuplicate: (spool: Spool) => void;
     onDelete: (id: number) => void;
 }) {
+    const { options } = useSpools();
+
     return (
         <TableBody>
             {spools.length === 0 ? (
@@ -522,7 +510,17 @@ function MyTableBody({
                             </TableCell>
                             <TableCell>{spool.totalWeight}</TableCell>
                             <TableCell>{spool.usedWeight}</TableCell>
-                            <TableCell>AED {spool.cost}</TableCell>
+                            <TableCell>
+                                {options.currencyAlign === "left" ? (
+                                    <>
+                                        {options.currency} {spool.cost}
+                                    </>
+                                ) : (
+                                    <>
+                                        {spool.cost} {options.currency}
+                                    </>
+                                )}
+                            </TableCell>
                             <TableCell>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>

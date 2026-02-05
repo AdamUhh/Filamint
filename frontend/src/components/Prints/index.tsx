@@ -1,3 +1,4 @@
+import { useSpools } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
 import { format } from "date-fns";
 import {
@@ -67,6 +68,7 @@ const printSchema = z.object({
     // TODO: Print file(s)
 });
 export function PrintsPage() {
+    const { spools } = useSpools();
     const [prints, setPrints] = useState<Print[]>([]);
     const [loading, setLoading] = useState(true);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -260,6 +262,16 @@ export function PrintsPage() {
                                     <field.PrintDateTimeFormField
                                         editingId={editingId}
                                         onReset={resetToOriginal}
+                                    />
+                                )}
+                            />
+                            <form.AppField
+                                name="spoolId"
+                                children={(field) => (
+                                    <field.PrintSpoolFormField
+                                        editingId={editingId}
+                                        onReset={resetToOriginal}
+                                        spools={spools}
                                     />
                                 )}
                             />
