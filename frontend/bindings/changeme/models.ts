@@ -12,13 +12,20 @@ import * as time$0 from "../time/models.js";
 export class Print {
     "id": number;
     "name": string;
-    "spoolId": number;
-    "gramsUsed": number;
+
+    /**
+     * GramsUsed int    `db:"grams_used" json:"gramsUsed"` // maybe we can put total here?
+     */
     "status": string;
     "notes": string;
     "datePrinted": time$0.Time | null;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
+
+    /**
+     * join table
+     */
+    "spools"?: PrintSpool[];
 
     /** Creates a new Print instance. */
     constructor($$source: Partial<Print> = {}) {
@@ -27,12 +34,6 @@ export class Print {
         }
         if (!("name" in $$source)) {
             this["name"] = "";
-        }
-        if (!("spoolId" in $$source)) {
-            this["spoolId"] = 0;
-        }
-        if (!("gramsUsed" in $$source)) {
-            this["gramsUsed"] = 0;
         }
         if (!("status" in $$source)) {
             this["status"] = "";
@@ -57,8 +58,58 @@ export class Print {
      * Creates a new Print instance from a string or object.
      */
     static createFrom($$source: any = {}): Print {
+        const $$createField7_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("spools" in $$parsedSource) {
+            $$parsedSource["spools"] = $$createField7_0($$parsedSource["spools"]);
+        }
         return new Print($$parsedSource as Partial<Print>);
+    }
+}
+
+export class PrintSpool {
+    "id": number;
+    "printId": number;
+    "spoolId": number;
+    "gramsUsed": number;
+    "createdAt": time$0.Time;
+    "updatedAt": time$0.Time;
+    "spool"?: Spool | null;
+
+    /** Creates a new PrintSpool instance. */
+    constructor($$source: Partial<PrintSpool> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("printId" in $$source)) {
+            this["printId"] = 0;
+        }
+        if (!("spoolId" in $$source)) {
+            this["spoolId"] = 0;
+        }
+        if (!("gramsUsed" in $$source)) {
+            this["gramsUsed"] = 0;
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+        if (!("updatedAt" in $$source)) {
+            this["updatedAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrintSpool instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrintSpool {
+        const $$createField6_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("spool" in $$parsedSource) {
+            $$parsedSource["spool"] = $$createField6_0($$parsedSource["spool"]);
+        }
+        return new PrintSpool($$parsedSource as Partial<PrintSpool>);
     }
 }
 
@@ -146,3 +197,9 @@ export class Spool {
         return new Spool($$parsedSource as Partial<Spool>);
     }
 }
+
+// Private type creation functions
+const $$createType0 = PrintSpool.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = Spool.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);

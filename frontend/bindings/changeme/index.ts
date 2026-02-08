@@ -10,5 +10,6 @@ export {
 
 export {
     Print,
+    PrintSpool,
     Spool
 } from "./models.js";

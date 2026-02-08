@@ -11,7 +11,7 @@ import {
     PrintTimeFormField,
 } from "./forms";
 
-export const { fieldContext, formContext, useFieldContext } =
+export const { fieldContext, formContext, useFieldContext, useFormContext } =
     createFormHookContexts();
 
 export const { useAppForm } = createFormHook({
@@ -27,5 +27,6 @@ export const { useAppForm } = createFormHook({
         PrintNotesFormField,
         PrintSpoolFormField,
     },
+
     formComponents: {},
 });

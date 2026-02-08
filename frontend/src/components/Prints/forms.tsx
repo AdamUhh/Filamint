@@ -1,7 +1,8 @@
 import { format } from "date-fns";
-import { CalendarIcon, ChevronDownIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon, TrashIcon } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
+import { ButtonGroup } from "@/shadcn/button-group";
 import { Calendar } from "@/shadcn/calendar";
 import {
     Combobox,
@@ -31,8 +32,11 @@ import {
     SelectValue,
 } from "@/shadcn/select";
 
+import type { ArrayElementOf } from "@/lib/util-types";
+
 import type { Print, Spool } from "@bindings";
 
+import type { TPrintSchema } from ".";
 import { useFieldContext } from "./form-hook";
 
 export function PrintNameFormField({
@@ -78,63 +82,46 @@ export function PrintNameFormField({
     );
 }
 
-export function PrintGramsUsedFormField({
-    editingId,
-    onReset,
-}: {
-    editingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReset: (name: any) => void;
-}) {
-    const field = useFieldContext<Print["gramsUsed"]>();
+export function PrintGramsUsedFormField() {
+    const field = useFieldContext<number>();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
-        <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Grams Used</FieldLabel>
-                <div className="hidden items-center gap-1 group-hover:flex">
-                    {editingId > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto px-2 py-0 text-xs"
-                            onClick={() => onReset(field.name)}
-                        >
-                            Reset
-                        </Button>
-                    )}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(
-                                Math.max(0, field.state.value - 1)
-                            )
-                        }
-                    >
-                        -
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(field.state.value + 1)
-                        }
-                    >
-                        +
-                    </Button>
-                </div>
-            </div>
+        <Field data-invalid={isInvalid} className="group flex-1">
             <InputGroup>
-                <InputGroupAddon align="inline-end">
-                    <InputGroupText>grams</InputGroupText>
+                <InputGroupAddon className="group-hover:p-0" align="inline-end">
+                    <InputGroupText className="group-hover:hidden">
+                        grams
+                    </InputGroupText>
+                    <div className="hidden items-center group-hover:flex">
+                        <ButtonGroup>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        Math.max(0, field.state.value - 1)
+                                    )
+                                }
+                            >
+                                -
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(field.state.value + 1)
+                                }
+                            >
+                                +
+                            </Button>
+                        </ButtonGroup>
+                    </div>
                 </InputGroupAddon>
                 <InputGroupInput
                     id={field.name}
@@ -149,85 +136,88 @@ export function PrintGramsUsedFormField({
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
             </InputGroup>
-            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
         </Field>
     );
 }
 
 export function PrintSpoolFormField({
-    editingId,
-    onReset,
     spools,
+    onRemoveSpool: onRemoveSpool,
 }: {
-    editingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReset: (name: any) => void;
     spools: Spool[];
+    onRemoveSpool: () => void;
 }) {
-    const field = useFieldContext<Print["spoolId"]>();
+    const field =
+        useFieldContext<
+            Pick<ArrayElementOf<TPrintSchema["spools"]>, "spool">
+        >();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
-        <Field data-invalid={isInvalid} className="group">
-            <div className="flex items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Spools</FieldLabel>
-                {editingId > 0 && (
+        <Field data-invalid={isInvalid} className="group flex-2">
+            <Combobox
+                name={field.name}
+                items={spools}
+                value={field.state.value.spool}
+                onValueChange={(value) =>
+                    value &&
+                    field.handleChange({
+                        spool: {
+                            id: value.id,
+                            spoolCode: value.spoolCode,
+                        },
+                    })
+                }
+                itemToStringLabel={(value) => `${value.spoolCode}`}
+            >
+                <div className="flex gap-2">
                     <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline-destructive"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => onReset(field.name)}
+                        className="aspect-square h-full p-0"
+                        onClick={onRemoveSpool}
                     >
-                        Reset
+                        <TrashIcon className="size-3" />
                     </Button>
-                )}
-            </div>
-            {/* // TODO: make it multiple, because a single print can use multiple spools for colors */}
-            <Combobox
-                modal
-                name={field.name}
-                onValueChange={(e) => field.handleChange(e ? parseInt(e) : 0)}
-                value={String(field.state.value)}
-                items={spools}
-            >
-                <ComboboxInput placeholder="Select a spool" />
+                    <ComboboxInput
+                        className="w-full"
+                        placeholder="Select a spool"
+                    />
+                </div>
                 <ComboboxContent>
                     <ComboboxEmpty>No items found.</ComboboxEmpty>
                     <ComboboxList className="pointer-events-auto">
                         {(spool: Spool) => (
-                            <ComboboxItem
-                                key={spool.id}
-                                value={String(spool.id)}
-                            >
-                                <div className="grid w-full grid-cols-[auto_1fr_auto] gap-x-3 gap-y-1 font-mono hover:cursor-pointer">
-                                    {/* Primary identifier */}
-                                    <span className="col-span-3 font-medium">
-                                        {spool.spoolCode}
-                                    </span>
+                            <ComboboxItem key={spool.id} value={spool}>
+                                <div className="flex w-full items-center justify-between font-mono hover:cursor-pointer">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="col-span-3 font-medium">
+                                            {spool.spoolCode}
+                                        </span>
 
-                                    {/* Vendor + color */}
-                                    <span className="truncate text-muted-foreground">
-                                        {spool.vendor} · {spool.color}
-                                    </span>
+                                        <span className="truncate text-muted-foreground">
+                                            {spool.vendor} · {spool.color} ·{" "}
+                                            {spool.material}
+                                        </span>
+                                    </div>
 
-                                    {/* Material */}
-                                    <span className="truncate text-muted-foreground">
-                                        {spool.material}
-                                    </span>
-
-                                    {/* Remaining weight */}
-                                    <span className="text-right text-muted-foreground">
-                                        {spool.totalWeight}g
-                                    </span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-right text-muted-foreground">
+                                            {spool.id}
+                                        </span>
+                                        <span className="text-right text-muted-foreground">
+                                            {spool.totalWeight}g
+                                        </span>
+                                    </div>
                                 </div>
                             </ComboboxItem>
                         )}
                     </ComboboxList>
                 </ComboboxContent>
             </Combobox>
-
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );
@@ -247,8 +237,8 @@ export function PrintStatusFormField({
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Print Name</FieldLabel>
+            <div className="flex items-center justify-between">
+                <FieldLabel htmlFor={field.name}>Print Status</FieldLabel>
                 {editingId > 0 && (
                     <Button
                         type="button"
@@ -469,7 +459,7 @@ export function PrintDateTimeFormField({
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
+            <div className="flex items-center justify-between">
                 <FieldLabel htmlFor={field.name}>Date Printed</FieldLabel>
                 {editingId > 0 && (
                     <Button
@@ -492,7 +482,7 @@ export function PrintDateTimeFormField({
                         className="w-full justify-between"
                     >
                         <div className="flex items-center gap-2">
-                            <CalendarIcon />
+                            <CalendarIcon className="size-3.5" />
                             {field.state.value
                                 ? format(new Date(field.state.value), "PPp")
                                 : "Select date & time"}

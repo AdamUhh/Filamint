@@ -41,12 +41,21 @@ export function RouteError() {
                 </pre>
             )}
 
-            <Link
-                to="/spools"
-                className="mt-6 text-sm font-medium underline underline-offset-4"
-            >
-                Go to Spools
-            </Link>
+            <div className="flex gap-4">
+                <Link
+                    to="/spools"
+                    className="mt-6 text-sm font-medium underline underline-offset-4"
+                >
+                    Go to Spools
+                </Link>
+
+                <Link
+                    to="/prints"
+                    className="mt-6 text-sm font-medium underline underline-offset-4"
+                >
+                    Go to Prints
+                </Link>
+            </div>
         </div>
     );
 }

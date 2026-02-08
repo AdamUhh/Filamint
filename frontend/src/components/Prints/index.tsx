@@ -40,7 +40,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FieldGroup } from "@/components/ui/field";
+import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
     Table,
     TableBody,
@@ -50,23 +50,36 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-import { type Print, PrintService } from "@bindings";
+import { type Print, PrintService, PrintSpool } from "@bindings";
 
 import { useAppForm } from "./form-hook";
 
 const printSchema = z.object({
     name: z.string().min(1, "Name is required").max(300),
-    spoolId: z.number().int().nonnegative(),
-    gramsUsed: z.number().min(0, "Must be 0 or greater").max(10000),
     status: z.string().min(1).max(50),
     notes: z.string().max(2000),
-
     datePrinted: z.string().refine((val) => !isNaN(Date.parse(val)), {
         message: "Invalid date",
     }),
-
-    // TODO: Print file(s)
+    spools: z
+        .array(
+            z.object({
+                spool: z.object({
+                    id: z.number().int().nonnegative(),
+                    spoolCode: z.string().min(1, "Please select a spool"),
+                }),
+                gramsUsed: z
+                    .number()
+                    .min(1, "How many grams did this print use?")
+                    .max(10000),
+            })
+        )
+        .min(1, "At least one spool is required"),
+    // TODO: Add printFiles
 });
+
+export type TPrintSchema = z.infer<typeof printSchema>;
+
 export function PrintsPage() {
     const { spools } = useSpools();
     const [prints, setPrints] = useState<Print[]>([]);
@@ -95,25 +108,40 @@ export function PrintsPage() {
     const form = useAppForm({
         defaultValues: {
             name: "",
-            spoolId: 0,
-            gramsUsed: 0,
             status: "completed",
             notes: "",
             datePrinted: new Date().toISOString(),
-        },
+            spools: [{ gramsUsed: 0, spool: { id: 0, spoolCode: "" } }],
+        } as TPrintSchema,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
             const now = new Date().toISOString();
-
+            console.debug("value", value.spools);
+            return;
             const printToSave: Print = {
                 id: editingId,
-                ...value,
+                name: value.name,
+                status: value.status,
+                notes: value.notes,
+                datePrinted: new Date(value.datePrinted),
                 createdAt:
                     editingId > 0
                         ? prints.find((s) => s.id === editingId)?.createdAt ||
                           now
                         : now,
                 updatedAt: now,
+                spools: (value.spools as PrintSpool[]).map((s) => ({
+                    id: editingId,
+                    printId: editingId,
+                    spoolId: s.spoolId,
+                    gramsUsed: s.gramsUsed,
+                    createdAt:
+                        editingId > 0
+                            ? prints.find((s) => s.id === editingId)
+                                  ?.createdAt || now
+                            : now,
+                    updatedAt: now,
+                })),
             };
 
             try {
@@ -157,8 +185,6 @@ export function PrintsPage() {
         setOriginalPrint(print);
 
         form.setFieldValue("name", print.name);
-        form.setFieldValue("spoolId", print.spoolId);
-        form.setFieldValue("gramsUsed", print.gramsUsed);
         form.setFieldValue("status", print.status);
         form.setFieldValue("notes", print.notes);
 
@@ -172,8 +198,6 @@ export function PrintsPage() {
         setOriginalPrint(print);
 
         form.setFieldValue("name", print.name);
-        form.setFieldValue("spoolId", print.spoolId);
-        form.setFieldValue("gramsUsed", print.gramsUsed);
         form.setFieldValue("status", print.status);
         form.setFieldValue("notes", print.notes);
 
@@ -256,27 +280,17 @@ export function PrintsPage() {
                                 )}
                             />
 
-                            <form.AppField
-                                name="datePrinted"
-                                children={(field) => (
-                                    <field.PrintDateTimeFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                    />
-                                )}
-                            />
-                            <form.AppField
-                                name="spoolId"
-                                children={(field) => (
-                                    <field.PrintSpoolFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                        spools={spools}
-                                    />
-                                )}
-                            />
-
                             <FieldGroup className="flex-row gap-2">
+                                <form.AppField
+                                    name="datePrinted"
+                                    children={(field) => (
+                                        <field.PrintDateTimeFormField
+                                            editingId={editingId}
+                                            onReset={resetToOriginal}
+                                        />
+                                    )}
+                                />
+
                                 <form.AppField
                                     name="status"
                                     children={(field) => (
@@ -286,16 +300,77 @@ export function PrintsPage() {
                                         />
                                     )}
                                 />
-                                <form.AppField
-                                    name="gramsUsed"
-                                    children={(field) => (
-                                        <field.PrintGramsUsedFormField
-                                            editingId={editingId}
-                                            onReset={resetToOriginal}
-                                        />
-                                    )}
-                                />
                             </FieldGroup>
+                            <form.AppField
+                                name="spools"
+                                mode="array"
+                                children={(field) => {
+                                    const isInvalid =
+                                        field.state.meta.isTouched &&
+                                        !field.state.meta.isValid;
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <FieldLabel>Spools</FieldLabel>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 w-fit"
+                                                    onClick={() =>
+                                                        field.pushValue({
+                                                            spool: {
+                                                                id: 0,
+                                                                spoolCode: "",
+                                                            },
+                                                            gramsUsed: 0,
+                                                        })
+                                                    }
+                                                >
+                                                    + Add Spool
+                                                </Button>
+                                            </div>
+                                            {field.state.value.map((_, i) => (
+                                                <div className="flex gap-2">
+                                                    <form.AppField
+                                                        key={i}
+                                                        name={`spools[${i}].spool`}
+                                                        children={(
+                                                            subField
+                                                        ) => (
+                                                            <subField.PrintSpoolFormField
+                                                                spools={spools}
+                                                                onRemoveSpool={() =>
+                                                                    field.removeValue(
+                                                                        i
+                                                                    )
+                                                                }
+                                                            />
+                                                        )}
+                                                    />
+                                                    <form.AppField
+                                                        key={i}
+                                                        name={`spools[${i}].gramsUsed`}
+                                                        children={(
+                                                            subField
+                                                        ) => (
+                                                            <subField.PrintGramsUsedFormField />
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+
+                                            {isInvalid && (
+                                                <FieldError
+                                                    errors={
+                                                        field.state.meta.errors
+                                                    }
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                }}
+                            />
 
                             <form.AppField
                                 name="notes"
@@ -372,8 +447,8 @@ function MyTableBody({
                 prints.map((print) => (
                     <TableRow key={print.id} className="capitalize">
                         <TableCell>{print.name}</TableCell>
-                        <TableCell>{print.spoolId}</TableCell>
-                        <TableCell>{print.gramsUsed}</TableCell>
+                        <TableCell>spoolId</TableCell>
+                        <TableCell>NaN</TableCell>
                         <TableCell>{print.status}</TableCell>
                         <TableCell>
                             {format(print.datePrinted, "PPp")}

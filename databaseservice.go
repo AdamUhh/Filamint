@@ -33,6 +33,12 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
+	// ---- SEEDING (comment out any line to disable) ----
+	if err := database.seedSpoolsIfEmpty(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to seed spools: %w", err)
+	}
+
 	return database, nil
 }
 
@@ -44,9 +50,9 @@ func (d *Database) initSchema() error {
 
 		vendor TEXT NOT NULL,
 		material TEXT NOT NULL,
-		material_type TEXT,
-		color TEXT,
-		color_hex TEXT,
+		material_type TEXT NOT NULL,
+		color TEXT NOT NULL,
+		color_hex TEXT NOT NULL,
 
 		total_weight INTEGER NOT NULL,
 		used_weight INTEGER NOT NULL DEFAULT 0,
@@ -72,26 +78,124 @@ func (d *Database) initSchema() error {
 	    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
 	    name TEXT NOT NULL,
-
-	    spool_id INTEGER NOT NULL,
-	    grams_used INTEGER NOT NULL,
-
 	    status TEXT NOT NULL,
 
 	    notes TEXT,
-
 	    date_printed DATETIME,
+
+	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS print_spools (
+	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+	    print_id INTEGER NOT NULL,
+	    spool_id INTEGER NOT NULL,
+
+	    grams_used INTEGER NOT NULL CHECK (grams_used > 0),
 
 	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
+	    FOREIGN KEY (print_id) REFERENCES prints(id)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+
 	    FOREIGN KEY (spool_id) REFERENCES spools(id)
 		ON DELETE RESTRICT
-		ON UPDATE CASCADE
+		ON UPDATE CASCADE,
+
+	    UNIQUE (print_id, spool_id)
 	);
+
+	CREATE INDEX IF NOT EXISTS idx_print_spools_print_id ON print_spools(print_id);
+	CREATE INDEX IF NOT EXISTS idx_print_spools_spool_id ON print_spools(spool_id);
 	`
 	_, err := d.db.Exec(schema)
 	return err
+}
+
+func (d *Database) seedSpoolsIfEmpty() error {
+	var count int
+	if err := d.db.Get(&count, `SELECT COUNT(1) FROM spools`); err != nil {
+		return err
+	}
+
+	if count > 0 {
+		return nil // already seeded
+	}
+
+	tx, err := d.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	seeds := []Spool{
+		{
+			SpoolCode:     "PLA-BLK-001",
+			Vendor:        "Generic",
+			Material:      "PLA",
+			MaterialType:  "Basic",
+			Color:         "Black",
+			ColorHex:      "#000000",
+			TotalWeight:   1000,
+			Cost:          2500,
+			IsTemplate:    true,
+			ReferenceLink: "",
+			Notes:         "",
+		},
+		{
+			SpoolCode:     "PLA-WHT-001",
+			Vendor:        "Generic",
+			Material:      "PLA",
+			MaterialType:  "Basic",
+			Color:         "White",
+			ColorHex:      "#FFFFFF",
+			TotalWeight:   1000,
+			Cost:          2500,
+			IsTemplate:    false,
+			ReferenceLink: "",
+			Notes:         "",
+		},
+	}
+
+	const q = `
+		INSERT INTO spools (
+			spool_code,
+			vendor,
+			material,
+			material_type,
+			color,
+			color_hex,
+			total_weight,
+			cost,
+			is_template,
+			reference_link,
+			notes
+		) VALUES (
+			:spool_code,
+			:vendor,
+			:material,
+			:material_type,
+			:color,
+			:color_hex,
+			:total_weight,
+			:cost,
+			:is_template,
+			:reference_link,
+			:notes
+		)
+	`
+
+	for _, s := range seeds {
+		if _, err := tx.NamedExec(q, s); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 // Generic query methods that can be used by any repository
