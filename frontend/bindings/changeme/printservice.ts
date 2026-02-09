@@ -13,8 +13,8 @@ export function CreatePrint(p: $models.Print): $CancellablePromise<number> {
     return $Call.ByID(2366661757, p);
 }
 
-export function DeletePrint(id: number): $CancellablePromise<void> {
-    return $Call.ByID(1451455108, id);
+export function DeletePrint(id: number, deletePrintSpools: boolean): $CancellablePromise<void> {
+    return $Call.ByID(1451455108, id, deletePrintSpools);
 }
 
 export function GetPrint(id: number): $CancellablePromise<$models.Print | null> {

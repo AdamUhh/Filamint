@@ -276,7 +276,10 @@ export function SpoolsPage() {
 
             {/* Edit/Create Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+                <DialogContent
+                    aria-describedby={undefined}
+                    className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {editingId > 0 ? "Edit Spool" : "Add New Spool"}
@@ -355,15 +358,20 @@ export function SpoolsPage() {
                                     )}
                                 />
 
-                                <form.AppField
-                                    name="usedWeight"
-                                    children={(field) => (
-                                        <field.SpoolUsedWeightFormField
-                                            editingId={editingId}
-                                            onReset={resetToOriginal}
-                                        />
-                                    )}
-                                />
+                                <div className="relative">
+                                    <form.AppField
+                                        name="usedWeight"
+                                        children={(field) => (
+                                            <field.SpoolUsedWeightFormField
+                                                editingId={editingId}
+                                                onReset={resetToOriginal}
+                                            />
+                                        )}
+                                    />
+                                    <form.AppForm>
+                                        <form.SpoolRemainingWeight />
+                                    </form.AppForm>
+                                </div>
                             </div>
 
                             <form.AppField

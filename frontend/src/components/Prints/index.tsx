@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 
+import { Checkbox } from "@/shadcn/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import {
@@ -40,7 +41,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
 import {
     Table,
     TableBody,
@@ -67,6 +73,9 @@ const printSchema = z.object({
                 spool: z.object({
                     id: z.number().int().nonnegative(),
                     spoolCode: z.string().min(1, "Please select a spool"),
+                    color: z.string(),
+                    vendor: z.string(),
+                    material: z.string(),
                 }),
                 gramsUsed: z
                     .number()
@@ -88,12 +97,14 @@ export function PrintsPage() {
     const [editingId, setEditingId] = useState<number>(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [printToDelete, setPrintToDelete] = useState<number | null>(null);
+    const [restoreSpoolGrams, setRestoreSpoolGrams] = useState(false);
     const [originalPrint, setOriginalPrint] = useState<Print | null>(null);
 
     const fetchPrints = async () => {
         try {
             const list = await PrintService.ListPrints();
             setPrints(list);
+            console.debug("prints", list);
         } catch (err) {
             console.error("Failed to fetch prints:", err);
         } finally {
@@ -111,13 +122,23 @@ export function PrintsPage() {
             status: "completed",
             notes: "",
             datePrinted: new Date().toISOString(),
-            spools: [{ gramsUsed: 0, spool: { id: 0, spoolCode: "" } }],
+            spools: [
+                {
+                    gramsUsed: 0,
+                    spool: {
+                        id: 0,
+                        spoolCode: "",
+                        color: "#000000",
+                        material: "PLA",
+                        vendor: "Bambu Labs",
+                    },
+                },
+            ],
         } as TPrintSchema,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
+            console.debug("Submitting", value);
             const now = new Date().toISOString();
-            console.debug("value", value.spools);
-            return;
             const printToSave: Print = {
                 id: editingId,
                 name: value.name,
@@ -133,7 +154,7 @@ export function PrintsPage() {
                 spools: (value.spools as PrintSpool[]).map((s) => ({
                     id: editingId,
                     printId: editingId,
-                    spoolId: s.spoolId,
+                    spoolId: s.spool!.id,
                     gramsUsed: s.gramsUsed,
                     createdAt:
                         editingId > 0
@@ -190,6 +211,29 @@ export function PrintsPage() {
 
         form.setFieldValue("datePrinted", print.datePrinted);
 
+        form.setFieldValue(
+            "spools",
+            print.spools!.map((ps) => {
+                const spool = spools.find((s) => s.id === ps.spoolId);
+
+                if (!spool) {
+                    throw new Error(`Spool not found for id ${ps.spoolId}`);
+                }
+
+                return {
+                    gramsUsed: ps.gramsUsed,
+                    spool: {
+                        id: spool.id,
+                        spoolCode: spool.spoolCode,
+                        color: spool.color,
+                        material: spool.material,
+                        vendor: spool.vendor,
+                    },
+                };
+            })
+        );
+        console.debug("values", form.state.values.spools);
+
         setEditDialogOpen(true);
     };
 
@@ -202,6 +246,27 @@ export function PrintsPage() {
         form.setFieldValue("notes", print.notes);
 
         form.setFieldValue("datePrinted", print.datePrinted);
+        form.setFieldValue(
+            "spools",
+            print.spools!.map((ps) => {
+                const spool = spools.find((s) => s.id === ps.spoolId);
+
+                if (!spool) {
+                    throw new Error(`Spool not found for id ${ps.spoolId}`);
+                }
+
+                return {
+                    gramsUsed: ps.gramsUsed,
+                    spool: {
+                        id: spool.id,
+                        spoolCode: spool.spoolCode,
+                        color: spool.color,
+                        vendor: spool.vendor,
+                        material: spool.material,
+                    },
+                };
+            })
+        );
 
         setEditDialogOpen(true);
     };
@@ -214,7 +279,7 @@ export function PrintsPage() {
     const handleDeleteConfirm = async () => {
         if (printToDelete === null) return;
         try {
-            await PrintService.DeletePrint(printToDelete);
+            await PrintService.DeletePrint(printToDelete, restoreSpoolGrams);
             fetchPrints();
         } catch (err) {
             console.error(err);
@@ -225,6 +290,8 @@ export function PrintsPage() {
     };
 
     if (loading) return <p className="p-6">Loading prints...</p>;
+
+    console.debug("errors! : ", form.state.isValid, form.state.errors);
 
     return (
         <div className="space-y-6 p-6">
@@ -255,7 +322,10 @@ export function PrintsPage() {
             </div>
 
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+                <DialogContent
+                    aria-describedby={undefined}
+                    className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {editingId > 0 ? "Edit Print" : "Add New Print"}
@@ -310,18 +380,24 @@ export function PrintsPage() {
                                         !field.state.meta.isValid;
                                     return (
                                         <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
+                                            <Field
+                                                data-invalid={isInvalid}
+                                                className="flex-row"
+                                            >
                                                 <FieldLabel>Spools</FieldLabel>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    className="h-7 w-fit"
+                                                    className="h-7 w-fit!"
                                                     onClick={() =>
                                                         field.pushValue({
                                                             spool: {
                                                                 id: 0,
                                                                 spoolCode: "",
+                                                                color: "#000000",
+                                                                material: "PLA",
+                                                                vendor: "Bambu Labs",
                                                             },
                                                             gramsUsed: 0,
                                                         })
@@ -329,12 +405,22 @@ export function PrintsPage() {
                                                 >
                                                     + Add Spool
                                                 </Button>
-                                            </div>
+                                            </Field>
                                             {field.state.value.map((_, i) => (
-                                                <div className="flex gap-2">
+                                                <div
+                                                    key={i}
+                                                    className="flex gap-2"
+                                                >
                                                     <form.AppField
-                                                        key={i}
                                                         name={`spools[${i}].spool`}
+                                                        validators={{
+                                                            onMount: ({
+                                                                value,
+                                                            }) =>
+                                                                value.id <= 0
+                                                                    ? "Please add a spool"
+                                                                    : undefined,
+                                                        }}
                                                         children={(
                                                             subField
                                                         ) => (
@@ -401,7 +487,10 @@ export function PrintsPage() {
             {/* Delete Confirmation Alert Dialog */}
             <AlertDialog
                 open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
+                onOpenChange={(open) => {
+                    setDeleteDialogOpen(open);
+                    if (!open) setRestoreSpoolGrams(false);
+                }}
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -413,6 +502,23 @@ export function PrintsPage() {
                             delete the print.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+
+                    <div className="flex items-start gap-2 pt-2">
+                        <Checkbox
+                            id="restore-spools"
+                            checked={restoreSpoolGrams}
+                            onCheckedChange={(checked) =>
+                                setRestoreSpoolGrams(checked === true)
+                            }
+                        />
+                        <label
+                            htmlFor="restore-spools"
+                            className="text-sm leading-snug text-muted-foreground"
+                        >
+                            Restore used grams back to spools
+                        </label>
+                    </div>
+
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction

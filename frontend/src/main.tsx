@@ -18,6 +18,35 @@ import { SpoolsPage } from "@/components/Spools";
 import { SpoolProvider } from "./context/appContext";
 import "./index.css";
 
+const router = createBrowserRouter([
+    {
+        element: (
+            <>
+                <AppEventHandler />
+                <Toaster />
+                <SpoolProvider>
+                    <Outlet />
+                </SpoolProvider>
+            </>
+        ),
+        errorElement: <RouteError />,
+        children: [
+            {
+                path: "/",
+                element: <Navigate to="/prints" replace />,
+            },
+            { path: "/spools", element: <SpoolsPage /> },
+            { path: "/prints", element: <PrintsPage /> },
+        ],
+    },
+]);
+
+createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+        <RouterProvider router={router} />
+    </StrictMode>
+);
+
 export function RouteError() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const error = useRouteError() as any;
@@ -33,7 +62,7 @@ export function RouteError() {
             </p>
 
             {error && (
-                <pre className="mt-4 w-full max-w-xl overflow-auto rounded bg-gray-100 p-3 text-left text-sm text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+                <pre className="mt-4 w-full max-w-xl overflow-auto rounded bg-gray-100 p-3 text-left text-sm whitespace-pre-wrap text-gray-900 dark:bg-gray-900 dark:text-gray-100">
                     Error:{" "}
                     {error.status
                         ? `${error.status} ${error.statusText}`
@@ -59,32 +88,3 @@ export function RouteError() {
         </div>
     );
 }
-
-const router = createBrowserRouter([
-    {
-        element: (
-            <>
-                <AppEventHandler />
-                <Toaster />
-                <SpoolProvider>
-                    <Outlet />
-                </SpoolProvider>
-            </>
-        ),
-        errorElement: <RouteError />,
-        children: [
-            {
-                path: "/",
-                element: <Navigate to="/spools" replace />,
-            },
-            { path: "/spools", element: <SpoolsPage /> },
-            { path: "/prints", element: <PrintsPage /> },
-        ],
-    },
-]);
-
-createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <RouterProvider router={router} />
-    </StrictMode>
-);

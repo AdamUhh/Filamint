@@ -1,3 +1,5 @@
+import { useStore } from "@tanstack/react-form";
+
 import { Button } from "@/shadcn/button";
 import { Checkbox } from "@/shadcn/checkbox";
 import { ColorPicker } from "@/shadcn/custom/color-picker";
@@ -19,7 +21,7 @@ import {
 
 import type { Spool } from "@bindings";
 
-import { useFieldContext } from "./form-hook";
+import { useFieldContext, useFormContext } from "./form-hook";
 
 export function SpoolVendorFormField({
     editingId,
@@ -247,7 +249,7 @@ export function SpoolTotalWeightFormField({
     return (
         <Field data-invalid={isInvalid} className="group">
             <div className="flex h-6 items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Remaining Weight</FieldLabel>
+                <FieldLabel htmlFor={field.name}>Total Weight</FieldLabel>
                 <div className="hidden items-center gap-1 group-hover:flex">
                     {editingId > 0 && (
                         <Button
@@ -380,6 +382,21 @@ export function SpoolUsedWeightFormField({
             </InputGroup>
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
+    );
+}
+
+export function SpoolRemainingWeight() {
+    const { store } = useFormContext();
+
+    const remaining = useStore(
+        store,
+        (state) => state.values.totalWeight - state.values.usedWeight
+    );
+
+    return (
+        <p className="absolute -bottom-6 left-2.5 text-muted-foreground tabular-nums">
+            <span className="text-foreground">{remaining}</span> grams remaining
+        </p>
     );
 }
 

@@ -83,7 +83,7 @@ export function PrintNameFormField({
 }
 
 export function PrintGramsUsedFormField() {
-    const field = useFieldContext<number>();
+    const field = useFieldContext<number | undefined>();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -103,7 +103,10 @@ export function PrintGramsUsedFormField() {
                                 className="h-8 w-8 p-0 text-base"
                                 onClick={() =>
                                     field.handleChange(
-                                        Math.max(0, field.state.value - 1)
+                                        Math.max(
+                                            0,
+                                            (field.state.value || 0) - 1
+                                        )
                                     )
                                 }
                             >
@@ -115,7 +118,9 @@ export function PrintGramsUsedFormField() {
                                 size="sm"
                                 className="h-8 w-8 p-0 text-base"
                                 onClick={() =>
-                                    field.handleChange(field.state.value + 1)
+                                    field.handleChange(
+                                        (field.state.value || 0) + 1
+                                    )
                                 }
                             >
                                 +
@@ -127,7 +132,7 @@ export function PrintGramsUsedFormField() {
                     id={field.name}
                     name={field.name}
                     type="number"
-                    value={Number(field.state.value).toString()}
+                    value={Number(field.state.value).toString() ?? ""}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
                         field.handleChange(parseInt(e.target.value) || 0)
@@ -149,28 +154,32 @@ export function PrintSpoolFormField({
     onRemoveSpool: () => void;
 }) {
     const field =
-        useFieldContext<
-            Pick<ArrayElementOf<TPrintSchema["spools"]>, "spool">
-        >();
+        useFieldContext<ArrayElementOf<TPrintSchema["spools"]>["spool"]>();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+    const selectedSpool =
+        spools.find((s) => s.id === field.state.value?.id) ?? null;
+
     return (
-        <Field data-invalid={isInvalid} className="group flex-2">
+        <Field data-invalid={isInvalid} className="group flex-3">
             <Combobox
                 name={field.name}
                 items={spools}
-                value={field.state.value.spool}
+                value={selectedSpool}
                 onValueChange={(value) =>
                     value &&
                     field.handleChange({
-                        spool: {
-                            id: value.id,
-                            spoolCode: value.spoolCode,
-                        },
+                        id: value.id,
+                        spoolCode: value.spoolCode,
+                        color: value.color,
+                        material: value.material,
+                        vendor: value.vendor,
                     })
                 }
-                itemToStringLabel={(value) => `${value.spoolCode}`}
+                itemToStringLabel={(value) =>
+                    `${value.spoolCode} - ${value.vendor} - ${value.color} - ${value.material}`
+                }
             >
                 <div className="flex gap-2">
                     <Button
@@ -185,6 +194,8 @@ export function PrintSpoolFormField({
                     <ComboboxInput
                         className="w-full"
                         placeholder="Select a spool"
+                        onBlur={field.handleBlur}
+                        aria-invalid={isInvalid}
                     />
                 </div>
                 <ComboboxContent>
@@ -205,7 +216,7 @@ export function PrintSpoolFormField({
                                     </div>
 
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-right text-muted-foreground">
+                                        <span className="text-right text-muted-foreground opacity-0">
                                             {spool.id}
                                         </span>
                                         <span className="text-right text-muted-foreground">
@@ -218,7 +229,7 @@ export function PrintSpoolFormField({
                     </ComboboxList>
                 </ComboboxContent>
             </Combobox>
-            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
         </Field>
     );
 }
@@ -256,7 +267,7 @@ export function PrintStatusFormField({
                 onValueChange={(e) => field.handleChange(e)}
                 value={field.state.value}
             >
-                <SelectTrigger className="w-45 capitalize">
+                <SelectTrigger className="capitalize">
                     <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent position="item-aligned">
@@ -268,139 +279,6 @@ export function PrintStatusFormField({
                 </SelectContent>
             </Select>
 
-            {isInvalid && <FieldError errors={field.state.meta.errors} />}
-        </Field>
-    );
-}
-
-export function PrintCalendarFormField({
-    editingId,
-    onReset,
-}: {
-    editingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReset: (name: any) => void;
-}) {
-    const field = useFieldContext<Print["datePrinted"]>();
-
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-    return (
-        <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Date Printed</FieldLabel>
-                {editingId > 0 && (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                        onClick={() => onReset(field.name)}
-                    >
-                        Reset
-                    </Button>
-                )}
-            </div>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        id={field.name}
-                        variant="outline"
-                        className="justify-between"
-                    >
-                        {field.state.value
-                            ? format(new Date(field.state.value), "PPp")
-                            : "Select date"}
-                        <ChevronDownIcon data-icon="inline-end" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                    className="w-auto overflow-hidden p-0"
-                    align="start"
-                >
-                    <Calendar
-                        mode="single"
-                        selected={field.state.value}
-                        captionLayout="dropdown"
-                        defaultMonth={field.state.value}
-                        onSelect={(date) => {
-                            if (!date) return;
-                            field.handleChange(format(date, "yyyy-MM-dd"));
-                        }}
-                    />
-                </PopoverContent>
-            </Popover>
-            {isInvalid && <FieldError errors={field.state.meta.errors} />}
-        </Field>
-    );
-}
-
-export function PrintTimeFormField({
-    editingId,
-    onReset,
-}: {
-    editingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReset: (name: any) => void;
-}) {
-    const field = useFieldContext<Print["datePrinted"]>();
-
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-    return (
-        <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
-                <FieldLabel htmlFor={field.name}>Time</FieldLabel>
-                <div className="hidden items-center gap-1 group-hover:flex">
-                    {editingId > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                            onClick={() => onReset(field.name)}
-                        >
-                            Reset
-                        </Button>
-                    )}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(
-                                Math.max(0, field.state.value - 1)
-                            )
-                        }
-                    >
-                        -
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(field.state.value + 1)
-                        }
-                    >
-                        +
-                    </Button>
-                </div>
-            </div>
-
-            <Input
-                id={field.name}
-                name={field.name}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                type="time"
-                step="1"
-                className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                aria-invalid={isInvalid}
-            />
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );

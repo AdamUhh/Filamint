@@ -59,7 +59,6 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 		updated_at
 	) VALUES (?, ?, ?, ?, ?, ?)
 	`
-
 	result, err := s.db.Exec(
 		query,
 		p.Name,
@@ -78,8 +77,9 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 		return 0, err
 	}
 
-	// Insert related spools in print_spools
+	// Insert related spools in print_spools and update used_weight
 	for _, ps := range p.Spools {
+		// Insert print_spool record
 		_, err := s.db.Exec(
 			`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?)`,
@@ -88,6 +88,24 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 			ps.GramsUsed,
 			now,
 			now,
+		)
+		if err != nil {
+			return 0, err
+		}
+
+		// Update the spool's used_weight
+		_, err = s.db.Exec(
+			`UPDATE spools 
+			 SET used_weight = used_weight + ?,
+			     last_used_at = ?,
+			     first_used_at = COALESCE(first_used_at, ?),
+			     updated_at = ?
+			 WHERE id = ?`,
+			ps.GramsUsed,
+			now,
+			now,
+			now,
+			ps.SpoolID,
 		)
 		if err != nil {
 			return 0, err
@@ -118,35 +136,94 @@ func (s *PrintService) UpdatePrint(p Print) error {
 		return err
 	}
 
-	// Update spools: for simplicity, delete existing and insert new
-	_, err = s.db.Exec(`DELETE FROM print_spools WHERE print_id = ?`, p.ID)
-	if err != nil {
-		return err
-	}
-
+	// Update each print_spool
 	for _, ps := range p.Spools {
-		_, err := s.db.Exec(
-			`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
-			 VALUES (?, ?, ?, ?, ?)`,
-			p.ID,
-			ps.SpoolID,
-			ps.GramsUsed,
-			now,
-			now,
-		)
-		if err != nil {
-			return err
+		// Get the old grams_used value (if exists)
+		var oldGrams int
+		err := s.db.Get(&oldGrams,
+			`SELECT grams_used FROM print_spools WHERE print_id = ? AND spool_id = ?`,
+			p.ID, ps.SpoolID)
+
+		if err == nil {
+			// Record exists - update it
+			delta := ps.GramsUsed - oldGrams
+
+			_, err = s.db.Exec(
+				`UPDATE print_spools SET grams_used = ?, updated_at = ? 
+				 WHERE print_id = ? AND spool_id = ?`,
+				ps.GramsUsed, now, p.ID, ps.SpoolID)
+			if err != nil {
+				return err
+			}
+
+			// Update spool used_weight by delta
+			if delta != 0 {
+				_, err = s.db.Exec(
+					`UPDATE spools SET used_weight = used_weight + ?, updated_at = ? WHERE id = ?`,
+					delta, now, ps.SpoolID)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// Record doesn't exist - insert it
+			_, err = s.db.Exec(
+				`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, ?)`,
+				p.ID, ps.SpoolID, ps.GramsUsed, now, now)
+			if err != nil {
+				return err
+			}
+
+			// Add to used_weight
+			_, err = s.db.Exec(
+				`UPDATE spools SET used_weight = used_weight + ?, updated_at = ? WHERE id = ?`,
+				ps.GramsUsed, now, ps.SpoolID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (s *PrintService) DeletePrint(id int64) error {
+func (s *PrintService) DeletePrint(id int64, deletePrintSpools bool) error {
 	if id == 0 {
 		return errors.New("invalid print ID")
 	}
 
+	now := time.Now()
+
+	// If deletePrintSpools is true, we need to undo the used_weights
+	if deletePrintSpools {
+		// Get all print_spools for this print
+		var printSpools []PrintSpool
+		err := s.db.Select(&printSpools,
+			`SELECT spool_id, grams_used FROM print_spools WHERE print_id = ?`,
+			id)
+		if err != nil {
+			return err
+		}
+
+		// Revert used_weight for each spool
+		for _, ps := range printSpools {
+			_, err := s.db.Exec(
+				`UPDATE spools 
+				 SET used_weight = used_weight - ?,
+				     updated_at = ?
+				 WHERE id = ?`,
+				ps.GramsUsed,
+				now,
+				ps.SpoolID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Delete the print (CASCADE will delete print_spools automatically)
 	_, err := s.db.Exec(`DELETE FROM prints WHERE id = ?`, id)
 	return err
 }
