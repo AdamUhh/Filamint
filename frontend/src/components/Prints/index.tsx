@@ -172,6 +172,7 @@ export function PrintsPage() {
             <PrintHeader onCreate={handleCreate} />
             <PrintTable
                 prints={prints}
+                spools={spools}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}

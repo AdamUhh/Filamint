@@ -24,16 +24,19 @@ import {
     TableHeader,
     TableRow,
 } from "@/shadcn/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import type { Print } from "@bindings";
+import type { Print, Spool } from "@bindings";
 
 export function PrintTable({
     prints,
+    spools,
     onEdit,
     onDuplicate,
     onDelete,
 }: {
     prints: Map<number, Print>;
+    spools: Map<number, Spool>;
     onEdit: (print: Print) => void;
     onDuplicate: (print: Print) => void;
     onDelete: (id: number) => void;
@@ -51,8 +54,46 @@ export function PrintTable({
                         printArray.map((print) => (
                             <TableRow key={print.id} className="capitalize">
                                 <TableCell>{print.name}</TableCell>
-                                <TableCell>spoolId</TableCell>
-                                <TableCell>NaN</TableCell>
+                                <TableCell>
+                                    <div className="flex gap-1">
+                                        {print.spools?.map((ps) => {
+                                            const _spool = spools.get(
+                                                ps.spoolId
+                                            );
+                                            const colorHex =
+                                                _spool?.colorHex || "#000000";
+
+                                            const color =
+                                                _spool?.color || "Black";
+
+                                            return (
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <div
+                                                            key={ps.spoolId}
+                                                            className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    colorHex,
+                                                            }}
+                                                        />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        {color} · {colorHex}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            );
+                                        })}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    {print.spools?.length
+                                        ? print.spools
+                                              .map((ps) => ps.gramsUsed || 0)
+                                              .join(" / ") +
+                                          ` (${print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0)})`
+                                        : "NaN"}
+                                </TableCell>
                                 <TableCell>{print.status}</TableCell>
                                 <TableCell>
                                     {format(print.datePrinted, "PPp")}
@@ -124,7 +165,7 @@ function PrintTableHeaders() {
         <TableHeader>
             <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Spool</TableHead>
+                <TableHead>Spools</TableHead>
                 <TableHead>Used (g)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Printed On</TableHead>

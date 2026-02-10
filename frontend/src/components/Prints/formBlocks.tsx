@@ -177,7 +177,7 @@ export function PrintSpoolFormField({
                     })
                 }
                 itemToStringLabel={(value) =>
-                    `${value.spoolCode} - ${value.vendor} - ${value.color} - ${value.material}`
+                    `${value.spoolCode} · ${value.vendor} · ${value.color} · ${value.material}`
                 }
             >
                 <div className="flex gap-2">
