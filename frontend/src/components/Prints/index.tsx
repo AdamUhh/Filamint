@@ -233,7 +233,7 @@ export function PrintsPage() {
 function PrintHeader({ onCreate }: { onCreate: () => void }) {
     return (
         <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col">
                 <h1 className="text-3xl font-bold">Prints</h1>
                 <p className="text-muted-foreground">
                     This is where your prints live.

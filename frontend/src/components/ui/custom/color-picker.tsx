@@ -22,6 +22,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 
@@ -457,27 +462,36 @@ export function ColorPicker({
                                 <div className="size-61.25! overflow-y-auto p-1">
                                     <div className="flex flex-wrap gap-2">
                                         {FILAMENT_SWATCHES.map((swatch) => (
-                                            <Button
-                                                key={swatch.hex}
-                                                type="button"
-                                                onClick={() =>
-                                                    handleSwatchClick(
-                                                        swatch.hex
-                                                    )
-                                                }
-                                                className={cn(
-                                                    "size-6 rounded shadow transition-all hover:scale-110",
-                                                    value.toUpperCase() ===
-                                                        swatch.hex
-                                                        ? "ring-1 ring-primary"
-                                                        : ""
-                                                )}
-                                                style={{
-                                                    backgroundColor: swatch.hex,
-                                                }}
-                                                title={swatch.name}
-                                                aria-label={`Select ${swatch.name} (${swatch.hex})`}
-                                            />
+                                            <Tooltip disableHoverableContent>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        key={swatch.hex}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleSwatchClick(
+                                                                swatch.hex
+                                                            )
+                                                        }
+                                                        className={cn(
+                                                            "size-6 rounded shadow transition-all hover:scale-110",
+                                                            value.toUpperCase() ===
+                                                                swatch.hex
+                                                                ? "ring-1 ring-primary"
+                                                                : ""
+                                                        )}
+                                                        style={{
+                                                            backgroundColor:
+                                                                swatch.hex,
+                                                        }}
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <span>
+                                                        {swatch.name} ·{" "}
+                                                        {swatch.hex}
+                                                    </span>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         ))}
                                     </div>
                                 </div>

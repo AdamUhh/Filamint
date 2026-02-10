@@ -235,9 +235,14 @@ function SpoolHeader({
 }) {
     return (
         <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">
-                Filament Spools {templateOpen && "- Templates"}
-            </h1>
+            <div className="flex flex-col">
+                <h1 className="text-3xl font-bold">
+                    Filament Spools {templateOpen && "- Templates"}
+                </h1>
+                <p className="text-muted-foreground">
+                    This is where your spools live.
+                </p>
+            </div>
             <ButtonGroup>
                 <Tooltip>
                     <TooltipTrigger asChild>

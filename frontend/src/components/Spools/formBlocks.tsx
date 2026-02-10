@@ -1,6 +1,8 @@
+import { useApp } from "@/context/useContext";
 import { useStore } from "@tanstack/react-form";
 
 import { Button } from "@/shadcn/button";
+import { ButtonGroup } from "@/shadcn/button-group";
 import { Checkbox } from "@/shadcn/checkbox";
 import { ColorPicker } from "@/shadcn/custom/color-picker";
 import {
@@ -44,7 +46,7 @@ export function SpoolVendorFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -87,7 +89,7 @@ export function SpoolMaterialFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -130,7 +132,7 @@ export function SpoolMaterialTypeFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -173,7 +175,7 @@ export function SpoolColorFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -215,7 +217,7 @@ export function SpoolColorHexFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -248,49 +250,58 @@ export function SpoolTotalWeightFormField({
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
+            <div className="flex items-center justify-between">
                 <FieldLabel htmlFor={field.name}>Total Weight</FieldLabel>
-                <div className="hidden items-center gap-1 group-hover:flex">
-                    {editingId > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto px-2 py-0 text-xs"
-                            onClick={() => onReset(field.name)}
-                        >
-                            Reset
-                        </Button>
-                    )}
+                {editingId > 0 && (
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(
-                                Math.max(0, field.state.value - 1)
-                            )
-                        }
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
+                        onClick={() => onReset(field.name)}
                     >
-                        -
+                        Reset
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(field.state.value + 1)
-                        }
-                    >
-                        +
-                    </Button>
-                </div>
+                )}
             </div>
             <InputGroup>
-                <InputGroupAddon align="inline-end">
-                    <InputGroupText>grams</InputGroupText>
+                <InputGroupAddon className="group-hover:p-0" align="inline-end">
+                    <InputGroupText className="group-hover:hidden">
+                        grams
+                    </InputGroupText>
+                    <div className="hidden items-center group-hover:flex">
+                        <ButtonGroup>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        Math.max(
+                                            0,
+                                            (field.state.value || 0) - 1
+                                        )
+                                    )
+                                }
+                            >
+                                -
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        (field.state.value || 0) + 1
+                                    )
+                                }
+                            >
+                                +
+                            </Button>
+                        </ButtonGroup>
+                    </div>
                 </InputGroupAddon>
                 <InputGroupInput
                     id={field.name}
@@ -323,49 +334,58 @@ export function SpoolUsedWeightFormField({
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
+            <div className="flex items-center justify-between">
                 <FieldLabel htmlFor={field.name}>Used Weight</FieldLabel>
-                <div className="hidden items-center gap-1 group-hover:flex">
-                    {editingId > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto px-2 py-0 text-xs"
-                            onClick={() => onReset(field.name)}
-                        >
-                            Reset
-                        </Button>
-                    )}
+                {editingId > 0 && (
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(
-                                Math.max(0, field.state.value - 1)
-                            )
-                        }
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
+                        onClick={() => onReset(field.name)}
                     >
-                        -
+                        Reset
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(field.state.value + 1)
-                        }
-                    >
-                        +
-                    </Button>
-                </div>
+                )}
             </div>
             <InputGroup>
-                <InputGroupAddon align="inline-end">
-                    <InputGroupText>grams</InputGroupText>
+                <InputGroupAddon className="group-hover:p-0" align="inline-end">
+                    <InputGroupText className="group-hover:hidden">
+                        grams
+                    </InputGroupText>
+                    <div className="hidden items-center group-hover:flex">
+                        <ButtonGroup>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        Math.max(
+                                            0,
+                                            (field.state.value || 0) - 1
+                                        )
+                                    )
+                                }
+                            >
+                                -
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        (field.state.value || 0) + 1
+                                    )
+                                }
+                            >
+                                +
+                            </Button>
+                        </ButtonGroup>
+                    </div>
                 </InputGroupAddon>
                 <InputGroupInput
                     id={field.name}
@@ -408,56 +428,73 @@ export function SpoolCostFormField({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onReset: (name: any) => void;
 }) {
+    const { options } = useApp();
     const field = useFieldContext<Spool["cost"]>();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
         <Field data-invalid={isInvalid} className="group">
-            <div className="flex h-6 items-center justify-between">
+            <div className="flex items-center justify-between">
                 <FieldLabel htmlFor={field.name}>Cost</FieldLabel>
-                <div className="hidden items-center gap-1 group-hover:flex">
-                    {editingId > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="hidden h-auto px-2 py-0 text-xs group-hover:block"
-                            onClick={() => onReset(field.name)}
-                        >
-                            Reset
-                        </Button>
-                    )}
+                {editingId > 0 && (
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(
-                                Math.max(0, field.state.value - 1)
-                            )
-                        }
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
+                        onClick={() => onReset(field.name)}
                     >
-                        -
+                        Reset
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                            field.handleChange(field.state.value + 1)
-                        }
-                    >
-                        +
-                    </Button>
-                </div>
+                )}
             </div>
             <InputGroup>
-                <InputGroupAddon>
+                <InputGroupAddon
+                    align={
+                        options.currencyAlign === "left"
+                            ? "inline-start"
+                            : "inline-end"
+                    }
+                >
                     <InputGroupText>AED</InputGroupText>
                 </InputGroupAddon>
+                <InputGroupAddon align="inline-end" className="p-0">
+                    <div className="hidden items-center group-hover:flex">
+                        <ButtonGroup>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        Math.max(
+                                            0,
+                                            (field.state.value || 0) - 1
+                                        )
+                                    )
+                                }
+                            >
+                                -
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-base"
+                                onClick={() =>
+                                    field.handleChange(
+                                        (field.state.value || 0) + 1
+                                    )
+                                }
+                            >
+                                +
+                            </Button>
+                        </ButtonGroup>
+                    </div>
+                </InputGroupAddon>
+
                 <InputGroupInput
                     id={field.name}
                     name={field.name}
@@ -498,7 +535,7 @@ export function SpoolReferenceLinkFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -542,7 +579,7 @@ export function SpoolNotesFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset

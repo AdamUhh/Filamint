@@ -75,6 +75,7 @@
 }
 
 @theme inline {
+    --text-2xs: 0.625rem;
     --font-sans: "Figtree Variable", sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -126,17 +127,6 @@
     html {
         @apply font-sans;
     }
-
-    /* For WebKit browsers (Chrome, Edge, Safari) */
-    /* ::-webkit-scrollbar { */
-    /*     width: 2px !important; /* adjust thickness */
-    /*     height: 2px !important; /* for horizontal scrollbar */
-    /* } */
-    /**/
-    /* ::-webkit-scrollbar-thumb { */
-    /*     background-color: var(--ring); /* or any color you like */
-    /*     border-radius: 3px; */
-    /* } */
 
     ::-webkit-scrollbar {
         @apply h-0.5 w-0.5;

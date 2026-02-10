@@ -60,7 +60,7 @@ export function PrintNameFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -254,7 +254,7 @@ export function PrintStatusFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -343,7 +343,7 @@ export function PrintDateTimeFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
@@ -493,7 +493,7 @@ export function PrintNotesFormField({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="hidden h-auto px-2 py-0 text-xs group-hover:block"
+                        className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
                         onClick={() => onReset(field.name)}
                     >
                         Reset
