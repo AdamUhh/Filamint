@@ -85,11 +85,14 @@ export function PrintsPage() {
     }, [form]);
 
     const populateFormFromPrint = useCallback(
-        (print: Print) => {
+        (print: Print, isDuplicate = false) => {
             form.setFieldValue("name", print.name);
             form.setFieldValue("status", print.status);
             form.setFieldValue("notes", print.notes);
-            form.setFieldValue("datePrinted", print.datePrinted);
+            form.setFieldValue(
+                "datePrinted",
+                isDuplicate ? new Date().toISOString() : print.datePrinted
+            );
             form.setFieldValue(
                 "spools",
                 print.spools!.map((ps) => {
@@ -115,18 +118,20 @@ export function PrintsPage() {
 
     const handleEdit = useCallback(
         (print: Print) => {
+            form.reset();
             setEditState({ isOpen: true, id: print.id, original: print });
             populateFormFromPrint(print);
         },
-        [populateFormFromPrint]
+        [form, populateFormFromPrint]
     );
 
     const handleDuplicate = useCallback(
         (print: Print) => {
+            form.reset();
             setEditState({ isOpen: true, id: 0, original: print });
-            populateFormFromPrint(print);
+            populateFormFromPrint(print, true);
         },
-        [populateFormFromPrint]
+        [form, populateFormFromPrint]
     );
 
     useEffect(() => {

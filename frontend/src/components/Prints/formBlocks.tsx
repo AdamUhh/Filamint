@@ -83,7 +83,7 @@ export function PrintNameFormField({
 }
 
 export function PrintGramsUsedFormField() {
-    const field = useFieldContext<number | undefined>();
+    const field = useFieldContext<number>();
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -132,7 +132,7 @@ export function PrintGramsUsedFormField() {
                     id={field.name}
                     name={field.name}
                     type="number"
-                    value={Number(field.state.value).toString() ?? ""}
+                    value={Number(field.state.value).toString()}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
                         field.handleChange(parseInt(e.target.value) || 0)
@@ -141,7 +141,6 @@ export function PrintGramsUsedFormField() {
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
             </InputGroup>
-            {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
         </Field>
     );
 }

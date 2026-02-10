@@ -45,7 +45,7 @@ export function DeletePrintDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <div className="flex items-start gap-2 pt-2">
+                <div className="flex items-center gap-2 pt-2">
                     <Checkbox
                         id="restore-spools"
                         checked={intent?.restoreSpoolGrams ?? false}
@@ -57,7 +57,7 @@ export function DeletePrintDialog({
                             })
                         }
                     />
-                    <Label htmlFor="terms-checkbox">
+                    <Label htmlFor="restore-spools">
                         Restore used grams back to spools
                     </Label>
                 </div>
