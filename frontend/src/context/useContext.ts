@@ -3,8 +3,8 @@ import { createContext, useContext } from "react";
 import type { Print, Spool } from "@bindings";
 
 export interface AppContextValue {
-    spools: Spool[];
-    prints: Print[];
+    spools: Map<number, Spool>;
+    prints: Map<number, Print>;
 
     isLoading: boolean;
     error: Error | null;

@@ -19,9 +19,9 @@ import {
     InputGroupTextarea,
 } from "@/shadcn/input-group";
 
-import type { Spool } from "@bindings";
+import { useFieldContext, useFormContext } from "@/components/Spools/lib/hooks";
 
-import { useFieldContext, useFormContext } from "./form-hook";
+import type { Spool } from "@bindings";
 
 export function SpoolVendorFormField({
     editingId,

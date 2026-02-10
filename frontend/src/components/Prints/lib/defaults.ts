@@ -1,4 +1,4 @@
-import type { TPrintSchema } from "./schema";
+import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
 export const defaultPrintValues: TPrintSchema = {
     name: "",

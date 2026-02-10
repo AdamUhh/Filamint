@@ -3,17 +3,33 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/shadcn/field";
 
 import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { withForm } from "@/components/Prints/lib/hooks";
+import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
 import type { Print, Spool } from "@bindings";
 
-export const PrintDialogForm = withForm({
+export type EditState = {
+    isOpen: boolean;
+    id: number;
+    original: Print | null;
+};
+
+export const PrintForm = withForm({
     defaultValues: defaultPrintValues,
     props: {
-        editState: { id: 0 } as { id: number },
-        resetToOriginal: (() => {}) as (field: keyof Print) => void,
-        spools: [] as Spool[],
+        editState: {
+            isOpen: false,
+            id: 0,
+            original: null,
+        } as EditState,
+        spools: {} as Map<number, Spool>,
     },
-    render: function Render({ form, editState, resetToOriginal, spools }) {
+    render: function Render({ form, editState, spools }) {
+        const resetToOriginal = (field: keyof TPrintSchema) => {
+            if (!editState.original) return;
+
+            form.setFieldValue(field, editState.original[field]);
+        };
+
         return (
             <FieldGroup className="pb-4">
                 <form.AppField

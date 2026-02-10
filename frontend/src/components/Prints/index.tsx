@@ -1,7 +1,7 @@
 import { useApp } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
 import { PlusIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -17,19 +17,13 @@ import {
     DeletePrintDialog,
     type DeleteState,
 } from "@/components/Prints/deleteDialog";
-import { PrintDialogForm } from "@/components/Prints/form";
+import { type EditState, PrintForm } from "@/components/Prints/form";
 import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { useAppForm } from "@/components/Prints/lib/hooks";
-import { type TPrintSchema, printSchema } from "@/components/Prints/lib/schema";
+import { printSchema } from "@/components/Prints/lib/schema";
 import { PrintTable } from "@/components/Prints/printTable";
 
 import { type Print, PrintService, PrintSpool } from "@bindings";
-
-type EditState = {
-    isOpen: boolean;
-    id: number;
-    original: Print | null;
-};
 
 export function PrintsPage() {
     const { spools, prints, refreshPrints, isLoading } = useApp();
@@ -54,8 +48,7 @@ export function PrintsPage() {
                 datePrinted: new Date(value.datePrinted),
                 createdAt:
                     editState.id > 0
-                        ? prints.find((s) => s.id === editState.id)
-                              ?.createdAt || now
+                        ? prints.get(editState.id)?.createdAt || now
                         : now,
                 updatedAt: now,
                 spools: (value.spools as PrintSpool[]).map((s) => ({
@@ -65,8 +58,7 @@ export function PrintsPage() {
                     gramsUsed: s.gramsUsed,
                     createdAt:
                         editState.id > 0
-                            ? prints.find((s) => s.id === editState.id)
-                                  ?.createdAt || now
+                            ? prints.get(editState.id)?.createdAt || now
                             : now,
                     updatedAt: now,
                 })),
@@ -87,14 +79,6 @@ export function PrintsPage() {
         },
     });
 
-    const resetToOriginal = (field: keyof Print) => {
-        if (!editState.original) return;
-        form.setFieldValue(
-            field as keyof TPrintSchema,
-            editState.original[field]
-        );
-    };
-
     const handleCreate = useCallback(() => {
         setEditState({ isOpen: true, id: 0, original: null });
         form.reset();
@@ -108,12 +92,6 @@ export function PrintsPage() {
         };
     }, [handleCreate]);
 
-    // TODO: Switch global spools and prints to a map for better access
-    const spoolsMap = useMemo(
-        () => new Map(spools.map((s) => [s.id, s])),
-        [spools]
-    );
-
     const populateFormFromPrint = useCallback(
         (print: Print) => {
             form.setFieldValue("name", print.name);
@@ -123,7 +101,7 @@ export function PrintsPage() {
             form.setFieldValue(
                 "spools",
                 print.spools!.map((ps) => {
-                    const spool = spoolsMap.get(ps.spoolId);
+                    const spool = spools.get(ps.spoolId);
                     if (!spool) {
                         throw new Error(`Spool not found for id ${ps.spoolId}`);
                     }
@@ -140,7 +118,7 @@ export function PrintsPage() {
                 })
             );
         },
-        [form, spoolsMap]
+        [form, spools]
     );
 
     const handleEdit = useCallback(
@@ -205,10 +183,7 @@ export function PrintsPage() {
                     if (!isOpen) handleCloseDialog();
                 }}
             >
-                <DialogContent
-                    aria-describedby={undefined}
-                    className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
-                >
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>
                             {editState.id > 0 ? "Edit Print" : "Add New Print"}
@@ -222,10 +197,9 @@ export function PrintsPage() {
                             form.handleSubmit();
                         }}
                     >
-                        <PrintDialogForm
+                        <PrintForm
                             form={form}
                             editState={editState}
-                            resetToOriginal={resetToOriginal}
                             spools={spools}
                         />
                         <DialogFooter>

@@ -33,20 +33,22 @@ export function PrintTable({
     onDuplicate,
     onDelete,
 }: {
-    prints: Print[];
+    prints: Map<number, Print>;
     onEdit: (print: Print) => void;
     onDuplicate: (print: Print) => void;
     onDelete: (id: number) => void;
 }) {
+    const printArray = Array.from(prints.values());
+
     return (
         <div className="rounded-lg border">
             <Table>
                 <PrintTableHeaders />
                 <TableBody>
-                    {prints.length === 0 ? (
+                    {printArray.length === 0 ? (
                         <PrintTableRowsEmpty />
                     ) : (
-                        prints.map((print) => (
+                        printArray.map((print) => (
                             <TableRow key={print.id} className="capitalize">
                                 <TableCell>{print.name}</TableCell>
                                 <TableCell>spoolId</TableCell>

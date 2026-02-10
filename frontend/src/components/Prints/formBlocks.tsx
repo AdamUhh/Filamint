@@ -150,7 +150,7 @@ export function PrintSpoolFormField({
     spools,
     onRemoveSpool: onRemoveSpool,
 }: {
-    spools: Spool[];
+    spools: Map<number, Spool>;
     onRemoveSpool: () => void;
 }) {
     const field =
@@ -158,14 +158,13 @@ export function PrintSpoolFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-    const selectedSpool =
-        spools.find((s) => s.id === field.state.value?.id) ?? null;
+    const selectedSpool = spools.get(field.state.value?.id) ?? null;
 
     return (
         <Field data-invalid={isInvalid} className="group flex-3">
             <Combobox
                 name={field.name}
-                items={spools}
+                items={Array.from(spools.values())}
                 value={selectedSpool}
                 onValueChange={(value) =>
                     value &&
