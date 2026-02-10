@@ -36,7 +36,6 @@ export function SpoolsPage() {
         original: null,
     });
     const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
-
     const [templateOpen, setTemplateOpen] = useState(false);
 
     const form = useAppForm({
@@ -81,17 +80,6 @@ export function SpoolsPage() {
         form.reset();
     }, [form]);
 
-    useEffect(() => {
-        Events.On("spool:create", handleCreate);
-        Events.On("spool:toggle_template", handleViewTemplate);
-
-        return () => {
-            Events.Off("spool:create");
-            Events.Off("spool:toggle_template");
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     const populateFormFromPrint = useCallback(
         (spool: Spool, isDuplicate = false) => {
             form.setFieldValue("vendor", spool.vendor);
@@ -127,6 +115,17 @@ export function SpoolsPage() {
         },
         [populateFormFromPrint]
     );
+
+    useEffect(() => {
+        Events.On("spool:create", handleCreate);
+        Events.On("spool:toggle_template", handleViewTemplate);
+
+        return () => {
+            Events.Off("spool:create");
+            Events.Off("spool:toggle_template");
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleDelete = (spoolId: number) => {
         setDeleteIntent({ spoolId });

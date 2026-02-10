@@ -84,14 +84,6 @@ export function PrintsPage() {
         form.reset();
     }, [form]);
 
-    useEffect(() => {
-        Events.On("print:create", handleCreate);
-
-        return () => {
-            Events.Off("print:create");
-        };
-    }, [handleCreate]);
-
     const populateFormFromPrint = useCallback(
         (print: Print) => {
             form.setFieldValue("name", print.name);
@@ -136,6 +128,14 @@ export function PrintsPage() {
         },
         [populateFormFromPrint]
     );
+
+    useEffect(() => {
+        Events.On("print:create", handleCreate);
+
+        return () => {
+            Events.Off("print:create");
+        };
+    }, [handleCreate]);
 
     const handleDelete = (printId: number) => {
         setDeleteIntent({ printId, restoreSpoolGrams: true });
