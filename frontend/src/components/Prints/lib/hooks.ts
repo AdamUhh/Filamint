@@ -7,12 +7,12 @@ import {
     PrintNotesFormField,
     PrintSpoolFormField,
     PrintStatusFormField,
-} from "./forms";
+} from "./formBlocks.tsx";
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
     createFormHookContexts();
 
-export const { useAppForm } = createFormHook({
+export const { useAppForm, withForm } = createFormHook({
     fieldContext,
     formContext,
     fieldComponents: {
@@ -23,6 +23,5 @@ export const { useAppForm } = createFormHook({
         PrintNotesFormField,
         PrintSpoolFormField,
     },
-
     formComponents: {},
 });

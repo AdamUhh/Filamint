@@ -10,8 +10,7 @@
 - [ ] In normal spool mode, 'create template from this spool', because i want to prevent them from duplicating in normal mode
 
 > Prints
-- [ ] spools need to remove usedGrams from Spools table
-- [ ] When deleting a print, need a checkbox to ask if you want to revert grams used
+- [x] When deleting a print, need a checkbox to ask if you want to revert grams used
 - [ ] Need to update spools client side, or fetch again
 
 > DB

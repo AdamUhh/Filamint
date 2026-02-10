@@ -15,7 +15,7 @@ import { AppEventHandler } from "@/components/AppEventHandler";
 import { PrintsPage } from "@/components/Prints";
 import { SpoolsPage } from "@/components/Spools";
 
-import { SpoolProvider } from "./context/appContext";
+import { AppProvider } from "./context/appContext";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -24,9 +24,9 @@ const router = createBrowserRouter([
             <>
                 <AppEventHandler />
                 <Toaster />
-                <SpoolProvider>
+                <AppProvider>
                     <Outlet />
-                </SpoolProvider>
+                </AppProvider>
             </>
         ),
         errorElement: <RouteError />,

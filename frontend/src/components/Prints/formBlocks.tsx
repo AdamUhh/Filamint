@@ -32,12 +32,12 @@ import {
     SelectValue,
 } from "@/shadcn/select";
 
+import { useFieldContext } from "@/components/Prints/lib/hooks";
+import type { TPrintSchema } from "@/components/Prints/lib/schema";
+
 import type { ArrayElementOf } from "@/lib/util-types";
 
 import type { Print, Spool } from "@bindings";
-
-import type { TPrintSchema } from ".";
-import { useFieldContext } from "./form-hook";
 
 export function PrintNameFormField({
     editingId,

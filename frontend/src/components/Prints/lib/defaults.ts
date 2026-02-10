@@ -1,0 +1,20 @@
+import type { TPrintSchema } from "./schema";
+
+export const defaultPrintValues: TPrintSchema = {
+    name: "",
+    status: "completed",
+    notes: "",
+    datePrinted: new Date().toISOString(),
+    spools: [
+        {
+            gramsUsed: 0,
+            spool: {
+                id: 0,
+                spoolCode: "",
+                color: "#000000",
+                material: "PLA",
+                vendor: "Bambu Labs",
+            },
+        },
+    ],
+};

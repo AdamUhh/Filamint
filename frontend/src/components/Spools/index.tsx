@@ -1,4 +1,4 @@
-import { useSpools } from "@/context/useContext";
+import { useApp } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
 import { format } from "date-fns";
 import {
@@ -78,7 +78,7 @@ const spoolSchema = z.object({
 });
 
 export function SpoolsPage() {
-    const { spools, isLoading, refresh } = useSpools();
+    const { spools, isLoading, refreshSpools } = useApp();
     const [originalSpool, setOriginalSpool] = useState<Spool | null>(null);
     const [editingId, setEditingId] = useState<number>(0);
     const [spoolToDelete, setSpoolToDelete] = useState<number | null>(null);
@@ -126,7 +126,7 @@ export function SpoolsPage() {
                 }
                 setEditDialogOpen(false);
                 form.reset();
-                refresh();
+                refreshSpools();
             } catch (err) {
                 console.error("Failed to save spool:", err);
             }
@@ -207,7 +207,7 @@ export function SpoolsPage() {
         if (spoolToDelete === null) return;
         try {
             await SpoolService.DeleteSpool(spoolToDelete);
-            refresh();
+            refreshSpools();
         } catch (err) {
             console.error(err);
         } finally {
@@ -476,7 +476,7 @@ function MyTableBody({
     onDuplicate: (spool: Spool) => void;
     onDelete: (id: number) => void;
 }) {
-    const { options } = useSpools();
+    const { options } = useApp();
 
     return (
         <TableBody>
@@ -506,7 +506,7 @@ function MyTableBody({
                                 <div className="flex items-center gap-2">
                                     {spool.colorHex && (
                                         <div
-                                            className="-mt-0.5 h-4 w-4 rounded"
+                                            className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
                                             style={{
                                                 backgroundColor: spool.colorHex,
                                             }}
@@ -516,8 +516,9 @@ function MyTableBody({
                                     {spool.color}
                                 </div>
                             </TableCell>
-                            <TableCell>{spool.totalWeight}</TableCell>
-                            <TableCell>{spool.usedWeight}</TableCell>
+                            <TableCell>
+                                {spool.totalWeight - spool.usedWeight}
+                            </TableCell>
                             <TableCell>
                                 {options.currencyAlign === "left" ? (
                                     <>
@@ -640,7 +641,6 @@ function MyTableHeaders() {
                 <TableHead>Type</TableHead>
                 <TableHead>Color</TableHead>
                 <TableHead>Remaining (g)</TableHead>
-                <TableHead>Used (g)</TableHead>
                 <TableHead>Cost</TableHead>
                 <TableHead></TableHead>
             </TableRow>

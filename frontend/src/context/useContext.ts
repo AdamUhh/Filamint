@@ -1,28 +1,29 @@
 import { createContext, useContext } from "react";
 
-import type { Spool } from "@bindings";
+import type { Print, Spool } from "@bindings";
 
-export interface SpoolContextValue {
+export interface AppContextValue {
     spools: Spool[];
-    selectedSpool: Spool | null;
+    prints: Print[];
+
     isLoading: boolean;
     error: Error | null;
+
     options: {
         currency: string;
         currencyAlign: "left" | "right";
     };
-    selectSpool: (spool: Spool) => void;
-    refresh: () => Promise<void>;
+
+    refreshSpools: () => Promise<void>;
+    refreshPrints: () => Promise<void>;
 }
 
-export const SpoolContext = createContext<SpoolContextValue | undefined>(
-    undefined
-);
+export const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-export function useSpools(): SpoolContextValue {
-    const ctx = useContext(SpoolContext);
+export function useApp(): AppContextValue {
+    const ctx = useContext(AppContext);
     if (!ctx) {
-        throw new Error("useSpools must be used inside a SpoolProvider");
+        throw new Error("useApp must be used inside a AppProvider");
     }
     return ctx;
 }

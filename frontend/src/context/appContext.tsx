@@ -6,14 +6,14 @@ import {
     useState,
 } from "react";
 
-import { SpoolService } from "@bindings";
+import { PrintService, SpoolService } from "@bindings";
 
-import { SpoolContext, type SpoolContextValue } from "./useContext";
+import { AppContext, type AppContextValue } from "./useContext";
 
-export function SpoolProvider({ children }: { children: ReactNode }) {
-    const [spools, setSpools] = useState<SpoolContextValue["spools"]>([]);
-    const [selectedSpool, setSelectedSpool] =
-        useState<SpoolContextValue["selectedSpool"]>(null);
+export function AppProvider({ children }: { children: ReactNode }) {
+    const [spools, setSpools] = useState<AppContextValue["spools"]>([]);
+    const [prints, setPrints] = useState<AppContextValue["prints"]>([]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -30,8 +30,8 @@ export function SpoolProvider({ children }: { children: ReactNode }) {
         try {
             setIsLoading(true);
             setError(null);
-            const result = await SpoolService.ListSpools();
-            setSpools(result);
+            const resultSpools = await SpoolService.ListSpools();
+            setSpools(resultSpools);
         } catch (err) {
             setError(
                 err instanceof Error ? err : new Error("Failed to fetch spools")
@@ -41,39 +41,39 @@ export function SpoolProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const fetchPrints = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            const printResults = await PrintService.ListPrints();
+            setPrints(printResults);
+        } catch (err) {
+            setError(
+                err instanceof Error ? err : new Error("Failed to fetch prints")
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchSpools();
-    }, [fetchSpools]);
+        fetchPrints();
+    }, [fetchSpools, fetchPrints]);
 
-    const selectSpool = useCallback(
-        (spool: SpoolContextValue["spools"][number]) => {
-            setSelectedSpool(spool);
-        },
-        []
-    );
-
-    const value = useMemo<SpoolContextValue>(
+    const value = useMemo<AppContextValue>(
         () => ({
             spools,
-            selectedSpool,
-            selectSpool,
+            prints,
             isLoading,
             error,
-            refresh: fetchSpools,
+            refreshSpools: fetchSpools,
+            refreshPrints: fetchPrints,
             options,
         }),
-        [
-            spools,
-            selectedSpool,
-            selectSpool,
-            isLoading,
-            error,
-            fetchSpools,
-            options,
-        ]
+        [spools, prints, isLoading, error, fetchSpools, fetchPrints, options]
     );
 
-    return (
-        <SpoolContext.Provider value={value}>{children}</SpoolContext.Provider>
-    );
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

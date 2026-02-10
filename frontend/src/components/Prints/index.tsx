@@ -1,164 +1,71 @@
-import { useSpools } from "@/context/useContext";
+import { useApp } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
-import { format } from "date-fns";
-import {
-    CopyPlusIcon,
-    EllipsisIcon,
-    PencilIcon,
-    PlusIcon,
-    TrashIcon,
-} from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { z } from "zod";
+import { PlusIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Checkbox } from "@/shadcn/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
-
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shadcn/button";
 import {
     Dialog,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shadcn/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
+
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-} from "@/components/ui/field";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+    DeletePrintDialog,
+    type DeleteState,
+} from "@/components/Prints/deleteDialog";
+import { PrintDialogForm } from "@/components/Prints/form";
+import { defaultPrintValues } from "@/components/Prints/lib/defaults";
+import { useAppForm } from "@/components/Prints/lib/hooks";
+import { type TPrintSchema, printSchema } from "@/components/Prints/lib/schema";
+import { PrintTable } from "@/components/Prints/printTable";
 
 import { type Print, PrintService, PrintSpool } from "@bindings";
 
-import { useAppForm } from "./form-hook";
-
-const printSchema = z.object({
-    name: z.string().min(1, "Name is required").max(300),
-    status: z.string().min(1).max(50),
-    notes: z.string().max(2000),
-    datePrinted: z.string().refine((val) => !isNaN(Date.parse(val)), {
-        message: "Invalid date",
-    }),
-    spools: z
-        .array(
-            z.object({
-                spool: z.object({
-                    id: z.number().int().nonnegative(),
-                    spoolCode: z.string().min(1, "Please select a spool"),
-                    color: z.string(),
-                    vendor: z.string(),
-                    material: z.string(),
-                }),
-                gramsUsed: z
-                    .number()
-                    .min(1, "How many grams did this print use?")
-                    .max(10000),
-            })
-        )
-        .min(1, "At least one spool is required"),
-    // TODO: Add printFiles
-});
-
-export type TPrintSchema = z.infer<typeof printSchema>;
+type EditState = {
+    isOpen: boolean;
+    id: number;
+    original: Print | null;
+};
 
 export function PrintsPage() {
-    const { spools } = useSpools();
-    const [prints, setPrints] = useState<Print[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [editingId, setEditingId] = useState<number>(0);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [printToDelete, setPrintToDelete] = useState<number | null>(null);
-    const [restoreSpoolGrams, setRestoreSpoolGrams] = useState(false);
-    const [originalPrint, setOriginalPrint] = useState<Print | null>(null);
+    const { spools, prints, refreshPrints, isLoading } = useApp();
 
-    const fetchPrints = async () => {
-        try {
-            const list = await PrintService.ListPrints();
-            setPrints(list);
-            console.debug("prints", list);
-        } catch (err) {
-            console.error("Failed to fetch prints:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchPrints();
-    }, []);
+    const [editState, setEditState] = useState<EditState>({
+        isOpen: false,
+        id: 0,
+        original: null,
+    });
+    const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
 
     const form = useAppForm({
-        defaultValues: {
-            name: "",
-            status: "completed",
-            notes: "",
-            datePrinted: new Date().toISOString(),
-            spools: [
-                {
-                    gramsUsed: 0,
-                    spool: {
-                        id: 0,
-                        spoolCode: "",
-                        color: "#000000",
-                        material: "PLA",
-                        vendor: "Bambu Labs",
-                    },
-                },
-            ],
-        } as TPrintSchema,
+        defaultValues: defaultPrintValues,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
-            console.debug("Submitting", value);
             const now = new Date().toISOString();
             const printToSave: Print = {
-                id: editingId,
+                id: editState.id,
                 name: value.name,
                 status: value.status,
                 notes: value.notes,
                 datePrinted: new Date(value.datePrinted),
                 createdAt:
-                    editingId > 0
-                        ? prints.find((s) => s.id === editingId)?.createdAt ||
-                          now
+                    editState.id > 0
+                        ? prints.find((s) => s.id === editState.id)
+                              ?.createdAt || now
                         : now,
                 updatedAt: now,
                 spools: (value.spools as PrintSpool[]).map((s) => ({
-                    id: editingId,
-                    printId: editingId,
+                    id: editState.id,
+                    printId: editState.id,
                     spoolId: s.spool!.id,
                     gramsUsed: s.gramsUsed,
                     createdAt:
-                        editingId > 0
-                            ? prints.find((s) => s.id === editingId)
+                        editState.id > 0
+                            ? prints.find((s) => s.id === editState.id)
                                   ?.createdAt || now
                             : now,
                     updatedAt: now,
@@ -166,14 +73,14 @@ export function PrintsPage() {
             };
 
             try {
-                if (editingId > 0) {
+                if (editState.id > 0) {
                     await PrintService.UpdatePrint(printToSave);
                 } else {
                     await PrintService.CreatePrint(printToSave);
                 }
-                setEditDialogOpen(false);
+                setEditState({ id: 0, isOpen: false, original: null });
                 form.reset();
-                fetchPrints();
+                refreshPrints();
             } catch (err) {
                 console.error("Failed to save print:", err);
             }
@@ -181,15 +88,16 @@ export function PrintsPage() {
     });
 
     const resetToOriginal = (field: keyof Print) => {
-        if (!originalPrint) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        form.setFieldValue(field as any, originalPrint[field]);
+        if (!editState.original) return;
+        form.setFieldValue(
+            field as keyof TPrintSchema,
+            editState.original[field]
+        );
     };
 
     const handleCreate = useCallback(() => {
-        setEditingId(0);
+        setEditState({ isOpen: true, id: 0, original: null });
         form.reset();
-        setEditDialogOpen(true);
     }, [form]);
 
     useEffect(() => {
@@ -198,137 +106,112 @@ export function PrintsPage() {
         return () => {
             Events.Off("print:create");
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [handleCreate]);
 
-    const handleEdit = (print: Print) => {
-        setEditingId(print.id);
-        setOriginalPrint(print);
+    // TODO: Switch global spools and prints to a map for better access
+    const spoolsMap = useMemo(
+        () => new Map(spools.map((s) => [s.id, s])),
+        [spools]
+    );
 
-        form.setFieldValue("name", print.name);
-        form.setFieldValue("status", print.status);
-        form.setFieldValue("notes", print.notes);
+    const populateFormFromPrint = useCallback(
+        (print: Print) => {
+            form.setFieldValue("name", print.name);
+            form.setFieldValue("status", print.status);
+            form.setFieldValue("notes", print.notes);
+            form.setFieldValue("datePrinted", print.datePrinted);
+            form.setFieldValue(
+                "spools",
+                print.spools!.map((ps) => {
+                    const spool = spoolsMap.get(ps.spoolId);
+                    if (!spool) {
+                        throw new Error(`Spool not found for id ${ps.spoolId}`);
+                    }
+                    return {
+                        gramsUsed: ps.gramsUsed,
+                        spool: {
+                            id: spool.id,
+                            spoolCode: spool.spoolCode,
+                            color: spool.color,
+                            material: spool.material,
+                            vendor: spool.vendor,
+                        },
+                    };
+                })
+            );
+        },
+        [form, spoolsMap]
+    );
 
-        form.setFieldValue("datePrinted", print.datePrinted);
+    const handleEdit = useCallback(
+        (print: Print) => {
+            setEditState({ isOpen: true, id: print.id, original: print });
+            populateFormFromPrint(print);
+        },
+        [populateFormFromPrint]
+    );
 
-        form.setFieldValue(
-            "spools",
-            print.spools!.map((ps) => {
-                const spool = spools.find((s) => s.id === ps.spoolId);
+    const handleDuplicate = useCallback(
+        (print: Print) => {
+            setEditState({ isOpen: true, id: 0, original: print });
+            populateFormFromPrint(print);
+        },
+        [populateFormFromPrint]
+    );
 
-                if (!spool) {
-                    throw new Error(`Spool not found for id ${ps.spoolId}`);
-                }
-
-                return {
-                    gramsUsed: ps.gramsUsed,
-                    spool: {
-                        id: spool.id,
-                        spoolCode: spool.spoolCode,
-                        color: spool.color,
-                        material: spool.material,
-                        vendor: spool.vendor,
-                    },
-                };
-            })
-        );
-        console.debug("values", form.state.values.spools);
-
-        setEditDialogOpen(true);
-    };
-
-    const handleDuplicate = (print: Print) => {
-        setEditingId(0);
-        setOriginalPrint(print);
-
-        form.setFieldValue("name", print.name);
-        form.setFieldValue("status", print.status);
-        form.setFieldValue("notes", print.notes);
-
-        form.setFieldValue("datePrinted", print.datePrinted);
-        form.setFieldValue(
-            "spools",
-            print.spools!.map((ps) => {
-                const spool = spools.find((s) => s.id === ps.spoolId);
-
-                if (!spool) {
-                    throw new Error(`Spool not found for id ${ps.spoolId}`);
-                }
-
-                return {
-                    gramsUsed: ps.gramsUsed,
-                    spool: {
-                        id: spool.id,
-                        spoolCode: spool.spoolCode,
-                        color: spool.color,
-                        vendor: spool.vendor,
-                        material: spool.material,
-                    },
-                };
-            })
-        );
-
-        setEditDialogOpen(true);
-    };
-
-    const handleDelete = (id: number) => {
-        setPrintToDelete(id);
-        setDeleteDialogOpen(true);
+    const handleDelete = (printId: number) => {
+        setDeleteIntent({ printId, restoreSpoolGrams: true });
     };
 
     const handleDeleteConfirm = async () => {
-        if (printToDelete === null) return;
+        if (!deleteIntent) return;
+
         try {
-            await PrintService.DeletePrint(printToDelete, restoreSpoolGrams);
-            fetchPrints();
-        } catch (err) {
-            console.error(err);
+            await PrintService.DeletePrint(
+                deleteIntent.printId,
+                deleteIntent.restoreSpoolGrams
+            );
+            refreshPrints();
+        } catch (error) {
+            console.error("Failed to delete print:", error);
+            // TODO: Show error toast
         } finally {
-            setDeleteDialogOpen(false);
-            setPrintToDelete(null);
+            setDeleteIntent(null);
         }
     };
 
-    if (loading) return <p className="p-6">Loading prints...</p>;
+    const handleCloseDialog = useCallback(() => {
+        form.reset();
+        setEditState({ id: 0, isOpen: false, original: null });
+    }, [form]);
+
+    if (isLoading) return <p className="p-6">Loading prints...</p>;
 
     console.debug("errors! : ", form.state.isValid, form.state.errors);
 
     return (
         <div className="space-y-6 p-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Prints</h1>
+            <PrintHeader onCreate={handleCreate} />
+            <PrintTable
+                prints={prints}
+                onEdit={handleEdit}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+            />
 
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button onClick={handleCreate}>
-                            <PlusIcon /> Add Print
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Ctrl + N</p>
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-            <div className="rounded-lg border">
-                <Table>
-                    <MyTableHeaders />
-                    <MyTableBody
-                        prints={prints}
-                        onEdit={handleEdit}
-                        onDuplicate={handleDuplicate}
-                        onDelete={handleDelete}
-                    />
-                </Table>
-            </div>
-
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <Dialog
+                open={editState.isOpen}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) handleCloseDialog();
+                }}
+            >
                 <DialogContent
                     aria-describedby={undefined}
                     className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
                 >
                     <DialogHeader>
                         <DialogTitle>
-                            {editingId > 0 ? "Edit Print" : "Add New Print"}
+                            {editState.id > 0 ? "Edit Print" : "Add New Print"}
                         </DialogTitle>
                     </DialogHeader>
 
@@ -339,304 +222,59 @@ export function PrintsPage() {
                             form.handleSubmit();
                         }}
                     >
-                        <FieldGroup className="pb-4">
-                            <form.AppField
-                                name="name"
-                                children={(field) => (
-                                    <field.PrintNameFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                    />
-                                )}
-                            />
-
-                            <FieldGroup className="flex-row gap-2">
-                                <form.AppField
-                                    name="datePrinted"
-                                    children={(field) => (
-                                        <field.PrintDateTimeFormField
-                                            editingId={editingId}
-                                            onReset={resetToOriginal}
-                                        />
-                                    )}
-                                />
-
-                                <form.AppField
-                                    name="status"
-                                    children={(field) => (
-                                        <field.PrintStatusFormField
-                                            editingId={editingId}
-                                            onReset={resetToOriginal}
-                                        />
-                                    )}
-                                />
-                            </FieldGroup>
-                            <form.AppField
-                                name="spools"
-                                mode="array"
-                                children={(field) => {
-                                    const isInvalid =
-                                        field.state.meta.isTouched &&
-                                        !field.state.meta.isValid;
-                                    return (
-                                        <div className="space-y-2">
-                                            <Field
-                                                data-invalid={isInvalid}
-                                                className="flex-row"
-                                            >
-                                                <FieldLabel>Spools</FieldLabel>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 w-fit!"
-                                                    onClick={() =>
-                                                        field.pushValue({
-                                                            spool: {
-                                                                id: 0,
-                                                                spoolCode: "",
-                                                                color: "#000000",
-                                                                material: "PLA",
-                                                                vendor: "Bambu Labs",
-                                                            },
-                                                            gramsUsed: 0,
-                                                        })
-                                                    }
-                                                >
-                                                    + Add Spool
-                                                </Button>
-                                            </Field>
-                                            {field.state.value.map((_, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex gap-2"
-                                                >
-                                                    <form.AppField
-                                                        name={`spools[${i}].spool`}
-                                                        validators={{
-                                                            onMount: ({
-                                                                value,
-                                                            }) =>
-                                                                value.id <= 0
-                                                                    ? "Please add a spool"
-                                                                    : undefined,
-                                                        }}
-                                                        children={(
-                                                            subField
-                                                        ) => (
-                                                            <subField.PrintSpoolFormField
-                                                                spools={spools}
-                                                                onRemoveSpool={() =>
-                                                                    field.removeValue(
-                                                                        i
-                                                                    )
-                                                                }
-                                                            />
-                                                        )}
-                                                    />
-                                                    <form.AppField
-                                                        key={i}
-                                                        name={`spools[${i}].gramsUsed`}
-                                                        children={(
-                                                            subField
-                                                        ) => (
-                                                            <subField.PrintGramsUsedFormField />
-                                                        )}
-                                                    />
-                                                </div>
-                                            ))}
-
-                                            {isInvalid && (
-                                                <FieldError
-                                                    errors={
-                                                        field.state.meta.errors
-                                                    }
-                                                />
-                                            )}
-                                        </div>
-                                    );
-                                }}
-                            />
-
-                            <form.AppField
-                                name="notes"
-                                children={(field) => (
-                                    <field.PrintNotesFormField
-                                        editingId={editingId}
-                                        onReset={resetToOriginal}
-                                    />
-                                )}
-                            />
-                        </FieldGroup>
+                        <PrintDialogForm
+                            form={form}
+                            editState={editState}
+                            resetToOriginal={resetToOriginal}
+                            spools={spools}
+                        />
                         <DialogFooter>
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setEditDialogOpen(false)}
+                                onClick={handleCloseDialog}
                             >
                                 Cancel
                             </Button>
                             <Button type="submit">
-                                {editingId > 0 ? "Update" : "Create"}
+                                {editState.id > 0 ? "Update" : "Create"}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Alert Dialog */}
-            <AlertDialog
-                open={deleteDialogOpen}
-                onOpenChange={(open) => {
-                    setDeleteDialogOpen(open);
-                    if (!open) setRestoreSpoolGrams(false);
-                }}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Are you absolutely sure?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the print.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <div className="flex items-start gap-2 pt-2">
-                        <Checkbox
-                            id="restore-spools"
-                            checked={restoreSpoolGrams}
-                            onCheckedChange={(checked) =>
-                                setRestoreSpoolGrams(checked === true)
-                            }
-                        />
-                        <label
-                            htmlFor="restore-spools"
-                            className="text-sm leading-snug text-muted-foreground"
-                        >
-                            Restore used grams back to spools
-                        </label>
-                    </div>
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={handleDeleteConfirm}
-                        >
-                            Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {deleteIntent && (
+                <DeletePrintDialog
+                    intent={deleteIntent}
+                    onIntentChange={setDeleteIntent}
+                    onConfirm={handleDeleteConfirm}
+                />
+            )}
         </div>
     );
 }
 
-function MyTableBody({
-    prints,
-    onEdit,
-    onDuplicate,
-    onDelete,
-}: {
-    prints: Print[];
-    onEdit: (print: Print) => void;
-    onDuplicate: (print: Print) => void;
-    onDelete: (id: number) => void;
-}) {
+function PrintHeader({ onCreate }: { onCreate: () => void }) {
     return (
-        <TableBody>
-            {prints.length === 0 ? (
-                <MyTableRowsEmpty />
-            ) : (
-                prints.map((print) => (
-                    <TableRow key={print.id} className="capitalize">
-                        <TableCell>{print.name}</TableCell>
-                        <TableCell>spoolId</TableCell>
-                        <TableCell>NaN</TableCell>
-                        <TableCell>{print.status}</TableCell>
-                        <TableCell>
-                            {format(print.datePrinted, "PPp")}
-                        </TableCell>
-                        <TableCell>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <EllipsisIcon className="pointer-events-none" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    className="w-40"
-                                    align="start"
-                                >
-                                    <DropdownMenuGroup>
-                                        <DropdownMenuLabel>
-                                            Actions
-                                        </DropdownMenuLabel>
+        <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold">Prints</h1>
+                <p className="text-muted-foreground">
+                    This is where your prints live.
+                </p>
+            </div>
 
-                                        <DropdownMenuItem
-                                            onSelect={() => onDuplicate(print)}
-                                        >
-                                            <CopyPlusIcon className="mb-0.5" />
-                                            <span>Duplicate Print</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuGroup>
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuGroup>
-                                        <DropdownMenuLabel>
-                                            Options
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuItem
-                                            onSelect={() => onEdit(print)}
-                                        >
-                                            <PencilIcon className="mb-0.5" />
-                                            <span>Edit Print</span>
-                                        </DropdownMenuItem>
-
-                                        <DropdownMenuItem
-                                            onSelect={() => onDelete(print.id)}
-                                            variant="destructive"
-                                        >
-                                            <TrashIcon className="mb-0.5" />
-                                            <span>Delete Print</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                ))
-            )}
-        </TableBody>
-    );
-}
-
-function MyTableRowsEmpty() {
-    return (
-        <TableRow>
-            <TableCell
-                colSpan={8}
-                className="h-24 text-center text-muted-foreground"
-            >
-                No prints found. Add your first print to get started.
-            </TableCell>
-        </TableRow>
-    );
-}
-
-function MyTableHeaders() {
-    return (
-        <TableHeader>
-            <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Spool</TableHead>
-                <TableHead>Used (g)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Printed On</TableHead>
-                <TableHead></TableHead>
-            </TableRow>
-        </TableHeader>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button onClick={onCreate}>
+                        <PlusIcon /> Add Print
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Ctrl + N</p>
+                </TooltipContent>
+            </Tooltip>
+        </div>
     );
 }
