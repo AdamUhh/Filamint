@@ -113,6 +113,51 @@ export class PrintSpool {
     }
 }
 
+export class Shortcut {
+    "id": number;
+    "action": string;
+    "keyCombo": string;
+    "description": string;
+    "category": string;
+    "createdAt": time$0.Time;
+    "updatedAt": time$0.Time;
+
+    /** Creates a new Shortcut instance. */
+    constructor($$source: Partial<Shortcut> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("action" in $$source)) {
+            this["action"] = "";
+        }
+        if (!("keyCombo" in $$source)) {
+            this["keyCombo"] = "";
+        }
+        if (!("description" in $$source)) {
+            this["description"] = "";
+        }
+        if (!("category" in $$source)) {
+            this["category"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+        if (!("updatedAt" in $$source)) {
+            this["updatedAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Shortcut instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Shortcut {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Shortcut($$parsedSource as Partial<Shortcut>);
+    }
+}
+
 export class Spool {
     "id": number;
     "spoolCode": string;

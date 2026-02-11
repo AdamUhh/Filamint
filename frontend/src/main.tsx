@@ -1,3 +1,4 @@
+import { AppProvider } from "@/context/appContext";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -12,10 +13,10 @@ import { RouterProvider } from "react-router/dom";
 import { Toaster } from "@/shadcn/sonner";
 
 import { AppEventHandler } from "@/components/AppEventHandler";
+import { Navbar } from "@/components/Navbar";
 import { PrintsPage } from "@/components/Prints";
 import { SpoolsPage } from "@/components/Spools";
 
-import { AppProvider } from "./context/appContext";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
                 <Toaster />
                 <AppProvider>
                     <Outlet />
+                    <Navbar />
                 </AppProvider>
             </>
         ),

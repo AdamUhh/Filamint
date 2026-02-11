@@ -111,6 +111,19 @@ func (d *Database) initSchema() error {
 
 	CREATE INDEX IF NOT EXISTS idx_print_spools_print_id ON print_spools(print_id);
 	CREATE INDEX IF NOT EXISTS idx_print_spools_spool_id ON print_spools(spool_id);
+
+	CREATE TABLE IF NOT EXISTS shortcuts (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		action TEXT NOT NULL UNIQUE,
+		key_combo TEXT NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		category TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_shortcuts_action ON shortcuts(action);
+	CREATE INDEX IF NOT EXISTS idx_shortcuts_key_combo ON shortcuts(key_combo);
 	`
 	_, err := d.db.Exec(schema)
 	return err

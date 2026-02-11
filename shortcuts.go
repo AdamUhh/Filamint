@@ -1,71 +1,73 @@
 package main
 
 import (
+	"fmt"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"runtime"
 )
 
-func getModifierKey() string {
-	if runtime.GOOS == "darwin" {
-		return "Cmd+"
+func RegisterShortcuts(app *application.App, db *Database) error {
+	service := NewShortcutService(db)
+
+	shortcuts, err := service.GetAllShortcuts()
+	if err != nil {
+		return fmt.Errorf("failed to load shortcuts: %w", err)
 	}
-	return "Ctrl+"
-}
 
-func WindowShortcuts(app *application.App) {
-	Ctrl := getModifierKey()
-
-	// Only work in dev mode
 	envInfo := app.Env.Info()
-	if envInfo.Debug {
-		app.KeyBinding.Add("F12", func(window application.Window) {
-			window.OpenDevTools()
-		})
 
-		app.KeyBinding.Add(Ctrl+"R", func(window application.Window) {
-			if window != nil {
-				window.Reload()
-			}
-		})
+	for _, shortcut := range shortcuts {
+		action := shortcut.Action
+		keyCombo := shortcut.KeyCombo
+
+		// Skip dev-only shortcuts in production
+		if !envInfo.Debug && (action == "window:devtools" || action == "window:reload") {
+			continue
+		}
+
+		switch action {
+		case "window:fullscreen":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.ToggleFullscreen()
+			})
+
+		case "window:devtools":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.OpenDevTools()
+			})
+
+		case "window:reload":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				if window != nil {
+					window.Reload()
+				}
+			})
+
+		case "spool:toggle_template":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.EmitEvent("spool:toggle_template", nil)
+			})
+
+		case "spool:create":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.EmitEvent("spool:create", nil)
+			})
+
+		case "spool:redirect":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.EmitEvent("spool:redirect", nil)
+			})
+
+		case "print:redirect":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.EmitEvent("print:redirect", nil)
+			})
+
+		case "print:create":
+			app.KeyBinding.Add(keyCombo, func(window application.Window) {
+				window.EmitEvent("print:create", nil)
+			})
+		}
 	}
 
-	app.KeyBinding.Add("F11", func(window application.Window) {
-		window.ToggleFullscreen()
-	})
-
-}
-
-func SpoolShortcuts(app *application.App) {
-	Ctrl := getModifierKey()
-
-	app.KeyBinding.Add(Ctrl+"T", func(window application.Window) {
-		window.EmitEvent("spool:toggle_template", nil)
-	})
-
-	app.KeyBinding.Add(Ctrl+"N", func(window application.Window) {
-		window.EmitEvent("spool:create", nil)
-	})
-
-	app.KeyBinding.Add(Ctrl+"Shift+S", func(window application.Window) {
-		window.EmitEvent("spool:redirect", nil)
-	})
-
-}
-
-func PrintShortcuts(app *application.App) {
-	Ctrl := getModifierKey()
-
-	app.KeyBinding.Add(Ctrl+"Shift+P", func(window application.Window) {
-		window.EmitEvent("print:redirect", nil)
-	})
-
-	app.KeyBinding.Add(Ctrl+"N", func(window application.Window) {
-		window.EmitEvent("print:create", nil)
-	})
-}
-
-func KeyboardShortcuts(app *application.App) {
-	WindowShortcuts(app)
-	SpoolShortcuts(app)
-	PrintShortcuts(app)
+	return nil
 }

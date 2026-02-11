@@ -14,6 +14,13 @@ export interface AppContextValue {
         currencyAlign: "left" | "right";
     };
 
+    setOptions: React.Dispatch<
+        React.SetStateAction<{
+            currency: string;
+            currencyAlign: "left" | "right";
+        }>
+    >;
+
     refreshSpools: () => Promise<void>;
     refreshPrints: () => Promise<void>;
 }

@@ -462,7 +462,7 @@ export function ColorPicker({
                                 <div className="size-61.25! overflow-y-auto p-1">
                                     <div className="flex flex-wrap gap-2">
                                         {FILAMENT_SWATCHES.map((swatch) => (
-                                            <Tooltip disableHoverableContent>
+                                            <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button
                                                         key={swatch.hex}

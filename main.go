@@ -33,6 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize todo service: %v", err)
 	}
+	defer db.Close()
 
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
@@ -45,6 +46,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
+			application.NewService(NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -54,7 +56,10 @@ func main() {
 		},
 	})
 
-	KeyboardShortcuts(app)
+	// Register shortcuts from database
+	if err := RegisterShortcuts(app, db); err != nil {
+		log.Fatalf("Failed to register shortcuts: %v", err)
+	}
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

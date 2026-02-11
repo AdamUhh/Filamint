@@ -17,14 +17,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    // add handlers that saves and fetches from localstorage or DB
-    const options = useMemo(
-        () => ({
-            currency: "AED",
-            currencyAlign: "left" as const,
-        }),
-        []
-    );
+    const [options, setOptions] = useState<AppContextValue["options"]>({
+        currency: "AED",
+        currencyAlign: "left",
+    });
+
+    useEffect(() => {
+        const saved = localStorage.getItem("app-options");
+        if (saved) {
+            setOptions(JSON.parse(saved));
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("app-options", JSON.stringify(options));
+    }, [options]);
 
     const fetchSpools = useCallback(async () => {
         try {
@@ -76,6 +83,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             refreshSpools: fetchSpools,
             refreshPrints: fetchPrints,
             options,
+            setOptions,
         }),
         [spools, prints, isLoading, error, fetchSpools, fetchPrints, options]
     );
