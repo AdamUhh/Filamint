@@ -56,7 +56,7 @@ export function PrintTable({
                                 <TableCell>{print.name}</TableCell>
                                 <TableCell>
                                     <div className="flex gap-1">
-                                        {print.spools?.map((ps) => {
+                                        {print.spools?.map((ps, i) => {
                                             const _spool = spools.get(
                                                 ps.spoolId
                                             );
@@ -67,7 +67,7 @@ export function PrintTable({
                                                 _spool?.color || "Black";
 
                                             return (
-                                                <Tooltip>
+                                                <Tooltip key={i}>
                                                     <TooltipTrigger>
                                                         <div
                                                             key={ps.spoolId}

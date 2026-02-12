@@ -35,7 +35,9 @@ export function ShortcutsSettingsSimple() {
     const fetchShortcuts = async () => {
         try {
             const data = await ShortcutService.GetAllShortcuts();
-            setShortcuts(data);
+            setShortcuts(
+                data.sort((a, b) => a.category.localeCompare(b.category))
+            );
         } catch (err: any) {
             setError(err.message);
         }
@@ -220,12 +222,9 @@ export function ShortcutsSettingsSimple() {
                                             />
                                         ) : (
                                             <div className="w-48">
-                                                <Badge
-                                                    variant="outline"
-                                                    className="font-mono"
-                                                >
+                                                <div className="font-mono text-xs tracking-widest">
                                                     {shortcut.keyCombo}
-                                                </Badge>
+                                                </div>
                                             </div>
                                         )}
                                     </TableCell>

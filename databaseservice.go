@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
-	"path/filepath"
 )
 
 type Database struct {
@@ -212,11 +213,11 @@ func (d *Database) seedSpoolsIfEmpty() error {
 }
 
 // Generic query methods that can be used by any repository
-func (d *Database) Select(dest interface{}, query string, args ...interface{}) error {
+func (d *Database) Select(dest any, query string, args ...any) error {
 	return d.db.Select(dest, query, args...)
 }
 
-func (d *Database) Get(dest interface{}, query string, args ...interface{}) error {
+func (d *Database) Get(dest any, query string, args ...interface{}) error {
 	return d.db.Get(dest, query, args...)
 }
 

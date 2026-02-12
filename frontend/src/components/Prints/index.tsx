@@ -1,4 +1,5 @@
 import { useApp } from "@/context/useContext";
+import { useKeyCombo } from "@/hooks/useKeyCombo";
 import { Events } from "@wailsio/runtime";
 import { PlusIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -140,7 +141,8 @@ export function PrintsPage() {
         return () => {
             Events.Off("print:create");
         };
-    }, [handleCreate]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleDelete = (printId: number) => {
         setDeleteIntent({ printId, restoreSpoolGrams: true });
@@ -236,6 +238,7 @@ export function PrintsPage() {
 }
 
 function PrintHeader({ onCreate }: { onCreate: () => void }) {
+    const keyCombo = useKeyCombo("print:create");
     return (
         <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -252,7 +255,7 @@ function PrintHeader({ onCreate }: { onCreate: () => void }) {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Ctrl + N</p>
+                    <p>{keyCombo}</p>
                 </TooltipContent>
             </Tooltip>
         </div>

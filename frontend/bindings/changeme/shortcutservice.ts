@@ -15,28 +15,48 @@ export function GetAllShortcuts(): $CancellablePromise<$models.Shortcut[]> {
     });
 }
 
+/**
+ * GetShortcutCombo retrieves a key combo from cache
+ */
 export function GetShortcutCombo(action: string): $CancellablePromise<string> {
     return $Call.ByID(2640683523, action);
 }
 
+/**
+ * GetShortcutCombos retrieves multiple key combos from cache
+ */
+export function GetShortcutCombos(actions: string[]): $CancellablePromise<string[]> {
+    return $Call.ByID(922662480, actions).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
+ * GetShortcutsByCategory returns shortcuts from cache filtered by category
+ */
 export function GetShortcutsByCategory(category: string): $CancellablePromise<$models.Shortcut[]> {
     return $Call.ByID(1746004273, category).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
-export function Name(): $CancellablePromise<string> {
-    return $Call.ByID(2206458040);
-}
-
+/**
+ * ResetAllShortcuts resets all shortcuts to defaults in cache and syncs to database
+ */
 export function ResetAllShortcuts(): $CancellablePromise<void> {
     return $Call.ByID(4167460956);
 }
 
+/**
+ * ResetShortcut resets a shortcut to default in cache and syncs to database
+ */
 export function ResetShortcut(action: string): $CancellablePromise<void> {
     return $Call.ByID(589397084, action);
 }
 
+/**
+ * UpdateShortcut updates a shortcut in cache and syncs to database
+ */
 export function UpdateShortcut(action: string, newKeyCombo: string): $CancellablePromise<void> {
     return $Call.ByID(23993756, action, newKeyCombo);
 }
@@ -44,3 +64,4 @@ export function UpdateShortcut(action: string, newKeyCombo: string): $Cancellabl
 // Private type creation functions
 const $$createType0 = $models.Shortcut.createFrom;
 const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = $Create.Array($Create.Any);
