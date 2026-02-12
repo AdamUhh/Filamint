@@ -28,7 +28,16 @@ func (sr *ShortcutRegistrar) reloadShortcuts(service *ShortcutService) error {
 		sr.app.KeyBinding.Remove(binding.Accelerator)
 	}
 
-	return registerShortcutsInternal(sr.app, service)
+	if err := registerShortcutsInternal(sr.app, service); err != nil {
+		return err
+	}
+
+	// Emit once after successful reload
+	for _, window := range sr.app.Window.GetAll() {
+		window.EmitEvent("window:reload_shortcuts", nil)
+	}
+
+	return nil
 }
 
 func registerShortcutsInternal(app *application.App, service *ShortcutService) error {
@@ -91,4 +100,5 @@ func executeShortcutAction(window application.Window, action string) {
 	case "print:create":
 		window.EmitEvent("print:create", nil)
 	}
+
 }

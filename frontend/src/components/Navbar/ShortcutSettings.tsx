@@ -2,7 +2,6 @@
 import { CheckIcon, PencilIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,7 +35,14 @@ export function ShortcutsSettingsSimple() {
         try {
             const data = await ShortcutService.GetAllShortcuts();
             setShortcuts(
-                data.sort((a, b) => a.category.localeCompare(b.category))
+                data.sort((a, b) => {
+                    const categoryCompare = a.category.localeCompare(
+                        b.category
+                    );
+                    if (categoryCompare !== 0) return categoryCompare;
+
+                    return a.action.localeCompare(b.action);
+                })
             );
         } catch (err: any) {
             setError(err.message);
