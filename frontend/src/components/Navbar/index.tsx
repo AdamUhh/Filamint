@@ -1,4 +1,5 @@
 // components/BottomNav.tsx
+import { Events } from "@wailsio/runtime";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router";
@@ -15,6 +16,11 @@ import { AppSettings } from "./Settings";
 
 export function Navbar() {
     const [settingsOpen, setSettingsOpen] = useState(false);
+
+    const handleDialogChange = (open: boolean) => {
+        setSettingsOpen(open);
+        Events.Emit("shortcuts:set_enabled", !open);
+    };
 
     const navItem =
         "relative flex min-w-16 hover:cursor-pointer flex-col items-center justify-center gap-0.5 hover:text-2xs px-3 py-1.5 font-medium transition-colors duration-300";
@@ -64,7 +70,7 @@ export function Navbar() {
                     </Tooltip>
 
                     <button
-                        onClick={() => setSettingsOpen(true)}
+                        onClick={() => handleDialogChange(true)}
                         className={`group ${navItem} ${inactiveItem}`}
                     >
                         <SettingsIcon className={iconItem} />
@@ -73,7 +79,7 @@ export function Navbar() {
                 </div>
             </div>
 
-            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <Dialog open={settingsOpen} onOpenChange={handleDialogChange}>
                 <DialogContent className="max-h-[90vh] overflow-y-scroll p-6 sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Settings</DialogTitle>

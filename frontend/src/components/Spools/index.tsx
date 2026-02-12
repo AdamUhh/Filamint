@@ -1,4 +1,5 @@
 import { useApp } from "@/context/useContext";
+import { useKeyCombos } from "@/hooks/useKeyCombo";
 import { Events } from "@wailsio/runtime";
 import { format } from "date-fns";
 import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
@@ -233,6 +234,11 @@ function SpoolHeader({
     onViewTemplate: () => void;
     onCreate: () => void;
 }) {
+    const [createCombo, templateCombo] = useKeyCombos([
+        "spool:create",
+        "spool:toggle_template",
+    ]);
+
     return (
         <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -260,7 +266,7 @@ function SpoolHeader({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Ctrl + T</p>
+                        <p>{templateCombo}</p>
                     </TooltipContent>
                 </Tooltip>
 
@@ -271,7 +277,7 @@ function SpoolHeader({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Ctrl + N</p>
+                        <p>{createCombo}</p>
                     </TooltipContent>
                 </Tooltip>
             </ButtonGroup>

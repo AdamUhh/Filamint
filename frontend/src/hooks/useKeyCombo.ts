@@ -30,3 +30,31 @@ export function useKeyCombo(action: string) {
 
     return combo;
 }
+
+export function useKeyCombos(actions: string[]) {
+    const [combos, setCombos] = useState<string[]>([]);
+
+    useEffect(() => {
+        let active = true;
+
+        const load = async () => {
+            const result = await ShortcutService.GetShortcutCombos(actions);
+            if (active) setCombos(result ?? "");
+        };
+
+        load();
+
+        const handler = () => {
+            load();
+        };
+
+        Events.On("window:reload_shortcuts", handler);
+
+        return () => {
+            active = false;
+            Events.Off("window:reload_shortcuts");
+        };
+    }, [actions]);
+
+    return combos;
+}

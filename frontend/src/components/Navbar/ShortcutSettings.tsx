@@ -23,7 +23,24 @@ interface Shortcut {
     action: string;
 }
 
-export function ShortcutsSettingsSimple() {
+const MODIFIER_KEYS = ["Control", "Meta", "Alt", "Shift"];
+const SPECIAL_KEYS = [
+    "Enter",
+    "Space",
+    "Tab",
+    "Backspace",
+    "Delete",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "PageUp",
+    "PageDown",
+];
+
+export function ShortcutsSettings() {
     const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -35,14 +52,11 @@ export function ShortcutsSettingsSimple() {
         try {
             const data = await ShortcutService.GetAllShortcuts();
             setShortcuts(
-                data.sort((a, b) => {
-                    const categoryCompare = a.category.localeCompare(
-                        b.category
-                    );
-                    if (categoryCompare !== 0) return categoryCompare;
-
-                    return a.action.localeCompare(b.action);
-                })
+                data.sort(
+                    (a, b) =>
+                        a.category.localeCompare(b.category) ||
+                        a.action.localeCompare(b.action)
+                )
             );
         } catch (err: any) {
             setError(err.message);
@@ -54,17 +68,8 @@ export function ShortcutsSettingsSimple() {
     }, []);
 
     useEffect(() => {
-        // Auto-focus input when editing starts
-        if (editingId !== null && inputRef.current) {
-            inputRef.current.focus();
-        }
+        if (editingId !== null) inputRef.current?.focus();
     }, [editingId]);
-
-    const handleEdit = (shortcut: Shortcut) => {
-        setEditingId(shortcut.id);
-        setEditValue(shortcut.keyCombo);
-        setError("");
-    };
 
     const handleCancel = () => {
         setEditingId(null);
@@ -76,7 +81,6 @@ export function ShortcutsSettingsSimple() {
         e.preventDefault();
         e.stopPropagation();
 
-        // Allow Escape to cancel
         if (e.key === "Escape") {
             handleCancel();
             return;
@@ -84,62 +88,27 @@ export function ShortcutsSettingsSimple() {
 
         const parts: string[] = [];
 
-        // Add modifiers
-        if (e.ctrlKey || e.metaKey) {
-            parts.push(e.metaKey ? "Cmd" : "Ctrl");
-        }
+        if (e.ctrlKey || e.metaKey) parts.push(e.metaKey ? "Cmd" : "Ctrl");
         if (e.altKey) parts.push("Alt");
         if (e.shiftKey) parts.push("Shift");
 
-        const key = e.key;
+        const { key } = e;
 
-        // Only add the key if it's not a modifier itself
-        if (
-            key !== "Control" &&
-            key !== "Meta" &&
-            key !== "Alt" &&
-            key !== "Shift"
-        ) {
-            // Handle function keys (F1-F12)
+        if (!MODIFIER_KEYS.includes(key)) {
             if (key.startsWith("F") && key.length <= 3) {
                 parts.push(key.toUpperCase());
-            }
-            // Handle single character keys
-            else if (key.length === 1) {
+            } else if (key.length === 1) {
                 parts.push(key.toUpperCase());
-            }
-            // Handle special keys
-            else if (
-                [
-                    "Enter",
-                    "Space",
-                    "Tab",
-                    "Backspace",
-                    "Delete",
-                    "ArrowUp",
-                    "ArrowDown",
-                    "ArrowLeft",
-                    "ArrowRight",
-                    "Home",
-                    "End",
-                    "PageUp",
-                    "PageDown",
-                ].includes(key)
-            ) {
+            } else if (SPECIAL_KEYS.includes(key)) {
                 parts.push(key);
             }
         }
 
-        // Only update if we have a valid combination (not just modifiers)
         if (
             parts.length > 0 &&
-            parts[parts.length - 1] !== "Cmd" &&
-            parts[parts.length - 1] !== "Ctrl" &&
-            parts[parts.length - 1] !== "Alt" &&
-            parts[parts.length - 1] !== "Shift"
+            !MODIFIER_KEYS.includes(parts[parts.length - 1])
         ) {
-            const combo = parts.join("+");
-            setEditValue(combo);
+            setEditValue(parts.join("+"));
         }
     };
 
@@ -148,10 +117,16 @@ export function ShortcutsSettingsSimple() {
         try {
             await ShortcutService.UpdateShortcut(action, editValue);
             await fetchShortcuts();
-            setEditingId(null);
-            setEditValue("");
+            handleCancel();
         } catch (err: any) {
-            setError(err.message);
+            const message = (() => {
+                try {
+                    return JSON.parse(err.message)?.message ?? err.message;
+                } catch {
+                    return err.message ?? "Unknown error";
+                }
+            })();
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -182,11 +157,18 @@ export function ShortcutsSettingsSimple() {
     };
 
     return (
-        <div>
-            <h1 className="mb-2 text-2xl font-bold">Keyboard Shortcuts</h1>
+        <section className="space-y-3">
+            <div>
+                <h2 className="text-lg font-semibold tracking-tight">
+                    Shortcuts
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Configure your app shortcuts.
+                </p>
+            </div>
 
             {error && (
-                <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                     {error}
                 </div>
             )}
@@ -227,10 +209,8 @@ export function ShortcutsSettingsSimple() {
                                                 className="h-7 w-48 cursor-pointer font-mono ring-2 ring-blue-500"
                                             />
                                         ) : (
-                                            <div className="w-48">
-                                                <div className="font-mono text-xs tracking-widest">
-                                                    {shortcut.keyCombo}
-                                                </div>
+                                            <div className="w-48 font-mono text-xs tracking-widest">
+                                                {shortcut.keyCombo}
                                             </div>
                                         )}
                                     </TableCell>
@@ -261,9 +241,15 @@ export function ShortcutsSettingsSimple() {
                                             ) : (
                                                 <>
                                                     <Button
-                                                        onClick={() =>
-                                                            handleEdit(shortcut)
-                                                        }
+                                                        onClick={() => {
+                                                            setEditingId(
+                                                                shortcut.id
+                                                            );
+                                                            setEditValue(
+                                                                shortcut.keyCombo
+                                                            );
+                                                            setError("");
+                                                        }}
                                                         disabled={isLoading}
                                                         variant="ghost"
                                                         size="sm"
@@ -293,24 +279,23 @@ export function ShortcutsSettingsSimple() {
                 </Table>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                    {editingId !== null && (
-                        <span className="text-blue-600">
-                            Press your desired key combination. Press Escape to
-                            cancel.
-                        </span>
-                    )}
-                </div>
+            <div className="flex items-center justify-between">
+                {editingId !== null && (
+                    <span className="text-sm text-blue-600">
+                        Press your desired key combination. Press Escape to
+                        cancel.
+                    </span>
+                )}
                 <Button
                     onClick={handleResetAll}
                     disabled={isLoading}
                     variant="outline"
+                    className={editingId === null ? "ml-auto" : ""}
                 >
                     <RotateCcwIcon className="mr-2 h-4 w-4" />
                     Reset All to Defaults
                 </Button>
             </div>
-        </div>
+        </section>
     );
 }
