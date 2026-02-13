@@ -29,10 +29,29 @@ export function GetSpoolByCode(code: string): $CancellablePromise<$models.Spool 
     });
 }
 
+/**
+ * ListSpools returns all spools from cache (backwards compatible)
+ */
 export function ListSpools(): $CancellablePromise<$models.Spool[]> {
     return $Call.ByID(2639247538).then(($result: any) => {
         return $$createType2($result);
     });
+}
+
+/**
+ * ListSpoolsPaginated returns paginated and filtered spools
+ */
+export function ListSpoolsPaginated(filter: $models.SpoolFilter, pagination: $models.PaginationParams): $CancellablePromise<$models.PaginatedSpools | null> {
+    return $Call.ByID(1466890069, filter, pagination).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
+ * RefreshCache forces a cache reload from database
+ */
+export function RefreshCache(): $CancellablePromise<void> {
+    return $Call.ByID(1360419585);
 }
 
 export function UpdateSpool(spool: $models.Spool): $CancellablePromise<void> {
@@ -43,3 +62,5 @@ export function UpdateSpool(spool: $models.Spool): $CancellablePromise<void> {
 const $$createType0 = $models.Spool.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType0);
+const $$createType3 = $models.PaginatedSpools.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);

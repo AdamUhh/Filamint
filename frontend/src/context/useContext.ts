@@ -5,24 +5,24 @@ import type { Print, Spool } from "@bindings";
 export interface AppContextValue {
     spools: Map<number, Spool>;
     prints: Map<number, Print>;
-
     isLoading: boolean;
     error: Error | null;
-
     options: {
         currency: string;
         currencyAlign: "left" | "right";
     };
-
     setOptions: React.Dispatch<
         React.SetStateAction<{
             currency: string;
             currencyAlign: "left" | "right";
         }>
     >;
-
     refreshSpools: () => Promise<void>;
     refreshPrints: () => Promise<void>;
+    // Optimistic update helpers
+    updateSpoolOptimistic: (spool: Spool) => void;
+    deleteSpoolOptimistic: (id: number) => void;
+    addSpoolOptimistic: (spool: Spool) => void;
 }
 
 export const AppContext = createContext<AppContextValue | undefined>(undefined);

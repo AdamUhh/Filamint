@@ -1,4 +1,4 @@
-// components/BottomNav.tsx
+import { useKeyCombo } from "@/hooks/useKeyCombo";
 import { Events } from "@wailsio/runtime";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
@@ -14,6 +14,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { AppSettings } from "./Settings";
 
+const navItem =
+    "relative flex min-w-16 hover:cursor-pointer flex-col items-center justify-center gap-0.5  px-3 py-1.5 font-medium transition-colors duration-300";
+
+const activeItem = "text-primary";
+const inactiveItem = "text-muted-foreground hover:text-foreground";
+
+const iconItem =
+    "size-3 transition-transform duration-200 group-hover:scale-110";
+
 export function Navbar() {
     const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -22,56 +31,24 @@ export function Navbar() {
         Events.Emit("shortcuts:set_enabled", !open);
     };
 
-    const navItem =
-        "relative flex min-w-16 hover:cursor-pointer flex-col items-center justify-center gap-0.5 hover:text-2xs px-3 py-1.5 font-medium transition-colors duration-300";
-
-    const activeItem = "text-primary";
-    const inactiveItem = "text-muted-foreground hover:text-foreground";
-
-    const iconItem =
-        "size-3 transition-transform duration-200 group-hover:scale-110";
-
     return (
         <>
-            <div className="group fixed bottom-4 left-1/2 z-50 -translate-x-1/2 text-[8px] transition-transform duration-300 hover:scale-115">
+            <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 text-[8px] transition-transform duration-300 hover:scale-115">
                 <div className="flex items-center rounded-full border bg-background/85 px-2 py-1 shadow-sm backdrop-blur-md">
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <NavLink
-                                to="/spools"
-                                className={({ isActive }) =>
-                                    `group ${navItem} ${
-                                        isActive ? activeItem : inactiveItem
-                                    }`
-                                }
-                            >
-                                <LayersIcon className={iconItem} />
-                                <span>Spools</span>
-                            </NavLink>
-                        </TooltipTrigger>
-                        <TooltipContent>Ctrl + Shift + S</TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <NavLink
-                                to="/prints"
-                                className={({ isActive }) =>
-                                    `group ${navItem} ${
-                                        isActive ? activeItem : inactiveItem
-                                    }`
-                                }
-                            >
-                                <PrinterIcon className={iconItem} />
-                                <span>Prints</span>
-                            </NavLink>
-                        </TooltipTrigger>
-                        <TooltipContent>Ctrl + Shift + P</TooltipContent>
-                    </Tooltip>
+                    <NavbarLink
+                        href="/spools"
+                        action="spool:redirect"
+                        name="spools"
+                    />
+                    <NavbarLink
+                        href="/prints"
+                        action="print:redirect"
+                        name="prints"
+                    />
 
                     <button
                         onClick={() => handleDialogChange(true)}
-                        className={`group ${navItem} ${inactiveItem}`}
+                        className={` ${navItem} ${inactiveItem}`}
                     >
                         <SettingsIcon className={iconItem} />
                         <span>Settings</span>
@@ -90,5 +67,41 @@ export function Navbar() {
                 </DialogContent>
             </Dialog>
         </>
+    );
+}
+
+function NavbarLink({
+    href,
+    name,
+    action,
+}: {
+    href: string;
+    name: string;
+    action: string;
+}) {
+    const comboKey = useKeyCombo(action);
+    console.debug("test", comboKey);
+
+    return (
+        <Tooltip>
+            <TooltipTrigger>
+                <NavLink
+                    to={href}
+                    className={({ isActive }) =>
+                        `group ${navItem} ${
+                            isActive ? activeItem : inactiveItem
+                        }`
+                    }
+                >
+                    {name === "spools" ? (
+                        <LayersIcon className={iconItem} />
+                    ) : (
+                        <PrinterIcon className={iconItem} />
+                    )}
+                    <span className="capitalize">{name}</span>
+                </NavLink>
+            </TooltipTrigger>
+            <TooltipContent>{comboKey}</TooltipContent>
+        </Tooltip>
     );
 }

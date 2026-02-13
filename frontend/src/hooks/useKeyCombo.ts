@@ -20,11 +20,11 @@ export function useKeyCombo(action: string) {
             load();
         };
 
-        Events.On("window:reload_shortcuts", handler);
+        const unsubscribe = Events.On("window:reload_shortcuts", handler);
 
         return () => {
             active = false;
-            Events.Off("window:reload_shortcuts");
+            unsubscribe();
         };
     }, [action]);
 
@@ -39,7 +39,7 @@ export function useKeyCombos(actions: string[]) {
 
         const load = async () => {
             const result = await ShortcutService.GetShortcutCombos(actions);
-            if (active) setCombos(result ?? "");
+            if (active) setCombos(result ?? []);
         };
 
         load();
@@ -48,11 +48,11 @@ export function useKeyCombos(actions: string[]) {
             load();
         };
 
-        Events.On("window:reload_shortcuts", handler);
+        const unsubscribe = Events.On("window:reload_shortcuts", handler);
 
         return () => {
             active = false;
-            Events.Off("window:reload_shortcuts");
+            unsubscribe();
         };
     }, [actions]);
 

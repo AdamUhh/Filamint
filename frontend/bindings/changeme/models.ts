@@ -9,6 +9,85 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as time$0 from "../time/models.js";
 
+/**
+ * PaginatedSpools represents a paginated response
+ */
+export class PaginatedSpools {
+    "spools": Spool[];
+    "total": number;
+    "page": number;
+    "pageSize": number;
+    "totalPages": number;
+
+    /** Creates a new PaginatedSpools instance. */
+    constructor($$source: Partial<PaginatedSpools> = {}) {
+        if (!("spools" in $$source)) {
+            this["spools"] = [];
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("page" in $$source)) {
+            this["page"] = 0;
+        }
+        if (!("pageSize" in $$source)) {
+            this["pageSize"] = 0;
+        }
+        if (!("totalPages" in $$source)) {
+            this["totalPages"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PaginatedSpools instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PaginatedSpools {
+        const $$createField0_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("spools" in $$parsedSource) {
+            $$parsedSource["spools"] = $$createField0_0($$parsedSource["spools"]);
+        }
+        return new PaginatedSpools($$parsedSource as Partial<PaginatedSpools>);
+    }
+}
+
+/**
+ * PaginationParams represents pagination parameters
+ */
+export class PaginationParams {
+    /**
+     * Current page (1-indexed)
+     */
+    "page": number;
+
+    /**
+     * Items per page
+     */
+    "pageSize": number;
+
+    /** Creates a new PaginationParams instance. */
+    constructor($$source: Partial<PaginationParams> = {}) {
+        if (!("page" in $$source)) {
+            this["page"] = 0;
+        }
+        if (!("pageSize" in $$source)) {
+            this["pageSize"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PaginationParams instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PaginationParams {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PaginationParams($$parsedSource as Partial<PaginationParams>);
+    }
+}
+
 export class Print {
     "id": number;
     "name": string;
@@ -58,7 +137,7 @@ export class Print {
      * Creates a new Print instance from a string or object.
      */
     static createFrom($$source: any = {}): Print {
-        const $$createField7_0 = $$createType1;
+        const $$createField7_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
             $$parsedSource["spools"] = $$createField7_0($$parsedSource["spools"]);
@@ -104,7 +183,7 @@ export class PrintSpool {
      * Creates a new PrintSpool instance from a string or object.
      */
     static createFrom($$source: any = {}): PrintSpool {
-        const $$createField6_0 = $$createType3;
+        const $$createField6_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spool" in $$parsedSource) {
             $$parsedSource["spool"] = $$createField6_0($$parsedSource["spool"]);
@@ -243,8 +322,113 @@ export class Spool {
     }
 }
 
+/**
+ * SpoolFilter represents search and filter criteria
+ */
+export class SpoolFilter {
+    /**
+     * Search across vendor, material, color, notes
+     */
+    "searchTerm": string;
+
+    /**
+     * Filter by specific vendors
+     */
+    "vendors": string[];
+
+    /**
+     * Filter by specific materials
+     */
+    "materials": string[];
+
+    /**
+     * Filter by specific colors
+     */
+    "colors": string[];
+
+    /**
+     * Filter by template status
+     */
+    "isTemplate": boolean | null;
+
+    /**
+     * Minimum remaining weight
+     */
+    "minWeight": number | null;
+
+    /**
+     * Maximum remaining weight
+     */
+    "maxWeight": number | null;
+
+    /**
+     * Field to sort by (default: updated_at)
+     */
+    "sortBy": string;
+
+    /**
+     * Sort descending (default: true)
+     */
+    "sortDesc": boolean;
+
+    /** Creates a new SpoolFilter instance. */
+    constructor($$source: Partial<SpoolFilter> = {}) {
+        if (!("searchTerm" in $$source)) {
+            this["searchTerm"] = "";
+        }
+        if (!("vendors" in $$source)) {
+            this["vendors"] = [];
+        }
+        if (!("materials" in $$source)) {
+            this["materials"] = [];
+        }
+        if (!("colors" in $$source)) {
+            this["colors"] = [];
+        }
+        if (!("isTemplate" in $$source)) {
+            this["isTemplate"] = null;
+        }
+        if (!("minWeight" in $$source)) {
+            this["minWeight"] = null;
+        }
+        if (!("maxWeight" in $$source)) {
+            this["maxWeight"] = null;
+        }
+        if (!("sortBy" in $$source)) {
+            this["sortBy"] = "";
+        }
+        if (!("sortDesc" in $$source)) {
+            this["sortDesc"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SpoolFilter instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SpoolFilter {
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType5;
+        const $$createField3_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("vendors" in $$parsedSource) {
+            $$parsedSource["vendors"] = $$createField1_0($$parsedSource["vendors"]);
+        }
+        if ("materials" in $$parsedSource) {
+            $$parsedSource["materials"] = $$createField2_0($$parsedSource["materials"]);
+        }
+        if ("colors" in $$parsedSource) {
+            $$parsedSource["colors"] = $$createField3_0($$parsedSource["colors"]);
+        }
+        return new SpoolFilter($$parsedSource as Partial<SpoolFilter>);
+    }
+}
+
 // Private type creation functions
-const $$createType0 = PrintSpool.createFrom;
+const $$createType0 = Spool.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = Spool.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
+const $$createType2 = PrintSpool.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = $Create.Nullable($$createType0);
+const $$createType5 = $Create.Array($Create.Any);

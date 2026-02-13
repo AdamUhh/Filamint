@@ -66,11 +66,13 @@ export function PrintsPage() {
             };
 
             try {
+                let result;
                 if (editState.id > 0) {
-                    await PrintService.UpdatePrint(printToSave);
+                    result = await PrintService.UpdatePrint(printToSave);
                 } else {
-                    await PrintService.CreatePrint(printToSave);
+                    result = await PrintService.CreatePrint(printToSave);
                 }
+                console.debug("result", result);
                 setEditState({ id: 0, isOpen: false, original: null });
                 form.reset();
                 refreshPrints();
@@ -136,10 +138,10 @@ export function PrintsPage() {
     );
 
     useEffect(() => {
-        Events.On("print:create", handleCreate);
+        const unsubscribe = Events.On("print:create", handleCreate);
 
         return () => {
-            Events.Off("print:create");
+            unsubscribe();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
