@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -24,7 +26,6 @@ type Print struct {
 
 	Name string `db:"name" json:"name"`
 
-	// GramsUsed int    `db:"grams_used" json:"gramsUsed"` // maybe we can put total here?
 	Status string `db:"status" json:"status"`
 
 	Notes string `db:"notes" json:"notes"`
@@ -35,6 +36,20 @@ type Print struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 
 	Spools []PrintSpool `json:"spools,omitempty"` // join table
+}
+
+type PrintQueryParams struct {
+	Search    string `json:"search"`
+	Status    string `json:"status"`
+	SortBy    string `json:"sortBy"`
+	SortOrder string `json:"sortOrder"`
+	Limit     int    `json:"limit"`
+	Offset    int    `json:"offset"`
+}
+
+type PrintQueryResult struct {
+	Prints []Print `json:"prints"`
+	Total  int     `json:"total"`
 }
 
 type PrintService struct {
@@ -247,6 +262,7 @@ func (s *PrintService) GetPrint(id int64) (*Print, error) {
 	return &p, nil
 }
 
+// Legacy method - kept for backward compatibility
 func (s *PrintService) ListPrints() ([]Print, error) {
 	var prints []Print
 	err := s.db.Select(&prints, `SELECT * FROM prints ORDER BY created_at DESC`)
@@ -254,7 +270,7 @@ func (s *PrintService) ListPrints() ([]Print, error) {
 		return nil, err
 	}
 
-	// Load spools for each print (optional, can be optimized with a JOIN)
+	// Load spools for each print
 	for i := range prints {
 		var spools []PrintSpool
 		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
@@ -265,4 +281,104 @@ func (s *PrintService) ListPrints() ([]Print, error) {
 	}
 
 	return prints, nil
+}
+
+// New query method with filtering, sorting, and pagination
+func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, error) {
+	// Set defaults
+	if params.SortBy == "" {
+		params.SortBy = "created_at"
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "DESC"
+	}
+	if params.Limit <= 0 {
+		params.Limit = 1000 // Default to all
+	}
+
+	// Build WHERE clause
+	var whereClauses []string
+	var args []interface{}
+	argPosition := 1
+
+	if params.Search != "" {
+		searchPattern := "%" + params.Search + "%"
+		whereClauses = append(whereClauses, fmt.Sprintf(
+			"(name LIKE ?%d OR notes LIKE ?%d)",
+			argPosition, argPosition+1,
+		))
+		args = append(args, searchPattern, searchPattern)
+		argPosition += 2
+	}
+
+	if params.Status != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("status = ?%d", argPosition))
+		args = append(args, params.Status)
+		argPosition++
+	}
+
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Validate and sanitize sort column
+	validSortColumns := map[string]bool{
+		"id":           true,
+		"name":         true,
+		"status":       true,
+		"date_printed": true,
+		"created_at":   true,
+		"updated_at":   true,
+	}
+
+	sortColumn := params.SortBy
+	if !validSortColumns[sortColumn] {
+		sortColumn = "created_at"
+	}
+
+	sortOrder := strings.ToUpper(params.SortOrder)
+	if sortOrder != "ASC" && sortOrder != "DESC" {
+		sortOrder = "DESC"
+	}
+
+	// Get total count
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM prints %s", whereClause)
+	var total int
+	err := s.db.Get(&total, countQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count prints: %w", err)
+	}
+
+	// Get paginated results
+	query := fmt.Sprintf(
+		"SELECT * FROM prints %s ORDER BY %s %s LIMIT ?%d OFFSET ?%d",
+		whereClause,
+		sortColumn,
+		sortOrder,
+		argPosition,
+		argPosition+1,
+	)
+	args = append(args, params.Limit, params.Offset)
+
+	var prints []Print
+	err = s.db.Select(&prints, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query prints: %w", err)
+	}
+
+	// Load spools for each print
+	for i := range prints {
+		var spools []PrintSpool
+		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		prints[i].Spools = spools
+	}
+
+	return &PrintQueryResult{
+		Prints: prints,
+		Total:  total,
+	}, nil
 }

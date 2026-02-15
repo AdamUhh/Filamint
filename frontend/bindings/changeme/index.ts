@@ -11,11 +11,12 @@ export {
 };
 
 export {
-    PaginatedSpools,
-    PaginationParams,
     Print,
+    PrintQueryParams,
+    PrintQueryResult,
     PrintSpool,
     Shortcut,
     Spool,
-    SpoolFilter
+    SpoolQueryParams,
+    SpoolQueryResult
 } from "./models.js";

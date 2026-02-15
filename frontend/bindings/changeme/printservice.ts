@@ -23,9 +23,21 @@ export function GetPrint(id: number): $CancellablePromise<$models.Print | null> 
     });
 }
 
+/**
+ * Legacy method - kept for backward compatibility
+ */
 export function ListPrints(): $CancellablePromise<$models.Print[]> {
     return $Call.ByID(2001335930).then(($result: any) => {
         return $$createType2($result);
+    });
+}
+
+/**
+ * New query method with filtering, sorting, and pagination
+ */
+export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
+    return $Call.ByID(3055920690, params).then(($result: any) => {
+        return $$createType4($result);
     });
 }
 
@@ -37,3 +49,5 @@ export function UpdatePrint(p: $models.Print): $CancellablePromise<void> {
 const $$createType0 = $models.Print.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType0);
+const $$createType3 = $models.PrintQueryResult.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);

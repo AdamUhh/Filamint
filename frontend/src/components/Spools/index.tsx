@@ -1,8 +1,14 @@
-import { useApp } from "@/context/useContext";
 import { useKeyCombos } from "@/hooks/useKeyCombo";
+import {
+    type SpoolQueryParams,
+    useCreateSpool,
+    useDeleteSpool,
+    useSpools,
+    useUpdateSpool,
+} from "@/hooks/useSpools";
 import { Events } from "@wailsio/runtime";
 import { format } from "date-fns";
-import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
+import { MenuIcon, PlusIcon, RotateCwIcon, StarIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
@@ -16,6 +22,8 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
+import { SpoolPagination } from "@/components/Pagination";
+import { SpoolSearch } from "@/components/Search";
 import {
     DeleteSpoolDialog,
     type DeleteState,
@@ -26,10 +34,28 @@ import { useAppForm } from "@/components/Spools/lib/hooks";
 import { spoolSchema } from "@/components/Spools/lib/schema";
 import { SpoolTable } from "@/components/Spools/spoolTable";
 
-import { Spool, SpoolService } from "@bindings";
+import { Spool } from "@bindings";
+
+const PAGE_SIZE = 20;
 
 export function SpoolsPage() {
-    const { spools, isLoading, refreshSpools } = useApp();
+    const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
+        search: "",
+        sortBy: "updated_at",
+        sortOrder: "desc",
+        limit: PAGE_SIZE,
+        offset: 0,
+    });
+
+    const [templateOpen, setTemplateOpen] = useState(false);
+
+    const { spools, total, isFetching } = useSpools({
+        ...queryParams,
+        isTemplate: templateOpen ? true : undefined,
+    });
+    const createMutation = useCreateSpool();
+    const updateMutation = useUpdateSpool();
+    const deleteMutation = useDeleteSpool();
 
     const [editState, setEditState] = useState<EditState>({
         isOpen: false,
@@ -37,7 +63,6 @@ export function SpoolsPage() {
         original: null,
     });
     const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
-    const [templateOpen, setTemplateOpen] = useState(false);
 
     const form = useAppForm({
         defaultValues: defaultSpoolValues,
@@ -59,13 +84,12 @@ export function SpoolsPage() {
 
             try {
                 if (editState.id > 0) {
-                    await SpoolService.UpdateSpool(spoolToSave);
+                    await updateMutation.mutateAsync(spoolToSave);
                 } else {
-                    await SpoolService.CreateSpool(spoolToSave);
+                    await createMutation.mutateAsync(spoolToSave);
                 }
                 setEditState({ id: 0, isOpen: false, original: null });
                 form.reset();
-                refreshSpools();
             } catch (err) {
                 console.error("Failed to save spool:", err);
             }
@@ -139,8 +163,7 @@ export function SpoolsPage() {
         if (!deleteIntent) return;
 
         try {
-            await SpoolService.DeleteSpool(deleteIntent.spoolId);
-            refreshSpools();
+            await deleteMutation.mutateAsync(deleteIntent.spoolId);
         } catch (error) {
             console.error("Failed to delete spool:", error);
             // TODO: Show error toast
@@ -154,7 +177,37 @@ export function SpoolsPage() {
         setEditState({ id: 0, isOpen: false, original: null });
     }, [form]);
 
-    if (isLoading) return <p className="p-6">Loading spools...</p>;
+    const handleSearch = useCallback((searchTerm: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            search: searchTerm,
+            offset: 0, // Reset to first page on search
+        }));
+    }, []);
+
+    const handleSort = useCallback((column: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            sortBy: column,
+            sortOrder:
+                prev.sortBy === column && prev.sortOrder === "desc"
+                    ? "asc"
+                    : "desc",
+        }));
+    }, []);
+
+    const handlePageChange = useCallback((page: number) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            offset: (page - 1) * PAGE_SIZE,
+        }));
+    }, []);
+
+    const currentPage =
+        Math.floor(
+            (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
+        ) + 1;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
 
     console.debug("errors! : ", form.state.isValid, form.state.errors);
 
@@ -165,15 +218,44 @@ export function SpoolsPage() {
                 templateOpen={templateOpen}
                 onViewTemplate={handleViewTemplate}
             />
+
+            <div className="flex items-center gap-2">
+                <SpoolSearch onSearch={handleSearch} />
+
+                {isFetching ? (
+                    <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
+                        <RotateCwIcon className="size-3 animate-spin" />
+                        <span>Loading spools...</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <p>
+                            Showing {spools.size} of {total} spools
+                            {queryParams.search &&
+                                ` matching "${queryParams.search}"`}
+                        </p>
+                    </div>
+                )}
+            </div>
+
             <SpoolTable
+                isLoading={isFetching}
                 spools={spools}
                 templateOpen={templateOpen}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
+                sortBy={queryParams.sortBy}
+                sortOrder={queryParams.sortOrder}
+                onSort={handleSort}
             />
 
-            {/* Edit/Create Dialog */}
+            <SpoolPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+            />
+
             <Dialog
                 open={editState.isOpen}
                 onOpenChange={(isOpen) => {
@@ -208,8 +290,19 @@ export function SpoolsPage() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit">
-                                    {editState.id > 0 ? "Update" : "Create"}
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        createMutation.isPending ||
+                                        updateMutation.isPending
+                                    }
+                                >
+                                    {createMutation.isPending ||
+                                    updateMutation.isPending
+                                        ? "Saving..."
+                                        : editState.id > 0
+                                          ? "Update"
+                                          : "Create"}
                                 </Button>
                             </div>
                         </DialogFooter>

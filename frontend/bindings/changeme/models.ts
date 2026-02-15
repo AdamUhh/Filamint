@@ -9,92 +9,9 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as time$0 from "../time/models.js";
 
-/**
- * PaginatedSpools represents a paginated response
- */
-export class PaginatedSpools {
-    "spools": Spool[];
-    "total": number;
-    "page": number;
-    "pageSize": number;
-    "totalPages": number;
-
-    /** Creates a new PaginatedSpools instance. */
-    constructor($$source: Partial<PaginatedSpools> = {}) {
-        if (!("spools" in $$source)) {
-            this["spools"] = [];
-        }
-        if (!("total" in $$source)) {
-            this["total"] = 0;
-        }
-        if (!("page" in $$source)) {
-            this["page"] = 0;
-        }
-        if (!("pageSize" in $$source)) {
-            this["pageSize"] = 0;
-        }
-        if (!("totalPages" in $$source)) {
-            this["totalPages"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PaginatedSpools instance from a string or object.
-     */
-    static createFrom($$source: any = {}): PaginatedSpools {
-        const $$createField0_0 = $$createType1;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("spools" in $$parsedSource) {
-            $$parsedSource["spools"] = $$createField0_0($$parsedSource["spools"]);
-        }
-        return new PaginatedSpools($$parsedSource as Partial<PaginatedSpools>);
-    }
-}
-
-/**
- * PaginationParams represents pagination parameters
- */
-export class PaginationParams {
-    /**
-     * Current page (1-indexed)
-     */
-    "page": number;
-
-    /**
-     * Items per page
-     */
-    "pageSize": number;
-
-    /** Creates a new PaginationParams instance. */
-    constructor($$source: Partial<PaginationParams> = {}) {
-        if (!("page" in $$source)) {
-            this["page"] = 0;
-        }
-        if (!("pageSize" in $$source)) {
-            this["pageSize"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PaginationParams instance from a string or object.
-     */
-    static createFrom($$source: any = {}): PaginationParams {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PaginationParams($$parsedSource as Partial<PaginationParams>);
-    }
-}
-
 export class Print {
     "id": number;
     "name": string;
-
-    /**
-     * GramsUsed int    `db:"grams_used" json:"gramsUsed"` // maybe we can put total here?
-     */
     "status": string;
     "notes": string;
     "datePrinted": time$0.Time | null;
@@ -137,12 +54,82 @@ export class Print {
      * Creates a new Print instance from a string or object.
      */
     static createFrom($$source: any = {}): Print {
-        const $$createField7_0 = $$createType3;
+        const $$createField7_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
             $$parsedSource["spools"] = $$createField7_0($$parsedSource["spools"]);
         }
         return new Print($$parsedSource as Partial<Print>);
+    }
+}
+
+export class PrintQueryParams {
+    "search": string;
+    "status": string;
+    "sortBy": string;
+    "sortOrder": string;
+    "limit": number;
+    "offset": number;
+
+    /** Creates a new PrintQueryParams instance. */
+    constructor($$source: Partial<PrintQueryParams> = {}) {
+        if (!("search" in $$source)) {
+            this["search"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("sortBy" in $$source)) {
+            this["sortBy"] = "";
+        }
+        if (!("sortOrder" in $$source)) {
+            this["sortOrder"] = "";
+        }
+        if (!("limit" in $$source)) {
+            this["limit"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrintQueryParams instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrintQueryParams {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PrintQueryParams($$parsedSource as Partial<PrintQueryParams>);
+    }
+}
+
+export class PrintQueryResult {
+    "prints": Print[];
+    "total": number;
+
+    /** Creates a new PrintQueryResult instance. */
+    constructor($$source: Partial<PrintQueryResult> = {}) {
+        if (!("prints" in $$source)) {
+            this["prints"] = [];
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrintQueryResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrintQueryResult {
+        const $$createField0_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("prints" in $$parsedSource) {
+            $$parsedSource["prints"] = $$createField0_0($$parsedSource["prints"]);
+        }
+        return new PrintQueryResult($$parsedSource as Partial<PrintQueryResult>);
     }
 }
 
@@ -183,7 +170,7 @@ export class PrintSpool {
      * Creates a new PrintSpool instance from a string or object.
      */
     static createFrom($$source: any = {}): PrintSpool {
-        const $$createField6_0 = $$createType4;
+        const $$createField6_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spool" in $$parsedSource) {
             $$parsedSource["spool"] = $$createField6_0($$parsedSource["spool"]);
@@ -322,113 +309,89 @@ export class Spool {
     }
 }
 
-/**
- * SpoolFilter represents search and filter criteria
- */
-export class SpoolFilter {
-    /**
-     * Search across vendor, material, color, notes
-     */
-    "searchTerm": string;
-
-    /**
-     * Filter by specific vendors
-     */
-    "vendors": string[];
-
-    /**
-     * Filter by specific materials
-     */
-    "materials": string[];
-
-    /**
-     * Filter by specific colors
-     */
-    "colors": string[];
-
-    /**
-     * Filter by template status
-     */
+export class SpoolQueryParams {
+    "search": string;
+    "material": string;
+    "vendor": string;
     "isTemplate": boolean | null;
-
-    /**
-     * Minimum remaining weight
-     */
-    "minWeight": number | null;
-
-    /**
-     * Maximum remaining weight
-     */
-    "maxWeight": number | null;
-
-    /**
-     * Field to sort by (default: updated_at)
-     */
     "sortBy": string;
+    "sortOrder": string;
+    "limit": number;
+    "offset": number;
 
-    /**
-     * Sort descending (default: true)
-     */
-    "sortDesc": boolean;
-
-    /** Creates a new SpoolFilter instance. */
-    constructor($$source: Partial<SpoolFilter> = {}) {
-        if (!("searchTerm" in $$source)) {
-            this["searchTerm"] = "";
+    /** Creates a new SpoolQueryParams instance. */
+    constructor($$source: Partial<SpoolQueryParams> = {}) {
+        if (!("search" in $$source)) {
+            this["search"] = "";
         }
-        if (!("vendors" in $$source)) {
-            this["vendors"] = [];
+        if (!("material" in $$source)) {
+            this["material"] = "";
         }
-        if (!("materials" in $$source)) {
-            this["materials"] = [];
-        }
-        if (!("colors" in $$source)) {
-            this["colors"] = [];
+        if (!("vendor" in $$source)) {
+            this["vendor"] = "";
         }
         if (!("isTemplate" in $$source)) {
             this["isTemplate"] = null;
         }
-        if (!("minWeight" in $$source)) {
-            this["minWeight"] = null;
-        }
-        if (!("maxWeight" in $$source)) {
-            this["maxWeight"] = null;
-        }
         if (!("sortBy" in $$source)) {
             this["sortBy"] = "";
         }
-        if (!("sortDesc" in $$source)) {
-            this["sortDesc"] = false;
+        if (!("sortOrder" in $$source)) {
+            this["sortOrder"] = "";
+        }
+        if (!("limit" in $$source)) {
+            this["limit"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new SpoolFilter instance from a string or object.
+     * Creates a new SpoolQueryParams instance from a string or object.
      */
-    static createFrom($$source: any = {}): SpoolFilter {
-        const $$createField1_0 = $$createType5;
-        const $$createField2_0 = $$createType5;
-        const $$createField3_0 = $$createType5;
+    static createFrom($$source: any = {}): SpoolQueryParams {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("vendors" in $$parsedSource) {
-            $$parsedSource["vendors"] = $$createField1_0($$parsedSource["vendors"]);
+        return new SpoolQueryParams($$parsedSource as Partial<SpoolQueryParams>);
+    }
+}
+
+export class SpoolQueryResult {
+    "spools": Spool[];
+    "total": number;
+
+    /** Creates a new SpoolQueryResult instance. */
+    constructor($$source: Partial<SpoolQueryResult> = {}) {
+        if (!("spools" in $$source)) {
+            this["spools"] = [];
         }
-        if ("materials" in $$parsedSource) {
-            $$parsedSource["materials"] = $$createField2_0($$parsedSource["materials"]);
+        if (!("total" in $$source)) {
+            this["total"] = 0;
         }
-        if ("colors" in $$parsedSource) {
-            $$parsedSource["colors"] = $$createField3_0($$parsedSource["colors"]);
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SpoolQueryResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SpoolQueryResult {
+        const $$createField0_0 = $$createType6;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("spools" in $$parsedSource) {
+            $$parsedSource["spools"] = $$createField0_0($$parsedSource["spools"]);
         }
-        return new SpoolFilter($$parsedSource as Partial<SpoolFilter>);
+        return new SpoolQueryResult($$parsedSource as Partial<SpoolQueryResult>);
     }
 }
 
 // Private type creation functions
-const $$createType0 = Spool.createFrom;
+const $$createType0 = PrintSpool.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = PrintSpool.createFrom;
+const $$createType2 = Print.createFrom;
 const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = $Create.Nullable($$createType0);
-const $$createType5 = $Create.Array($Create.Any);
+const $$createType4 = Spool.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $Create.Array($$createType4);

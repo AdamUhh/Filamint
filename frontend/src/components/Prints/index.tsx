@@ -1,7 +1,14 @@
-import { useApp } from "@/context/useContext";
 import { useKeyCombo } from "@/hooks/useKeyCombo";
+import {
+    type PrintQueryParams,
+    useCreatePrint,
+    useDeletePrint,
+    usePrints,
+    useUpdatePrint,
+} from "@/hooks/usePrints";
+import { useSpools } from "@/hooks/useSpools";
 import { Events } from "@wailsio/runtime";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, RotateCwIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
@@ -14,6 +21,7 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
+import { SpoolPagination } from "@/components/Pagination";
 import {
     DeletePrintDialog,
     type DeleteState,
@@ -23,11 +31,26 @@ import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { useAppForm } from "@/components/Prints/lib/hooks";
 import { printSchema } from "@/components/Prints/lib/schema";
 import { PrintTable } from "@/components/Prints/printTable";
+import { SpoolSearch } from "@/components/Search";
 
-import { type Print, PrintService, PrintSpool } from "@bindings";
+import { type Print, PrintSpool } from "@bindings";
+
+const PAGE_SIZE = 20;
 
 export function PrintsPage() {
-    const { spools, prints, refreshPrints, isLoading } = useApp();
+    const [queryParams, setQueryParams] = useState<PrintQueryParams>({
+        search: "",
+        sortBy: "created_at",
+        sortOrder: "desc",
+        limit: PAGE_SIZE,
+        offset: 0,
+    });
+
+    const { prints, total, isFetching } = usePrints(queryParams);
+    const { spools } = useSpools();
+    const createMutation = useCreatePrint();
+    const updateMutation = useUpdatePrint();
+    const deleteMutation = useDeletePrint();
 
     const [editState, setEditState] = useState<EditState>({
         isOpen: false,
@@ -66,16 +89,13 @@ export function PrintsPage() {
             };
 
             try {
-                let result;
                 if (editState.id > 0) {
-                    result = await PrintService.UpdatePrint(printToSave);
+                    await updateMutation.mutateAsync(printToSave);
                 } else {
-                    result = await PrintService.CreatePrint(printToSave);
+                    await createMutation.mutateAsync(printToSave);
                 }
-                console.debug("result", result);
                 setEditState({ id: 0, isOpen: false, original: null });
                 form.reset();
-                refreshPrints();
             } catch (err) {
                 console.error("Failed to save print:", err);
             }
@@ -154,11 +174,10 @@ export function PrintsPage() {
         if (!deleteIntent) return;
 
         try {
-            await PrintService.DeletePrint(
-                deleteIntent.printId,
-                deleteIntent.restoreSpoolGrams
-            );
-            refreshPrints();
+            await deleteMutation.mutateAsync({
+                id: deleteIntent.printId,
+                restoreSpoolGrams: deleteIntent.restoreSpoolGrams,
+            });
         } catch (error) {
             console.error("Failed to delete print:", error);
             // TODO: Show error toast
@@ -172,19 +191,82 @@ export function PrintsPage() {
         setEditState({ id: 0, isOpen: false, original: null });
     }, [form]);
 
-    if (isLoading) return <p className="p-6">Loading prints...</p>;
+    const handleSearch = useCallback((searchTerm: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            search: searchTerm,
+            offset: 0, // Reset to first page on search
+        }));
+    }, []);
+
+    const handleSort = useCallback((column: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            sortBy: column,
+            sortOrder:
+                prev.sortBy === column && prev.sortOrder === "desc"
+                    ? "asc"
+                    : "desc",
+        }));
+    }, []);
+
+    const handlePageChange = useCallback((page: number) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            offset: (page - 1) * PAGE_SIZE,
+        }));
+    }, []);
+
+    const currentPage =
+        Math.floor(
+            (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
+        ) + 1;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
 
     console.debug("errors! : ", form.state.isValid, form.state.errors);
 
     return (
         <div className="space-y-6 p-6">
             <PrintHeader onCreate={handleCreate} />
+
+            <div className="flex items-center gap-2">
+                <SpoolSearch
+                    onSearch={handleSearch}
+                    // TODO: search by code as well
+                    placeholder="Search prints by name or status"
+                />
+                {isFetching ? (
+                    <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
+                        <RotateCwIcon className="size-3 animate-spin" />
+                        <span>Loading prints...</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <p>
+                            Showing {prints.size} of {total} prints
+                            {queryParams.search &&
+                                ` matching "${queryParams.search}"`}
+                        </p>
+                    </div>
+                )}
+            </div>
+
             <PrintTable
+                isLoading={isFetching}
                 prints={prints}
                 spools={spools}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
+                sortBy={queryParams.sortBy}
+                sortOrder={queryParams.sortOrder}
+                onSort={handleSort}
+            />
+
+            <SpoolPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
             />
 
             <Dialog
@@ -220,8 +302,19 @@ export function PrintsPage() {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit">
-                                {editState.id > 0 ? "Update" : "Create"}
+                            <Button
+                                type="submit"
+                                disabled={
+                                    createMutation.isPending ||
+                                    updateMutation.isPending
+                                }
+                            >
+                                {createMutation.isPending ||
+                                updateMutation.isPending
+                                    ? "Saving..."
+                                    : editState.id > 0
+                                      ? "Update"
+                                      : "Create"}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -241,25 +334,31 @@ export function PrintsPage() {
 
 function PrintHeader({ onCreate }: { onCreate: () => void }) {
     const keyCombo = useKeyCombo("print:create");
+
     return (
-        <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-                <h1 className="text-3xl font-bold">Prints</h1>
-                <p className="text-muted-foreground">
-                    This is where your prints live.
-                </p>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                    <h1 className="text-3xl font-bold">Prints</h1>
+                    <p className="text-muted-foreground">
+                        This is where your prints live.
+                    </p>
+                </div>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button onClick={onCreate}>
+                            <PlusIcon /> Add Print
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{keyCombo}</p>
+                    </TooltipContent>
+                </Tooltip>
             </div>
 
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button onClick={onCreate}>
-                        <PlusIcon /> Add Print
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{keyCombo}</p>
-                </TooltipContent>
-            </Tooltip>
+            {/* Results info with loading indicator */}
+            <div className="flex items-center gap-2"></div>
         </div>
     );
 }

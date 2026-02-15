@@ -1,4 +1,5 @@
 import { AppProvider } from "@/context/appContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -19,16 +20,32 @@ import { SpoolsPage } from "@/components/Spools";
 
 import "./index.css";
 
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 60 * 1000, // Data is fresh for 1 minute
+            gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+            retry: 1, // Retry failed requests once
+            refetchOnWindowFocus: false, // Don't refetch on window focus (good for desktop app)
+        },
+        mutations: {
+            retry: 0, // Don't retry mutations
+        },
+    },
+});
+
 const router = createBrowserRouter([
     {
         element: (
             <>
                 <AppEventHandler />
                 <Toaster />
-                <AppProvider>
-                    <Outlet />
-                    <Navbar />
-                </AppProvider>
+                <QueryClientProvider client={queryClient}>
+                    <AppProvider>
+                        <Outlet />
+                        <Navbar />
+                    </AppProvider>
+                </QueryClientProvider>
             </>
         ),
         errorElement: <RouteError />,

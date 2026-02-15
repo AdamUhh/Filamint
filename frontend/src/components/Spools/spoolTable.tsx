@@ -1,6 +1,9 @@
 import { useApp } from "@/context/useContext";
 import { format } from "date-fns";
 import {
+    ArrowDownIcon,
+    ArrowUpDownIcon,
+    ArrowUpIcon,
     CheckIcon,
     ClipboardIcon,
     CopyPlusIcon,
@@ -34,7 +37,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { cn } from "@/lib/utils";
 
-import { Spool } from "@bindings";
+import type { Spool } from "@bindings";
 
 export function SpoolTable({
     spools,
@@ -42,12 +45,20 @@ export function SpoolTable({
     onEdit,
     onDuplicate,
     onDelete,
+    sortBy,
+    sortOrder,
+    onSort,
+    isLoading,
 }: {
     spools: Map<number, Spool>;
     templateOpen: boolean;
     onEdit: (spool: Spool) => void;
     onDuplicate: (spool: Spool) => void;
     onDelete: (id: number) => void;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
+    isLoading: boolean;
 }) {
     const { options } = useApp();
     const spoolArray = Array.from(spools.values());
@@ -55,9 +66,15 @@ export function SpoolTable({
     return (
         <div className="rounded-lg border">
             <Table>
-                <MyTableHeaders />
+                <MyTableHeaders
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                />
                 <TableBody>
-                    {spoolArray.length === 0 ? (
+                    {isLoading ? (
+                        <p className="p-6">Loading Spools...</p>
+                    ) : spoolArray.length === 0 ? (
                         <MyTableRowsEmpty />
                     ) : (
                         spoolArray
@@ -223,18 +240,108 @@ function MyTableRowsEmpty() {
     );
 }
 
-function MyTableHeaders() {
+const SortableHeader = ({
+    column,
+    label,
+    onSort,
+    sortBy,
+    sortOrder,
+}: {
+    column: string;
+    label: string;
+
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
+}) => {
+    if (!onSort) {
+        return <TableHead>{label}</TableHead>;
+    }
+
+    const isActive = sortBy === column;
+    const Icon = !isActive
+        ? ArrowUpDownIcon
+        : sortOrder === "desc"
+          ? ArrowDownIcon
+          : ArrowUpIcon;
+
+    return (
+        <TableHead>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 h-8 hover:bg-accent"
+                onClick={() => onSort(column)}
+            >
+                {label}
+                <Icon className="ml-2 h-4 w-4" />
+            </Button>
+        </TableHead>
+    );
+};
+
+function MyTableHeaders({
+    sortBy,
+    sortOrder,
+    onSort,
+}: {
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
+}) {
     return (
         <TableHeader>
             <TableRow>
-                <TableHead>Last Updated</TableHead>
-                <TableHead>Spool Code</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Material</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Color</TableHead>
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="updated_at"
+                    label="Last Updated"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="spool_code"
+                    label="Spool Code"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="vendor"
+                    label="Vendor"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="material"
+                    label="Material"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="material_type"
+                    label="Type"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="color"
+                    label="Color"
+                />
                 <TableHead>Remaining (g)</TableHead>
-                <TableHead>Cost</TableHead>
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="cost"
+                    label="Cost"
+                />
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>

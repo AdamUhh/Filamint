@@ -1,5 +1,8 @@
 import { format } from "date-fns";
 import {
+    ArrowDownIcon,
+    ArrowUpDownIcon,
+    ArrowUpIcon,
     CopyPlusIcon,
     EllipsisIcon,
     PencilIcon,
@@ -34,21 +37,35 @@ export function PrintTable({
     onEdit,
     onDuplicate,
     onDelete,
+    isLoading,
+    sortBy,
+    sortOrder,
+    onSort,
 }: {
     prints: Map<number, Print>;
     spools: Map<number, Spool>;
     onEdit: (print: Print) => void;
     onDuplicate: (print: Print) => void;
     onDelete: (id: number) => void;
+    isLoading?: boolean;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
 }) {
     const printArray = Array.from(prints.values());
 
     return (
         <div className="rounded-lg border">
             <Table>
-                <PrintTableHeaders />
+                <PrintTableHeaders
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                />
                 <TableBody>
-                    {printArray.length === 0 ? (
+                    {isLoading ? (
+                        <p className="p-6">Loading Prints...</p>
+                    ) : printArray.length === 0 ? (
                         <PrintTableRowsEmpty />
                     ) : (
                         printArray.map((print) => (
@@ -96,7 +113,8 @@ export function PrintTable({
                                 </TableCell>
                                 <TableCell>{print.status}</TableCell>
                                 <TableCell>
-                                    {format(print.datePrinted, "PPp")}
+                                    {print.datePrinted &&
+                                        format(print.datePrinted, "PPp")}
                                 </TableCell>
                                 <TableCell>
                                     <DropdownMenu>
@@ -160,15 +178,81 @@ export function PrintTable({
     );
 }
 
-function PrintTableHeaders() {
+// Helper component for sortable column headers
+const SortableHeader = ({
+    column,
+    label,
+    sortBy,
+    sortOrder,
+    onSort,
+}: {
+    column: string;
+    label: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
+}) => {
+    if (!onSort) {
+        return <TableHead>{label}</TableHead>;
+    }
+
+    const isActive = sortBy === column;
+    const Icon = !isActive
+        ? ArrowUpDownIcon
+        : sortOrder === "desc"
+          ? ArrowDownIcon
+          : ArrowUpIcon;
+
+    return (
+        <TableHead>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 h-8 hover:bg-accent"
+                onClick={() => onSort(column)}
+            >
+                {label}
+                <Icon className="ml-2 h-4 w-4" />
+            </Button>
+        </TableHead>
+    );
+};
+
+function PrintTableHeaders({
+    sortBy,
+    sortOrder,
+    onSort,
+}: {
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    onSort?: (column: string) => void;
+}) {
     return (
         <TableHeader>
             <TableRow>
-                <TableHead>Name</TableHead>
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="name"
+                    label="Name"
+                />
                 <TableHead>Spools</TableHead>
                 <TableHead>Used (g)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Printed On</TableHead>
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="status"
+                    label="Status"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
+                    column="date_printed"
+                    label="Printed On"
+                />
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>
@@ -179,7 +263,7 @@ function PrintTableRowsEmpty() {
     return (
         <TableRow>
             <TableCell
-                colSpan={8}
+                colSpan={6}
                 className="h-24 text-center text-muted-foreground"
             >
                 No prints found. Add your first print to get started.

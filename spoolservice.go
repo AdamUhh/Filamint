@@ -32,6 +32,22 @@ type Spool struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
+type SpoolQueryParams struct {
+	Search     string `json:"search"`
+	Material   string `json:"material"`
+	Vendor     string `json:"vendor"`
+	IsTemplate *bool  `json:"isTemplate"`
+	SortBy     string `json:"sortBy"`
+	SortOrder  string `json:"sortOrder"`
+	Limit      int    `json:"limit"`
+	Offset     int    `json:"offset"`
+}
+
+type SpoolQueryResult struct {
+	Spools []Spool `json:"spools"`
+	Total  int     `json:"total"`
+}
+
 type SpoolService struct {
 	db *Database
 }
@@ -41,7 +57,6 @@ func NewSpoolService(db *Database) *SpoolService {
 }
 
 func convertBoolToInt(b bool) int {
-	// convert bool → 0/1
 	if b {
 		return 1
 	}
@@ -89,7 +104,6 @@ func (s *SpoolService) generateSpoolCode(material, color string) (string, error)
 		if !exists {
 			return code, nil
 		}
-		// collision → retry (rare)
 	}
 }
 
@@ -218,8 +232,116 @@ func (s *SpoolService) GetSpool(id int64) (*Spool, error) {
 	return &spool, nil
 }
 
+// Legacy method - kept for backward compatibility
 func (s *SpoolService) ListSpools() ([]Spool, error) {
 	var spools []Spool
 	err := s.db.Select(&spools, `SELECT * FROM spools ORDER BY updated_at DESC`)
 	return spools, err
+}
+
+// New query method with filtering, sorting, and pagination
+func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
+	// Set defaults
+	if params.SortBy == "" {
+		params.SortBy = "updated_at"
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "DESC"
+	}
+	if params.Limit <= 0 {
+		params.Limit = 1000 // Default to all
+	}
+
+	// Build WHERE clause
+	var whereClauses []string
+	var args []interface{}
+	argPosition := 1
+
+	if params.Search != "" {
+		searchPattern := "%" + params.Search + "%"
+		whereClauses = append(whereClauses, fmt.Sprintf(
+			"(spool_code LIKE ?%d OR vendor LIKE ?%d OR material LIKE ?%d OR color LIKE ?%d)",
+			argPosition, argPosition+1, argPosition+2, argPosition+3,
+		))
+		args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
+		argPosition += 4
+	}
+
+	if params.Material != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("material = ?%d", argPosition))
+		args = append(args, params.Material)
+		argPosition++
+	}
+
+	if params.Vendor != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("vendor = ?%d", argPosition))
+		args = append(args, params.Vendor)
+		argPosition++
+	}
+
+	if params.IsTemplate != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("is_template = ?%d", argPosition))
+		args = append(args, convertBoolToInt(*params.IsTemplate))
+		argPosition++
+	}
+
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Validate and sanitize sort column
+	validSortColumns := map[string]bool{
+		"id":            true,
+		"spool_code":    true,
+		"vendor":        true,
+		"material":      true,
+		"material_type": true,
+		"color":         true,
+		"total_weight":  true,
+		"used_weight":   true,
+		"cost":          true,
+		"created_at":    true,
+		"updated_at":    true,
+	}
+
+	sortColumn := params.SortBy
+	if !validSortColumns[sortColumn] {
+		sortColumn = "updated_at"
+	}
+
+	sortOrder := strings.ToUpper(params.SortOrder)
+	if sortOrder != "ASC" && sortOrder != "DESC" {
+		sortOrder = "DESC"
+	}
+
+	// Get total count
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM spools %s", whereClause)
+	var total int
+	err := s.db.Get(&total, countQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count spools: %w", err)
+	}
+
+	// Get paginated results
+	query := fmt.Sprintf(
+		"SELECT * FROM spools %s ORDER BY %s %s LIMIT ?%d OFFSET ?%d",
+		whereClause,
+		sortColumn,
+		sortOrder,
+		argPosition,
+		argPosition+1,
+	)
+	args = append(args, params.Limit, params.Offset)
+
+	var spools []Spool
+	err = s.db.Select(&spools, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query spools: %w", err)
+	}
+
+	return &SpoolQueryResult{
+		Spools: spools,
+		Total:  total,
+	}, nil
 }
