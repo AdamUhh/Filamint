@@ -15,10 +15,17 @@ import { Toaster } from "@/shadcn/sonner";
 
 import { AppEventHandler } from "@/components/AppEventHandler";
 import { Navbar } from "@/components/Navbar";
-import { PrintsPage } from "@/components/Prints";
 import { SpoolsPage } from "@/components/Spools";
 
 import "./index.css";
+import { getThemeScript } from "./lib/util-theme";
+
+// === Pre-hydration theme injection ===
+if (typeof document !== "undefined") {
+    const script = document.createElement("script");
+    script.innerHTML = getThemeScript;
+    document.head.appendChild(script);
+}
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -38,6 +45,7 @@ const router = createBrowserRouter([
     {
         element: (
             <>
+                <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
                 <AppEventHandler />
                 <Toaster />
                 <QueryClientProvider client={queryClient}>

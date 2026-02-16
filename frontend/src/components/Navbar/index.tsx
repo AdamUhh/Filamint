@@ -80,7 +80,6 @@ function NavbarLink({
     action: string;
 }) {
     const comboKey = useKeyCombo(action);
-    console.debug("test", comboKey);
 
     return (
         <Tooltip>

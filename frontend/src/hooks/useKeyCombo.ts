@@ -31,8 +31,9 @@ export function useKeyCombo(action: string) {
     return combo;
 }
 
-export function useKeyCombos(actions: string[]) {
+export function useKeyCombos(_actions: string[]) {
     const [combos, setCombos] = useState<string[]>([]);
+    const [actions] = useState(_actions);
 
     const actionsKey = useMemo(
         () => actions.slice().sort().join(","),

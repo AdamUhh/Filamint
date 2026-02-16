@@ -65,7 +65,7 @@ export function SpoolTable({
 
     return (
         <div className="rounded-lg border">
-            <Table>
+            <Table className="table-fixed">
                 <MyTableHeaders
                     sortBy={sortBy}
                     sortOrder={sortOrder}
@@ -259,13 +259,14 @@ const SortableHeader = ({
     onSort,
     sortBy,
     sortOrder,
+    className,
 }: {
     column: string;
     label: string;
-
     sortBy?: string;
     sortOrder?: "asc" | "desc";
     onSort?: (column: string) => void;
+    className?: string;
 }) => {
     if (!onSort) {
         return <TableHead>{label}</TableHead>;
@@ -279,7 +280,7 @@ const SortableHeader = ({
           : ArrowUpIcon;
 
     return (
-        <TableHead>
+        <TableHead className={className}>
             <Button
                 variant="ghost"
                 size="sm"
@@ -311,6 +312,7 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="updated_at"
                     label="Last Updated"
+                    className="w-48"
                 />
                 <SortableHeader
                     sortBy={sortBy}
@@ -318,6 +320,7 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="spool_code"
                     label="Spool Code"
+                    className="w-40"
                 />
                 <SortableHeader
                     sortBy={sortBy}
@@ -325,6 +328,7 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="vendor"
                     label="Vendor"
+                    className="w-36"
                 />
                 <SortableHeader
                     sortBy={sortBy}
@@ -332,6 +336,7 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="material"
                     label="Material"
+                    className="w-36"
                 />
                 <SortableHeader
                     sortBy={sortBy}
@@ -339,6 +344,7 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="material_type"
                     label="Type"
+                    className="w-36"
                 />
                 <SortableHeader
                     sortBy={sortBy}
@@ -346,16 +352,18 @@ function MyTableHeaders({
                     onSort={onSort}
                     column="color"
                     label="Color"
+                    className="w-36"
                 />
-                <TableHead>Remaining (g)</TableHead>
+                <TableHead className="w-36">Remaining (g)</TableHead>
                 <SortableHeader
                     sortBy={sortBy}
                     sortOrder={sortOrder}
                     onSort={onSort}
                     column="cost"
                     label="Cost"
+                    className="w-36"
                 />
-                <TableHead></TableHead>
+                <TableHead className="w-12"></TableHead>
             </TableRow>
         </TableHeader>
     );

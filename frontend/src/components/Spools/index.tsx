@@ -338,8 +338,6 @@ function SpoolHeader({
         "spool:toggle_template",
     ]);
 
-    console.debug("testing????");
-
     return (
         <div className="flex items-center justify-between">
             <div className="flex flex-col">
