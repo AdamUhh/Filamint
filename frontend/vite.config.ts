@@ -21,9 +21,9 @@ export default defineConfig({
         },
     },
     // Memory Leak Issue hotfix: https://github.com/wailsapp/wails/issues/3903
-    server: {
-        watch: {
-            ignored: ["**/wailsjs/**"],
-        },
-    },
+    // server: {
+    //     watch: {
+    //         ignored: ["**/wailsjs/**"],
+    //     },
+    // },
 });

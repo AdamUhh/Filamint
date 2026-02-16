@@ -1,5 +1,5 @@
 import { Events } from "@wailsio/runtime";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ShortcutService } from "@bindings";
 
@@ -34,27 +34,29 @@ export function useKeyCombo(action: string) {
 export function useKeyCombos(actions: string[]) {
     const [combos, setCombos] = useState<string[]>([]);
 
+    const actionsKey = useMemo(
+        () => actions.slice().sort().join(","),
+        [actions]
+    );
+
     useEffect(() => {
-        let active = true;
+        let cancelled = false;
 
         const load = async () => {
             const result = await ShortcutService.GetShortcutCombos(actions);
-            if (active) setCombos(result ?? []);
+            if (!cancelled) setCombos(result ?? []);
         };
 
         load();
 
-        const handler = () => {
-            load();
-        };
-
-        const unsubscribe = Events.On("window:reload_shortcuts", handler);
+        const unsubscribe = Events.On("window:reload_shortcuts", load);
 
         return () => {
-            active = false;
+            cancelled = true;
             unsubscribe();
         };
-    }, [actions]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [actionsKey]);
 
     return combos;
 }

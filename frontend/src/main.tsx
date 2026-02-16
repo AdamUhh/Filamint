@@ -49,13 +49,20 @@ const router = createBrowserRouter([
             </>
         ),
         errorElement: <RouteError />,
+
+        // children: [
+        //     {
+        //         path: "/",
+        //         element: <div />,
+        //     },
+        // ],
         children: [
             {
                 path: "/",
-                element: <Navigate to="/prints" replace />,
+                element: <Navigate to="/spools" replace />,
             },
             { path: "/spools", element: <SpoolsPage /> },
-            { path: "/prints", element: <PrintsPage /> },
+            // { path: "/prints", element: <PrintsPage /> },
         ],
     },
 ]);

@@ -64,7 +64,7 @@ export function PrintTable({
                 />
                 <TableBody>
                     {isLoading ? (
-                        <p className="p-6">Loading Prints...</p>
+                        <PrintTableRowsLoading />
                     ) : printArray.length === 0 ? (
                         <PrintTableRowsEmpty />
                     ) : (
@@ -256,6 +256,19 @@ function PrintTableHeaders({
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>
+    );
+}
+
+function PrintTableRowsLoading() {
+    return (
+        <TableRow>
+            <TableCell
+                colSpan={8}
+                className="h-24 text-left text-muted-foreground"
+            >
+                Loading Prints...
+            </TableCell>
+        </TableRow>
     );
 }
 

@@ -73,7 +73,7 @@ export function SpoolTable({
                 />
                 <TableBody>
                     {isLoading ? (
-                        <p className="p-6">Loading Spools...</p>
+                        <MyTableRowsLoading />
                     ) : spoolArray.length === 0 ? (
                         <MyTableRowsEmpty />
                     ) : (
@@ -224,6 +224,19 @@ export function SpoolTable({
                 </TableBody>
             </Table>
         </div>
+    );
+}
+
+function MyTableRowsLoading() {
+    return (
+        <TableRow>
+            <TableCell
+                colSpan={8}
+                className="h-24 text-left text-muted-foreground"
+            >
+                Loading Spools...
+            </TableCell>
+        </TableRow>
     );
 }
 

@@ -3,13 +3,12 @@ import {
     type SpoolQueryParams,
     useCreateSpool,
     useDeleteSpool,
+    useSpoolEvents,
     useSpools,
     useUpdateSpool,
 } from "@/hooks/useSpools";
-import { Events } from "@wailsio/runtime";
-import { format } from "date-fns";
-import { MenuIcon, PlusIcon, RotateCwIcon, StarIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
@@ -53,135 +52,12 @@ export function SpoolsPage() {
         ...queryParams,
         isTemplate: templateOpen ? true : undefined,
     });
-    const createMutation = useCreateSpool();
-    const updateMutation = useUpdateSpool();
-    const deleteMutation = useDeleteSpool();
-
-    const [editState, setEditState] = useState<EditState>({
-        isOpen: false,
-        id: 0,
-        original: null,
-    });
-    const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
-
-    const form = useAppForm({
-        defaultValues: defaultSpoolValues,
-        validators: { onChange: spoolSchema },
-        onSubmit: async ({ value }) => {
-            const now = new Date().toISOString();
-            const spoolToSave: Spool = {
-                id: editState.id,
-                spoolCode: String(editState.id), // auto generated backend
-                ...value,
-                firstUsedAt: null,
-                lastUsedAt: null,
-                createdAt:
-                    editState.id > 0
-                        ? spools.get(editState.id)?.createdAt || now
-                        : now,
-                updatedAt: now,
-            };
-
-            try {
-                if (editState.id > 0) {
-                    await updateMutation.mutateAsync(spoolToSave);
-                } else {
-                    await createMutation.mutateAsync(spoolToSave);
-                }
-                setEditState({ id: 0, isOpen: false, original: null });
-                form.reset();
-            } catch (err) {
-                console.error("Failed to save spool:", err);
-            }
-        },
-    });
-
-    const handleViewTemplate = useCallback(() => {
-        setTemplateOpen((prev) => !prev);
-    }, []);
-
-    const handleCreate = useCallback(() => {
-        setEditState({ isOpen: true, id: 0, original: null });
-        form.reset();
-    }, [form]);
-
-    const populateFormFromPrint = useCallback(
-        (spool: Spool, isDuplicate = false) => {
-            form.setFieldValue("vendor", spool.vendor);
-            form.setFieldValue("material", spool.material);
-            form.setFieldValue("materialType", spool.materialType);
-            form.setFieldValue("color", spool.color);
-            form.setFieldValue("colorHex", spool.colorHex || "#000000");
-            form.setFieldValue("totalWeight", spool.totalWeight);
-            form.setFieldValue("usedWeight", spool.usedWeight);
-            form.setFieldValue("cost", spool.cost);
-            form.setFieldValue("referenceLink", spool.referenceLink);
-            form.setFieldValue("notes", spool.notes);
-            form.setFieldValue(
-                "isTemplate",
-                isDuplicate ? false : spool.isTemplate
-            );
-        },
-        [form]
-    );
-
-    const handleEdit = useCallback(
-        (spool: Spool) => {
-            setEditState({ isOpen: true, id: spool.id, original: spool });
-            populateFormFromPrint(spool);
-        },
-        [populateFormFromPrint]
-    );
-
-    const handleDuplicate = useCallback(
-        (spool: Spool) => {
-            setEditState({ isOpen: true, id: 0, original: spool });
-            populateFormFromPrint(spool, true);
-        },
-        [populateFormFromPrint]
-    );
-
-    useEffect(() => {
-        const unsubSpoolCreate = Events.On("spool:create", handleCreate);
-        const unsubToggleTemplate = Events.On(
-            "spool:toggle_template",
-            handleViewTemplate
-        );
-
-        return () => {
-            unsubSpoolCreate();
-            unsubToggleTemplate();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const handleDelete = (spoolId: number) => {
-        setDeleteIntent({ spoolId });
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!deleteIntent) return;
-
-        try {
-            await deleteMutation.mutateAsync(deleteIntent.spoolId);
-        } catch (error) {
-            console.error("Failed to delete spool:", error);
-            // TODO: Show error toast
-        } finally {
-            setDeleteIntent(null);
-        }
-    };
-
-    const handleCloseDialog = useCallback(() => {
-        form.reset();
-        setEditState({ id: 0, isOpen: false, original: null });
-    }, [form]);
 
     const handleSearch = useCallback((searchTerm: string) => {
         setQueryParams((prev) => ({
             ...prev,
             search: searchTerm,
-            offset: 0, // Reset to first page on search
+            offset: 0,
         }));
     }, []);
 
@@ -207,108 +83,235 @@ export function SpoolsPage() {
         Math.floor(
             (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
         ) + 1;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    console.debug("errors! : ", form.state.isValid, form.state.errors);
+    const totalPages = Math.ceil(total / PAGE_SIZE);
 
     return (
         <div className="space-y-6 p-6">
+            <SpoolHeaderContainer
+                templateOpen={templateOpen}
+                setTemplateOpen={setTemplateOpen}
+            />
+
+            <SpoolListSection
+                spools={spools}
+                total={total}
+                isFetching={isFetching}
+                templateOpen={templateOpen}
+                search={queryParams.search}
+                sortBy={queryParams.sortBy}
+                sortOrder={queryParams.sortOrder}
+                onSearch={handleSearch}
+                onSort={handleSort}
+                onPageChange={handlePageChange}
+                currentPage={currentPage}
+                totalPages={totalPages}
+            />
+        </div>
+    );
+}
+
+function SpoolHeaderContainer({
+    templateOpen,
+    setTemplateOpen,
+}: {
+    templateOpen: boolean;
+    setTemplateOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+    const [editState, setEditState] = useState<EditState>({
+        isOpen: false,
+        id: 0,
+        original: null,
+    });
+
+    const handleCreate = useCallback(() => {
+        setEditState({ isOpen: true, id: 0, original: null });
+    }, []);
+
+    const handleViewTemplate = useCallback(() => {
+        setTemplateOpen((prev) => !prev);
+    }, [setTemplateOpen]);
+
+    useSpoolEvents(handleCreate, handleViewTemplate);
+
+    return (
+        <>
             <SpoolHeader
                 onCreate={handleCreate}
                 templateOpen={templateOpen}
                 onViewTemplate={handleViewTemplate}
             />
 
-            <div className="flex items-center gap-2">
-                <SpoolSearch onSearch={handleSearch} />
+            <SpoolFormDialog
+                editState={editState}
+                setEditState={setEditState}
+            />
+        </>
+    );
+}
 
-                {isFetching ? (
-                    <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
-                        <RotateCwIcon className="size-3 animate-spin" />
-                        <span>Loading spools...</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <p>
-                            Showing {spools.size} of {total} spools
-                            {queryParams.search &&
-                                ` matching "${queryParams.search}"`}
-                        </p>
-                    </div>
-                )}
+function SpoolFormDialog({
+    editState,
+    setEditState,
+}: {
+    editState: EditState;
+    setEditState: React.Dispatch<React.SetStateAction<EditState>>;
+}) {
+    const createMutation = useCreateSpool();
+    const updateMutation = useUpdateSpool();
+    const { spools } = useSpools({ limit: 1 }); // lightweight access
+
+    const form = useAppForm({
+        defaultValues: defaultSpoolValues,
+        validators: { onChange: spoolSchema },
+        onSubmit: async ({ value }) => {
+            const now = new Date().toISOString();
+
+            const spoolToSave: Spool = {
+                id: editState.id,
+                spoolCode: String(editState.id),
+                ...value,
+                firstUsedAt: null,
+                lastUsedAt: null,
+                createdAt:
+                    editState.id > 0
+                        ? spools.get(editState.id)?.createdAt || now
+                        : now,
+                updatedAt: now,
+            };
+
+            if (editState.id > 0) {
+                await updateMutation.mutateAsync(spoolToSave);
+            } else {
+                await createMutation.mutateAsync(spoolToSave);
+            }
+
+            form.reset();
+            setEditState({ id: 0, isOpen: false, original: null });
+        },
+    });
+
+    const handleClose = useCallback(() => {
+        form.reset();
+        setEditState({ id: 0, isOpen: false, original: null });
+    }, [form, setEditState]);
+
+    return (
+        <Dialog
+            open={editState.isOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) handleClose();
+            }}
+        >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        {editState.id > 0 ? "Edit Spool" : "Add New Spool"}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        form.handleSubmit();
+                    }}
+                >
+                    <SpoolForm form={form} editState={editState} />
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClose}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            disabled={
+                                createMutation.isPending ||
+                                updateMutation.isPending
+                            }
+                        >
+                            {editState.id > 0 ? "Update" : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function SpoolListSection({
+    spools,
+    total,
+    isFetching,
+    templateOpen,
+    search,
+    sortBy,
+    sortOrder,
+    onSearch,
+    onSort,
+    onPageChange,
+    currentPage,
+    totalPages,
+}: {
+    spools: Map<number, Spool>;
+    total: number;
+    isFetching: boolean;
+    templateOpen: boolean;
+    search: string | undefined;
+    sortBy: string | undefined;
+    sortOrder: "asc" | "desc" | undefined;
+    onSearch: (v: string) => void;
+    onSort: (v: string) => void;
+    onPageChange: (p: number) => void;
+    currentPage: number;
+    totalPages: number;
+}) {
+    const deleteMutation = useDeleteSpool();
+    const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteIntent) return;
+        try {
+            await deleteMutation.mutateAsync(deleteIntent.spoolId);
+        } finally {
+            setDeleteIntent(null);
+        }
+    };
+
+    return (
+        <>
+            <div className="flex items-center gap-2">
+                <SpoolSearch onSearch={onSearch} />
+                <div className="text-xs text-muted-foreground">
+                    {isFetching
+                        ? "Loading spools..."
+                        : `Showing ${spools.size} of ${total} spools${
+                              search ? ` matching "${search}"` : ""
+                          }`}
+                </div>
             </div>
 
             <SpoolTable
                 isLoading={isFetching}
                 spools={spools}
                 templateOpen={templateOpen}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-                sortBy={queryParams.sortBy}
-                sortOrder={queryParams.sortOrder}
-                onSort={handleSort}
+                onDelete={(id) => setDeleteIntent({ spoolId: id })}
+                onEdit={() => {}}
+                onDuplicate={() => {}}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
             />
 
             <SpoolPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={handlePageChange}
+                onPageChange={onPageChange}
             />
-
-            <Dialog
-                open={editState.isOpen}
-                onOpenChange={(isOpen) => {
-                    if (!isOpen) handleCloseDialog();
-                }}
-            >
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {editState.id > 0 ? "Edit Spool" : "Add New Spool"}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            form.handleSubmit();
-                        }}
-                    >
-                        <SpoolForm form={form} editState={editState} />
-                        <DialogFooter className="relative">
-                            <div className="absolute top-1/2 left-4 -translate-y-1/2">
-                                {editState.id > 0 &&
-                                    `Created On: ${format(editState.original?.createdAt, "PPp")}`}
-                            </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleCloseDialog}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={
-                                        createMutation.isPending ||
-                                        updateMutation.isPending
-                                    }
-                                >
-                                    {createMutation.isPending ||
-                                    updateMutation.isPending
-                                        ? "Saving..."
-                                        : editState.id > 0
-                                          ? "Update"
-                                          : "Create"}
-                                </Button>
-                            </div>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
 
             {deleteIntent && (
                 <DeleteSpoolDialog
@@ -317,7 +320,7 @@ export function SpoolsPage() {
                     onConfirm={handleDeleteConfirm}
                 />
             )}
-        </div>
+        </>
     );
 }
 
@@ -334,6 +337,8 @@ function SpoolHeader({
         "spool:create",
         "spool:toggle_template",
     ]);
+
+    console.debug("testing????");
 
     return (
         <div className="flex items-center justify-between">

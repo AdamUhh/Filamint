@@ -4,6 +4,14 @@ import { useStore } from "@tanstack/react-form";
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
 import { Checkbox } from "@/shadcn/checkbox";
+import {
+    Autocomplete,
+    AutocompleteContent,
+    AutocompleteEmpty,
+    AutocompleteInput,
+    AutocompleteItem,
+    AutocompleteList,
+} from "@/shadcn/custom/autocomplete";
 import { ColorPicker } from "@/shadcn/custom/color-picker";
 import {
     Field,
@@ -37,6 +45,54 @@ export function SpoolVendorFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+    type Vendor = {
+        id: string;
+        value: string;
+    };
+
+    const vendors: Vendor[] = [
+        { id: "bambu_lab", value: "Bambu Lab" },
+        { id: "prusa_research", value: "Prusa Research" },
+        { id: "creality", value: "Creality" },
+        { id: "elegoo", value: "Elegoo" },
+        { id: "anycubic", value: "Anycubic" },
+        { id: "flashforge", value: "FlashForge" },
+        { id: "ultimaker", value: "UltiMaker" },
+        { id: "raise3d", value: "Raise3D" },
+        { id: "formlabs", value: "Formlabs" },
+        { id: "makerbot", value: "MakerBot" },
+        { id: "zortrax", value: "Zortrax" },
+        { id: "qidi_tech", value: "QIDI Tech" },
+        { id: "artillery", value: "Artillery" },
+        { id: "snapmaker", value: "Snapmaker" },
+        { id: "mingda", value: "Mingda" },
+        { id: "tronxy", value: "Tronxy" },
+        { id: "tevo", value: "Tevo" },
+        { id: "biqu", value: "BIQU" },
+        { id: "fokoos", value: "Fokoos" },
+        { id: "ankermake", value: "AnkerMake" },
+        { id: "kobra", value: "Anycubic Kobra" },
+        { id: "phrozen", value: "Phrozen" },
+        { id: "peopoly", value: "Peopoly" },
+        { id: "epax", value: "EPAX" },
+        { id: "rat_rig", value: "Rat Rig" },
+        { id: "voron_design", value: "Voron Design" },
+        { id: "lulzbot", value: "LulzBot" },
+        { id: "robo3d", value: "Robo 3D" },
+        { id: "taz", value: "LulzBot TAZ" },
+        { id: "geeetech", value: "Geeetech" },
+        { id: "modix", value: "Modix" },
+        { id: "intamsys", value: "INTAMSYS" },
+        { id: "tiertime", value: "Tiertime (UP)" },
+        { id: "dremel_3d", value: "Dremel 3D" },
+        { id: "xyzprinting", value: "XYZprinting" },
+        { id: "delta_wasp", value: "WASP" },
+        { id: "markforged", value: "Markforged" },
+        { id: "stratasys", value: "Stratasys" },
+        { id: "3d_systems", value: "3D Systems" },
+        { id: "uniontech", value: "UnionTech" },
+    ];
+
     return (
         <Field data-invalid={isInvalid} className="group">
             <div className="flex items-center justify-between">
@@ -53,16 +109,42 @@ export function SpoolVendorFormField({
                     </Button>
                 )}
             </div>
-            <Input
-                id={field.name}
+            <Autocomplete
                 name={field.name}
+                items={vendors}
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={isInvalid}
-                placeholder="e.g., CC3D, Elegoo"
-                autoComplete="off"
-            />
+                onValueChange={field.handleChange}
+                openOnInputClick
+				modal
+            >
+                <AutocompleteInput
+                    id={field.name}
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                    placeholder="e.g., CC3D, Elegoo"
+                    autoComplete="off"
+                />
+                <AutocompleteContent>
+                    <AutocompleteEmpty>No items found.</AutocompleteEmpty>
+                    <AutocompleteList className="pointer-events-auto">
+                        {(tag: Vendor) => (
+                            <AutocompleteItem key={tag.id} value={tag}>
+                                {tag.value}
+                            </AutocompleteItem>
+                        )}
+                    </AutocompleteList>
+                </AutocompleteContent>
+            </Autocomplete>
+            {/* <Input */}
+            {/*     id={field.name} */}
+            {/*     name={field.name} */}
+            {/*     value={field.state.value} */}
+            {/*     onBlur={field.handleBlur} */}
+            {/*     onChange={(e) => field.handleChange(e.target.value)} */}
+            {/*     aria-invalid={isInvalid} */}
+            {/*     placeholder="e.g., CC3D, Elegoo" */}
+            {/*     autoComplete="off" */}
+            {/* /> */}
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );

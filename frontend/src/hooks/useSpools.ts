@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Events } from "@wailsio/runtime";
+import { useEffect, useMemo } from "react";
 
 import { SpoolService } from "@bindings";
 import type { Spool } from "@bindings";
@@ -19,39 +21,67 @@ interface SpoolQueryResult {
     total: number;
 }
 
+export function useSpoolEvents(
+    onCreate: () => void,
+    onToggleTemplate: () => void
+) {
+    useEffect(() => {
+        const unsubCreate = Events.On("spool:create", onCreate);
+        const unsubToggle = Events.On(
+            "spool:toggle_template",
+            onToggleTemplate
+        );
+
+        return () => {
+            unsubCreate();
+            unsubToggle();
+        };
+    }, [onCreate, onToggleTemplate]);
+}
+
 /**
  * Hook to query spools with filtering, sorting, and pagination
  */
 export function useSpools(params: SpoolQueryParams = {}) {
+    const normalized = {
+        search: params.search ?? "",
+        material: params.material ?? "",
+        vendor: params.vendor ?? "",
+        isTemplate: params.isTemplate ?? false,
+        sortBy: params.sortBy ?? "updated_at",
+        sortOrder: params.sortOrder ?? "desc",
+        limit: params.limit ?? 1000,
+        offset: params.offset ?? 0,
+    };
+
     const query = useQuery({
-        queryKey: ["spools", params],
+        queryKey: [
+            "spools",
+            normalized.search,
+            normalized.material,
+            normalized.vendor,
+            normalized.isTemplate,
+            normalized.sortBy,
+            normalized.sortOrder,
+            normalized.limit,
+            normalized.offset,
+        ],
         queryFn: async (): Promise<SpoolQueryResult | null> => {
-            const result = await SpoolService.QuerySpools({
-                search: params.search || "",
-                material: params.material || "",
-                vendor: params.vendor || "",
-                isTemplate: params.isTemplate || false,
-                sortBy: params.sortBy || "updated_at",
-                sortOrder: params.sortOrder || "desc",
-                limit: params.limit || 1000,
-                offset: params.offset || 0,
-            });
-
-            // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-            return result;
+            return SpoolService.QuerySpools(normalized);
         },
-        staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
-        gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+        staleTime: 2 * 60 * 1000,
+        gcTime: 5 * 60 * 1000,
     });
 
-    // Convert array to Map for backward compatibility
-    const spoolsMap = new Map((query.data?.spools || []).map((s) => [s.id, s]));
+    const spoolsMap = useMemo(
+        () => new Map((query.data?.spools ?? []).map((s) => [s.id, s])),
+        [query.data?.spools]
+    );
 
     return {
         spools: spoolsMap,
-        spoolsArray: query.data?.spools || [],
-        total: query.data?.total || 0,
+        spoolsArray: query.data?.spools ?? [],
+        total: query.data?.total ?? 0,
         isLoading: query.isLoading,
         isFetching: query.isFetching,
         error: query.error,
