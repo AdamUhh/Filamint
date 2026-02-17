@@ -19,6 +19,7 @@ import { SpoolsPage } from "@/components/Spools";
 
 import { getThemeScript } from "@/lib/util-theme";
 
+import { PrintsPage } from "./components/Prints";
 import "./index.css";
 
 // === Pre-hydration theme injection ===
@@ -71,7 +72,7 @@ const router = createBrowserRouter([
                 element: <Navigate to="/spools" replace />,
             },
             { path: "/spools", element: <SpoolsPage /> },
-            // { path: "/prints", element: <PrintsPage /> },
+            { path: "/prints", element: <PrintsPage /> },
         ],
     },
 ]);

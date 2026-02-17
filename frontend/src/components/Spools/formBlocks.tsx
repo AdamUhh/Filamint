@@ -45,12 +45,7 @@ export function SpoolVendorFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-    type Vendor = {
-        id: string;
-        value: string;
-    };
-
-    const vendors: Vendor[] = [
+    const vendors = [
         { id: "bambu_lab", value: "Bambu Lab" },
         { id: "prusa_research", value: "Prusa Research" },
         { id: "creality", value: "Creality" },
@@ -115,7 +110,6 @@ export function SpoolVendorFormField({
                 value={field.state.value}
                 onValueChange={field.handleChange}
                 openOnInputClick
-				modal
             >
                 <AutocompleteInput
                     id={field.name}
@@ -126,8 +120,8 @@ export function SpoolVendorFormField({
                 />
                 <AutocompleteContent>
                     <AutocompleteEmpty>No items found.</AutocompleteEmpty>
-                    <AutocompleteList className="pointer-events-auto">
-                        {(tag: Vendor) => (
+                    <AutocompleteList>
+                        {(tag) => (
                             <AutocompleteItem key={tag.id} value={tag}>
                                 {tag.value}
                             </AutocompleteItem>
@@ -135,16 +129,6 @@ export function SpoolVendorFormField({
                     </AutocompleteList>
                 </AutocompleteContent>
             </Autocomplete>
-            {/* <Input */}
-            {/*     id={field.name} */}
-            {/*     name={field.name} */}
-            {/*     value={field.state.value} */}
-            {/*     onBlur={field.handleBlur} */}
-            {/*     onChange={(e) => field.handleChange(e.target.value)} */}
-            {/*     aria-invalid={isInvalid} */}
-            {/*     placeholder="e.g., CC3D, Elegoo" */}
-            {/*     autoComplete="off" */}
-            {/* /> */}
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );
@@ -162,6 +146,34 @@ export function SpoolMaterialFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+    const materials = [
+        "PLA",
+        "ABS",
+        "PET",
+        "PETG",
+        "PCTG",
+        "Nylon",
+        "TPU",
+        "TPE",
+        "ASA",
+        "HIPS",
+        "PVA",
+        "PC",
+        "PC‑ABS",
+        "PP",
+        "PVB",
+        "PLA‑Pro",
+        "PLA‑CF",
+        "PETG‑CF",
+        "PA12‑CF",
+        "PA12‑GF",
+        "PLA‑Wood",
+        "PLA‑Metal",
+        "Silk PLA",
+        "Glow‑in‑the‑Dark",
+        "Conductive PLA",
+    ];
+
     return (
         <Field data-invalid={isInvalid} className="group">
             <div className="flex items-center justify-between">
@@ -178,16 +190,32 @@ export function SpoolMaterialFormField({
                     </Button>
                 )}
             </div>
-            <Input
-                id={field.name}
+
+            <Autocomplete
                 name={field.name}
+                items={materials}
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={isInvalid}
-                placeholder="e.g., PLA, PETG, ABS"
-                autoComplete="off"
-            />
+                onValueChange={field.handleChange}
+                openOnInputClick
+            >
+                <AutocompleteInput
+                    id={field.name}
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                    placeholder="e.g., PLA, PETG, ABS"
+                    autoComplete="off"
+                />
+                <AutocompleteContent>
+                    <AutocompleteEmpty>No items found.</AutocompleteEmpty>
+                    <AutocompleteList>
+                        {(tag) => (
+                            <AutocompleteItem key={tag} value={tag}>
+                                {tag}
+                            </AutocompleteItem>
+                        )}
+                    </AutocompleteList>
+                </AutocompleteContent>
+            </Autocomplete>
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );
@@ -205,6 +233,20 @@ export function SpoolMaterialTypeFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+    const materialTypes = [
+        "Basic",
+        "Silk",
+        "Matte",
+        "Wood",
+        "Metal",
+        "Carbon Fiber",
+        "Composite",
+        "Flexible",
+        "Support",
+        "Engineering",
+        "Special Effects",
+    ];
+
     return (
         <Field data-invalid={isInvalid} className="group">
             <div className="flex items-center justify-between">
@@ -221,16 +263,33 @@ export function SpoolMaterialTypeFormField({
                     </Button>
                 )}
             </div>
-            <Input
-                id={field.name}
+
+            <Autocomplete
                 name={field.name}
+                items={materialTypes}
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={isInvalid}
-                placeholder="e.g., Basic, Pro, Silk"
-                autoComplete="off"
-            />
+                onValueChange={field.handleChange}
+                openOnInputClick
+            >
+                <AutocompleteInput
+                    id={field.name}
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                    placeholder="e.g., Basic, Pro, Silk"
+                    autoComplete="off"
+                />
+                <AutocompleteContent>
+                    <AutocompleteEmpty>No items found.</AutocompleteEmpty>
+                    <AutocompleteList>
+                        {(tag) => (
+                            <AutocompleteItem key={tag} value={tag}>
+                                {tag}
+                            </AutocompleteItem>
+                        )}
+                    </AutocompleteList>
+                </AutocompleteContent>
+            </Autocomplete>
+
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );
@@ -248,6 +307,29 @@ export function SpoolColorFormField({
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+    const colors = [
+        "Black",
+        "White",
+        "Gray",
+        "Red",
+        "Orange",
+        "Yellow",
+        "Green",
+        "Blue",
+        "Purple",
+        "Pink",
+        "Brown",
+        "Beige",
+        "Cyan",
+        "Magenta",
+        "Turquoise",
+        "Gold",
+        "Silver",
+        "Copper",
+        "Transparent",
+        "Clear",
+    ];
+
     return (
         <Field data-invalid={isInvalid} className="group">
             <div className="flex items-center justify-between">
@@ -264,16 +346,33 @@ export function SpoolColorFormField({
                     </Button>
                 )}
             </div>
-            <Input
-                id={field.name}
+
+            <Autocomplete
                 name={field.name}
+                items={colors}
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={isInvalid}
-                placeholder="e.g., Black, Blue"
-                autoComplete="off"
-            />
+                onValueChange={field.handleChange}
+                openOnInputClick
+            >
+                <AutocompleteInput
+                    id={field.name}
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                    placeholder="e.g., Black, Blue"
+                    autoComplete="off"
+                />
+                <AutocompleteContent>
+                    <AutocompleteEmpty>No items found.</AutocompleteEmpty>
+                    <AutocompleteList>
+                        {(tag) => (
+                            <AutocompleteItem key={tag} value={tag}>
+                                {tag}
+                            </AutocompleteItem>
+                        )}
+                    </AutocompleteList>
+                </AutocompleteContent>
+            </Autocomplete>
+
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );

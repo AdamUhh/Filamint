@@ -159,12 +159,15 @@ function SpoolFormDialog({
 }) {
     const createMutation = useCreateSpool();
     const updateMutation = useUpdateSpool();
+    // TODO: What on earth is this???
     const { spools } = useSpools({ limit: 1 }); // lightweight access
 
     const form = useAppForm({
         defaultValues: defaultSpoolValues,
         validators: { onChange: spoolSchema },
         onSubmit: async ({ value }) => {
+            console.log("submitting", value);
+            return;
             const now = new Date().toISOString();
 
             const spoolToSave: Spool = {
