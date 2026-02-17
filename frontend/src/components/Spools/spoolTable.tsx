@@ -64,8 +64,8 @@ export function SpoolTable({
     const spoolArray = Array.from(spools.values());
 
     return (
-        <div className="relative max-h-[75vh]! overflow-y-scroll rounded-lg border">
-            <Table stickyHeader className="table-fixed">
+        <div className="rounded-lg border">
+            <Table className="table-fixed">
                 <MyTableHeaders
                     sortBy={sortBy}
                     sortOrder={sortOrder}

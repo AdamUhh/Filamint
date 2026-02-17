@@ -118,6 +118,7 @@ export function SpoolVendorFormField({
                     placeholder="e.g., CC3D, Elegoo"
                     autoComplete="off"
                 />
+
                 <AutocompleteContent>
                     <AutocompleteEmpty>No items found.</AutocompleteEmpty>
                     <AutocompleteList>

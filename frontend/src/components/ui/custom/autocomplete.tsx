@@ -9,7 +9,6 @@ import {
     InputGroupButton,
     InputGroupInput,
 } from "@/shadcn/input-group";
-import { ScrollArea, ScrollBar } from "@/shadcn/scroll-area";
 
 import { cn } from "@/lib/utils";
 
@@ -87,6 +86,7 @@ function AutocompleteContent({
                         "group/combobox-content pointer-events-auto relative max-h-(--available-height) w-(--anchor-width) max-w-(--available-width) min-w-24 origin-(--transform-origin) overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[chips=true]:min-w-(--anchor-width) data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 *:data-[slot=input-group]:m-1 *:data-[slot=input-group]:mb-0 *:data-[slot=input-group]:h-8 *:data-[slot=input-group]:border-input/30 *:data-[slot=input-group]:bg-input/30 *:data-[slot=input-group]:shadow-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
                         className
                     )}
+                    onWheel={(e) => e.stopPropagation()}
                     {...props}
                 />
             </AutocompletePrimitive.Positioner>
@@ -103,18 +103,16 @@ function AutocompleteList({
     ...props
 }: AutocompletePrimitive.List.Props) {
     return (
-        <ScrollArea className="h-[min(calc(--spacing(72)---spacing(9)),calc(var(--available-height)---spacing(9)))] rounded-md">
-            <AutocompletePrimitive.List
-                data-slot="autocomplete-list"
-                className={cn(
-                    "no-scrollbar scroll-py-1 p-1 data-empty:p-0",
-                    "pointer-events-none",
-                    className
-                )}
-                {...props}
-            />
-            <ScrollBar orientation="vertical" />
-        </ScrollArea>
+        <AutocompletePrimitive.List
+            data-slot="autocomplete-list"
+            className={cn(
+                "no-scrollbar max-h-[min(calc(--spacing(72)---spacing(9)),calc(var(--available-height)---spacing(9)))]",
+                "scroll-py-1 overflow-y-auto p-1 data-empty:p-0",
+                "pointer-events-none",
+                className
+            )}
+            {...props}
+        />
     );
 }
 

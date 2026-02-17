@@ -404,7 +404,7 @@
     }
 
     ::-webkit-scrollbar {
-        @apply h-0.5 w-0.5;
+        @apply size-1;
     }
 
     ::-webkit-scrollbar-track {
@@ -412,31 +412,6 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        @apply rounded-full border border-solid border-transparent bg-border bg-clip-padding;
-    }
-
-    /* view transition */
-    ::view-transition-group(root) {
-        animation-duration: 0.5s;
-        /* animation-timing-function: var(--expo-in); */
-    }
-
-    ::view-transition-new(root) {
-        animation-name: reveal;
-    }
-
-    ::view-transition-old(root),
-    .dark::view-transition-old(root) {
-        animation: none;
-        z-index: -1;
-    }
-
-    @keyframes reveal {
-        from {
-            clip-path: polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%);
-        }
-        to {
-            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-        }
+        @apply rounded-full border border-solid border-transparent bg-border;
     }
 }
