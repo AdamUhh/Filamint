@@ -9,6 +9,7 @@ import {
     InputGroupButton,
     InputGroupInput,
 } from "@/shadcn/input-group";
+import { ScrollArea, ScrollBar } from "@/shadcn/scroll-area";
 
 import { cn } from "@/lib/utils";
 
@@ -102,14 +103,18 @@ function AutocompleteList({
     ...props
 }: AutocompletePrimitive.List.Props) {
     return (
-        <AutocompletePrimitive.List
-            data-slot="autocomplete-list"
-            className={cn(
-                "no-scrollbar max-h-[min(calc(--spacing(72)---spacing(9)),calc(var(--available-height)---spacing(9)))] scroll-py-1 overflow-y-auto overscroll-contain p-1 data-empty:p-0",
-                className
-            )}
-            {...props}
-        />
+        <ScrollArea className="h-[min(calc(--spacing(72)---spacing(9)),calc(var(--available-height)---spacing(9)))] rounded-md">
+            <AutocompletePrimitive.List
+                data-slot="autocomplete-list"
+                className={cn(
+                    "no-scrollbar scroll-py-1 p-1 data-empty:p-0",
+                    "pointer-events-none",
+                    className
+                )}
+                {...props}
+            />
+            <ScrollBar orientation="vertical" />
+        </ScrollArea>
     );
 }
 
@@ -127,6 +132,7 @@ function AutocompleteItem({
             data-slot="autocomplete-item"
             className={cn(
                 "relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1 pr-1.5 pl-1.5 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-[variant=destructive]:data-highlighted:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+                "pointer-events-auto",
                 className
             )}
             {...props}
