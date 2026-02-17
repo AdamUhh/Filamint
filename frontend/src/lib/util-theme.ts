@@ -1,55 +1,61 @@
-// Extend the window object
+import { type Theme } from "@/lib/constant-theme";
+
 declare global {
     interface Window {
-        __theme?: "light" | "dark";
-        __setPreferredTheme?: (theme: "light" | "dark") => void;
-        __onThemeChange?: (theme: "light" | "dark") => void;
+        __theme?: Theme;
+        __setPreferredTheme?: (theme: Theme) => void;
+        __onThemeChange?: (theme: Theme) => void;
     }
 }
 
-// Vanilla JS code to run before React hydrates
 const code = function () {
-    console.log("applying code");
+    const DEFAULT_THEME: Theme = "light";
+
+    // NOTE: There’s a separate THEMES array in @/lib/constant-theme for hydration
+    // Changes here should be mirrored there.
+    const THEMES: Theme[] = [
+        "light",
+        "dark",
+        "beige",
+        "minimal",
+        "minimal-dark",
+        "nlan-dark",
+        "brutalist",
+    ];
+
     window.__onThemeChange = function () {};
 
-    function applyTheme(theme: "light" | "dark") {
+    function applyTheme(theme: Theme) {
         window.__theme = theme;
-
         const html = document.documentElement;
 
-        // Set data-theme attribute
         html.setAttribute("data-theme", theme);
-
-        // Remove any previous theme class
-        html.classList.remove("light", "dark");
-
-        console.debug("applying", theme);
-        // Add the current theme as a class
+        html.classList.remove(...THEMES);
         html.classList.add(theme);
 
         window?.__onThemeChange?.(theme);
     }
 
-    let preferredTheme: "light" | "dark";
-    const DEFAULT_THEME: "light" | "dark" = "light";
-
+    let preferredTheme: Theme;
     try {
         const stored = localStorage.getItem("theme");
-        preferredTheme = stored === "dark" ? "dark" : "light";
+        preferredTheme = THEMES.find((theme) => theme === stored)
+            ? (stored as Theme)
+            : DEFAULT_THEME;
     } catch {
         preferredTheme = DEFAULT_THEME;
     }
 
-    window.__setPreferredTheme = function (newTheme: "light" | "dark") {
-        applyTheme(newTheme);
+    window.__setPreferredTheme = function (theme: Theme) {
+        applyTheme(theme);
         try {
-            localStorage.setItem("theme", newTheme);
-        } catch {}
+            localStorage.setItem("theme", theme);
+        } catch {
+            //
+        }
     };
 
     applyTheme(preferredTheme);
 };
 
-// Convert to IIFE string
-export const getThemeScript: string = `(${code})();`;
-export const DEFAULT_THEME: "light" | "dark" = "light";
+export const getThemeScript = `(${code})();`;

@@ -1,43 +1,36 @@
 import { useEffect, useState } from "react";
 
-export type Theme = "light" | "dark";
-
-const DEFAULT_THEME: Theme = "light";
+import { DEFAULT_THEME, THEMES, type Theme } from "@/lib/constant-theme";
 
 export function useThemeSettings() {
-    // Initialize from pre-hydration window value
     const [theme, setThemeState] = useState<Theme>(() => {
-        if (typeof window !== "undefined" && window.__theme) {
+        if (typeof window !== "undefined" && window.__theme)
             return window.__theme;
-        }
         return DEFAULT_THEME;
     });
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            // Subscribe to theme changes
-            window.__onThemeChange = (newTheme: Theme) => {
-                setThemeState(newTheme);
-            };
+        if (typeof window === "undefined") return;
 
-            // Sync initial state
-            if (window.__theme) {
-                setThemeState(window.__theme);
-            }
-        }
+        window.__onThemeChange = (newTheme: Theme) => setThemeState(newTheme);
+
+        return () => {
+            window.__onThemeChange = undefined;
+        };
     }, []);
 
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);
 
-        // Update the global function to persist & apply class
         if (typeof window !== "undefined" && window.__setPreferredTheme) {
             window.__setPreferredTheme(newTheme);
         }
     };
 
     const toggleTheme = () => {
-        setTheme(theme === "light" ? "dark" : "light");
+        const currentIndex = THEMES.findIndex((t) => t === theme);
+        const nextIndex = (currentIndex + 1) % THEMES.length;
+        setTheme(THEMES[nextIndex]);
     };
 
     return { theme, setTheme, toggleTheme };

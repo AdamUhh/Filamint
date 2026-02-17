@@ -1,23 +1,47 @@
 import { useThemeSettings } from "@/hooks/useTheme";
-import { MoonIcon, SunIcon } from "lucide-react";
 
-import { Button } from "@/shadcn/button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/shadcn/select";
+
+import { THEMES, type Theme } from "@/lib/constant-theme";
 
 export function ThemeSwitcher() {
-    const { setTheme, theme } = useThemeSettings();
+    const { theme, setTheme } = useThemeSettings();
 
     return (
-        <div className="flex items-center gap-2">
-            <Button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                variant="outline"
-                className="relative flex h-14 w-14 items-center justify-center rounded-full p-0 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-                <SunIcon className="absolute h-5 w-5 scale-100 rotate-0 transform text-amber-500 transition-all duration-300 ease-in-out dark:scale-0 dark:-rotate-90" />
-                <MoonIcon className="absolute h-5 w-5 scale-0 rotate-90 transform text-slate-700 transition-all duration-300 ease-in-out dark:scale-100 dark:rotate-0 dark:text-slate-200" />
-            </Button>
+        <section className="space-y-3">
+            <div>
+                <h2 className="text-lg font-semibold tracking-tight">Theme</h2>
+                <p className="text-sm text-muted-foreground">
+                    Select your theme!
+                </p>
+            </div>
+            <div className="flex items-center gap-3">
+                <Select
+                    value={theme}
+                    onValueChange={(value) => setTheme(value as Theme)}
+                >
+                    <SelectTrigger className="w-45">
+                        <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
 
-            <span className="capitalize">{theme}</span>
-        </div>
+                    <SelectContent>
+                        {THEMES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                                <div className="flex items-center gap-2 capitalize">
+                                    {/* <Icon className="h-4 w-4 opacity-80" /> */}
+                                    <span>{value}</span>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </section>
     );
 }

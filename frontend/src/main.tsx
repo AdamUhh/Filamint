@@ -17,8 +17,9 @@ import { AppEventHandler } from "@/components/AppEventHandler";
 import { Navbar } from "@/components/Navbar";
 import { SpoolsPage } from "@/components/Spools";
 
+import { getThemeScript } from "@/lib/util-theme";
+
 import "./index.css";
-import { getThemeScript } from "./lib/util-theme";
 
 // === Pre-hydration theme injection ===
 if (typeof document !== "undefined") {

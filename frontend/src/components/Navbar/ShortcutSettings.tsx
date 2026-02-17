@@ -13,6 +13,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+import {
+    FORBIDDEN_KEYS,
+    MODIFIER_KEYS,
+    SPECIAL_KEYS,
+} from "@/lib/constant-mod-keys";
+import { cn } from "@/lib/utils";
+
 import { ShortcutService } from "@bindings";
 
 interface Shortcut {
@@ -22,23 +29,6 @@ interface Shortcut {
     keyCombo: string;
     action: string;
 }
-
-const MODIFIER_KEYS = ["Control", "Meta", "Alt", "Shift"];
-const SPECIAL_KEYS = [
-    "Enter",
-    "Space",
-    "Tab",
-    "Backspace",
-    "Delete",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight",
-    "Home",
-    "End",
-    "PageUp",
-    "PageDown",
-];
 
 export function ShortcutsSettings() {
     const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
@@ -77,6 +67,31 @@ export function ShortcutsSettings() {
         setError("");
     };
 
+    function validateShortcut(combo: string): {
+        isValid: boolean;
+        message?: string;
+    } {
+        if (!combo || combo.trim() === "") {
+            return { isValid: false, message: "Shortcut cannot be empty." };
+        }
+
+        const parts = combo.split("+").map((p) => p.trim().toLowerCase());
+
+        // Must contain at least one non-modifier key
+        const modifiers = MODIFIER_KEYS.map((m) => m.toLowerCase());
+
+        const hasNonModifier = parts.some((part) => !modifiers.includes(part));
+
+        if (!hasNonModifier) {
+            return {
+                isValid: false,
+                message: "Shortcut must include at least one non-modifier key.",
+            };
+        }
+
+        return { isValid: true };
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -86,13 +101,28 @@ export function ShortcutsSettings() {
             return;
         }
 
+        // Save on Enter
+        if (e.key === "Enter" && editingId !== null) {
+            handleSave(shortcuts.find((s) => s.id === editingId)?.action || "");
+            return;
+        }
+
+        if (FORBIDDEN_KEYS.includes(e.key)) {
+            setError(
+                `"${e.key == " " ? "Space" : e.key}" is not allowed as a shortcut.`
+            );
+            return;
+        }
+
         const parts: string[] = [];
 
-        if (e.ctrlKey || e.metaKey) parts.push(e.metaKey ? "Cmd" : "Ctrl");
+        if (e.metaKey) parts.push("Cmd");
+        else if (e.ctrlKey) parts.push("Ctrl");
+
         if (e.altKey) parts.push("Alt");
         if (e.shiftKey) parts.push("Shift");
 
-        const { key } = e;
+        const key = e.key;
 
         if (!MODIFIER_KEYS.includes(key)) {
             if (key.startsWith("F") && key.length <= 3) {
@@ -104,16 +134,22 @@ export function ShortcutsSettings() {
             }
         }
 
-        if (
-            parts.length > 0 &&
-            !MODIFIER_KEYS.includes(parts[parts.length - 1])
-        ) {
-            setEditValue(parts.join("+"));
-        }
+        const combo = parts.join("+");
+        setEditValue(combo);
+        setError("");
     };
 
     const handleSave = async (action: string) => {
+        const validation = validateShortcut(editValue);
+
+        if (!validation.isValid) {
+            setError(validation.message ?? "");
+            inputRef.current?.focus();
+            return;
+        }
+
         setIsLoading(true);
+
         try {
             await ShortcutService.UpdateShortcut(action, editValue);
             await fetchShortcuts();
@@ -206,7 +242,10 @@ export function ShortcutsSettings() {
                                                 onKeyDown={handleKeyDown}
                                                 readOnly
                                                 placeholder="Press keys..."
-                                                className="h-7 w-48 cursor-pointer font-mono ring-2 ring-blue-500"
+                                                className={cn(
+                                                    "h-7 w-48 cursor-pointer font-mono ring-2 ring-blue-500",
+                                                    error && "ring-destructive"
+                                                )}
                                             />
                                         ) : (
                                             <div className="w-48 font-mono text-xs tracking-widest">

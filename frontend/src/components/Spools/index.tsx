@@ -35,7 +35,7 @@ import { SpoolTable } from "@/components/Spools/spoolTable";
 
 import { Spool } from "@bindings";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 export function SpoolsPage() {
     const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
@@ -284,7 +284,7 @@ function SpoolListSection({
 
     return (
         <>
-            <div className="flex items-center gap-2">
+            <div className="scroll flex items-center gap-2">
                 <SpoolSearch onSearch={onSearch} />
                 <div className="text-xs text-muted-foreground">
                     {isFetching
