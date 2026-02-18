@@ -8,46 +8,48 @@ import {
     InputGroupTextarea,
 } from "@/shadcn/input-group";
 
-export function VendorSettings() {
+export function MaterialSettings() {
     const { options, setOptions } = useApp();
 
-    const [vendors, setVendors] = useState<string[]>(options.vendors ?? []);
+    const [materials, setMaterials] = useState<string[]>(
+        options.materials ?? []
+    );
 
-    const isDirty = vendors !== options.vendors;
+    const isDirty = materials !== options.materials;
 
     const handleSave = () => {
         if (!isDirty) return;
-        const trimmed = vendors
+        const trimmed = materials
             .map((v) => v.trim())
             .filter((v) => v.length > 0);
-        setVendors(trimmed);
-        setOptions((prev) => ({ ...prev, vendors: trimmed }));
+        setMaterials(trimmed);
+        setOptions((prev) => ({ ...prev, materials: trimmed }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setVendors(e.target.value.split("\n"));
+        setMaterials(e.target.value.split("\n"));
     };
 
     return (
         <section className="space-y-4">
             <div>
                 <h2 className="text-lg font-semibold tracking-tight">
-                    Vendors
+                    Materials
                 </h2>
                 <p className="text-sm text-muted-foreground">
                     For autocomplete suggestions when creating a spool.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                    One vendor per line
+                    One material per line
                 </p>
             </div>
 
             <InputGroup>
                 <InputGroupTextarea
-                    value={(vendors ?? []).join("\n")}
+                    value={(materials ?? []).join("\n")}
                     onChange={handleChange}
                     rows={8}
-                    placeholder="One vendor per line..."
+                    placeholder="One material per line..."
                     className="font-mono text-sm"
                 />
                 <InputGroupAddon align="block-end" className="justify-end">

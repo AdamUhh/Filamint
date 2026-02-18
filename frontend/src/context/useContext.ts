@@ -4,6 +4,7 @@ export interface AppOptions {
     currency: string;
     currencyAlign: "left" | "right";
     vendors: string[];
+    materials: string[];
 }
 
 export interface AppContextValue {
