@@ -20,11 +20,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return {
             currency: "AED",
             currencyAlign: "left",
+            vendors: [
+                "Bambu Lab",
+                "Prusa Research",
+                "Creality",
+                "Elegoo",
+                "Anycubic",
+                "FlashForge",
+                "UltiMaker",
+                "Raise3D",
+                "Formlabs",
+                "MakerBot",
+                "Zortrax",
+                "QIDI Tech",
+                "Artillery",
+                "Snapmaker",
+                "Mingda",
+                "Tronxy",
+                "Tevo",
+                "BIQU",
+                "Fokoos",
+                "AnkerMake",
+                "Anycubic Kobra",
+                "Phrozen",
+                "Peopoly",
+                "EPAX",
+                "Rat Rig",
+                "Voron Design",
+                "LulzBot",
+                "Robo 3D",
+                "LulzBot TAZ",
+                "Geeetech",
+                "Modix",
+                "INTAMSYS",
+                "Tiertime (UP)",
+                "Dremel 3D",
+                "XYZprinting",
+                "WASP",
+                "Markforged",
+                "Stratasys",
+                "3D Systems",
+                "UnionTech",
+            ],
         };
     });
 
     // Save options to localStorage whenever they change
     useEffect(() => {
+        console.log("saving", JSON.stringify(options));
         localStorage.setItem("app-options", JSON.stringify(options));
     }, [options]);
 

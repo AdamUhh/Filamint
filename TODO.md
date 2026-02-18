@@ -2,8 +2,6 @@
 - - [ ] 
 
 > Spools
-- [x] Move form to components to simplify
-- - [ ] Change input to popover/command + create
 - [ ] In normal spool mode, 'create template from this spool', because i want to prevent them from duplicating in normal mode
 
 > Prints

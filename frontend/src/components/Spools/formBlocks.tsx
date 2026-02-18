@@ -43,50 +43,9 @@ export function SpoolVendorFormField({
 }) {
     const field = useFieldContext<Spool["vendor"]>();
 
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+    const { options } = useApp();
 
-    const vendors = [
-        { id: "bambu_lab", value: "Bambu Lab" },
-        { id: "prusa_research", value: "Prusa Research" },
-        { id: "creality", value: "Creality" },
-        { id: "elegoo", value: "Elegoo" },
-        { id: "anycubic", value: "Anycubic" },
-        { id: "flashforge", value: "FlashForge" },
-        { id: "ultimaker", value: "UltiMaker" },
-        { id: "raise3d", value: "Raise3D" },
-        { id: "formlabs", value: "Formlabs" },
-        { id: "makerbot", value: "MakerBot" },
-        { id: "zortrax", value: "Zortrax" },
-        { id: "qidi_tech", value: "QIDI Tech" },
-        { id: "artillery", value: "Artillery" },
-        { id: "snapmaker", value: "Snapmaker" },
-        { id: "mingda", value: "Mingda" },
-        { id: "tronxy", value: "Tronxy" },
-        { id: "tevo", value: "Tevo" },
-        { id: "biqu", value: "BIQU" },
-        { id: "fokoos", value: "Fokoos" },
-        { id: "ankermake", value: "AnkerMake" },
-        { id: "kobra", value: "Anycubic Kobra" },
-        { id: "phrozen", value: "Phrozen" },
-        { id: "peopoly", value: "Peopoly" },
-        { id: "epax", value: "EPAX" },
-        { id: "rat_rig", value: "Rat Rig" },
-        { id: "voron_design", value: "Voron Design" },
-        { id: "lulzbot", value: "LulzBot" },
-        { id: "robo3d", value: "Robo 3D" },
-        { id: "taz", value: "LulzBot TAZ" },
-        { id: "geeetech", value: "Geeetech" },
-        { id: "modix", value: "Modix" },
-        { id: "intamsys", value: "INTAMSYS" },
-        { id: "tiertime", value: "Tiertime (UP)" },
-        { id: "dremel_3d", value: "Dremel 3D" },
-        { id: "xyzprinting", value: "XYZprinting" },
-        { id: "delta_wasp", value: "WASP" },
-        { id: "markforged", value: "Markforged" },
-        { id: "stratasys", value: "Stratasys" },
-        { id: "3d_systems", value: "3D Systems" },
-        { id: "uniontech", value: "UnionTech" },
-    ];
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
         <Field data-invalid={isInvalid} className="group">
@@ -106,7 +65,7 @@ export function SpoolVendorFormField({
             </div>
             <Autocomplete
                 name={field.name}
-                items={vendors}
+                items={options.vendors || []}
                 value={field.state.value}
                 onValueChange={field.handleChange}
                 openOnInputClick
@@ -123,8 +82,8 @@ export function SpoolVendorFormField({
                     <AutocompleteEmpty>No items found.</AutocompleteEmpty>
                     <AutocompleteList>
                         {(tag) => (
-                            <AutocompleteItem key={tag.id} value={tag}>
-                                {tag.value}
+                            <AutocompleteItem key={tag} value={tag}>
+                                {tag}
                             </AutocompleteItem>
                         )}
                     </AutocompleteList>

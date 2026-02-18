@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export interface AppOptions {
     currency: string;
     currencyAlign: "left" | "right";
+    vendors: string[];
 }
 
 export interface AppContextValue {

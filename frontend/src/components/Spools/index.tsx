@@ -31,7 +31,7 @@ import { type EditState, SpoolForm } from "@/components/Spools/form";
 import { defaultSpoolValues } from "@/components/Spools/lib/defaults";
 import { useAppForm } from "@/components/Spools/lib/hooks";
 import { spoolSchema } from "@/components/Spools/lib/schema";
-import { SpoolTable } from "@/components/Spools/spoolTable";
+import { SpoolTable } from "@/components/Spools/SpoolTable";
 
 import { Spool } from "@bindings";
 
