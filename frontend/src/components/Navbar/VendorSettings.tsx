@@ -2,7 +2,11 @@ import { useApp } from "@/context/useContext";
 import { useState } from "react";
 
 import { Button } from "@/shadcn/button";
-import { Textarea } from "@/shadcn/textarea";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupTextarea,
+} from "@/shadcn/input-group";
 
 export function VendorSettings() {
     const { options, setOptions } = useApp();
@@ -38,15 +42,18 @@ export function VendorSettings() {
                 </p>
             </div>
 
-            <Textarea
-                value={(vendors ?? []).join("\n")}
-                onChange={handleChange}
-                rows={10}
-                placeholder="One vendor per line..."
-                className="font-mono text-sm"
-            />
-
-            {isDirty && <Button onClick={handleSave}>Save</Button>}
+            <InputGroup>
+                <InputGroupTextarea
+                    value={(vendors ?? []).join("\n")}
+                    onChange={handleChange}
+                    rows={10}
+                    placeholder="One vendor per line..."
+                    className="font-mono text-sm"
+                />
+                <InputGroupAddon align="block-end" className="justify-end">
+                    {isDirty && <Button onClick={handleSave}>Save</Button>}
+                </InputGroupAddon>
+            </InputGroup>
         </section>
     );
 }

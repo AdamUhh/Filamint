@@ -8,11 +8,11 @@ import { VendorSettings } from "./VendorSettings";
 export function AppSettings() {
     return (
         <div className="space-y-6">
+            <ThemeSwitcher />
+            <Separator />
             <CurrencySettings />
             <Separator />
             <VendorSettings />
-            <Separator />
-            <ThemeSwitcher />
             <Separator />
             <ShortcutsSettings />
         </div>
