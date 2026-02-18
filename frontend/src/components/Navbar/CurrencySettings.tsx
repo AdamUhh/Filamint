@@ -1,7 +1,6 @@
 import { useApp } from "@/context/useContext";
 import { useState } from "react";
 
-import { Button } from "@/shadcn/button";
 import {
     Autocomplete,
     AutocompleteContent,
@@ -37,7 +36,7 @@ export function CurrencySettings() {
     };
 
     return (
-        <section className="space-y-4">
+        <section className="flex-1 space-y-4">
             <div>
                 <h2 className="text-lg font-semibold tracking-tight">
                     Currency
@@ -66,7 +65,7 @@ export function CurrencySettings() {
                             }))
                         }
                     >
-                        <SelectTrigger id="currency_align" className="w-40">
+                        <SelectTrigger id="currency_align" className="w-fit">
                             <SelectValue placeholder="Select alignment" />
                         </SelectTrigger>
                         <SelectContent>
@@ -92,11 +91,15 @@ export function CurrencySettings() {
                         onValueChange={(value: string) => setCurrency(value)}
                         openOnInputClick
                     >
-                        <AutocompleteInput
-                            id="currency"
-                            placeholder="Search currency (e.g. USD)"
-                            autoComplete="off"
-                        />
+                        <div className="flex items-end">
+                            <AutocompleteInput
+                                id="currency"
+                                placeholder="Search currency (e.g. USD)"
+                                autoComplete="off"
+                                showSave={isDirty}
+                                onSave={handleSave}
+                            />
+                        </div>
                         <AutocompleteContent>
                             <AutocompleteEmpty>
                                 No currency found.
@@ -111,9 +114,6 @@ export function CurrencySettings() {
                         </AutocompleteContent>
                     </Autocomplete>
                 </div>
-
-                {/* Save button only shows if changed */}
-                {isDirty && <Button onClick={handleSave}>Save</Button>}
             </div>
         </section>
     );

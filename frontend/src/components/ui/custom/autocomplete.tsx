@@ -12,6 +12,8 @@ import {
 
 import { cn } from "@/lib/utils";
 
+import { Button } from "../button";
+
 /* -------------------------------------------------------------------------------------------------
  * Root
  * -----------------------------------------------------------------------------------------------*/
@@ -26,9 +28,13 @@ function AutocompleteInput({
     className,
     disabled = false,
     showClear = true,
+    showSave = false,
+    onSave,
     ...props
 }: AutocompletePrimitive.Input.Props & {
     showClear?: boolean;
+    showSave?: boolean;
+    onSave?: () => void;
 }) {
     return (
         <InputGroup className={cn("w-auto", className)}>
@@ -36,7 +42,10 @@ function AutocompleteInput({
                 render={<InputGroupInput disabled={disabled} />}
                 {...props}
             />
-            <InputGroupAddon align="inline-end">
+            <InputGroupAddon
+                align="inline-end"
+                className={cn(showSave && "pr-1")}
+            >
                 {showClear && (
                     <AutocompletePrimitive.Clear
                         data-slot="autocomplete-clear"
@@ -48,6 +57,7 @@ function AutocompleteInput({
                         <XIcon className="pointer-events-none" />
                     </AutocompletePrimitive.Clear>
                 )}
+                {onSave && showSave && <Button onClick={onSave}>Save</Button>}
             </InputGroupAddon>
         </InputGroup>
     );

@@ -1,21 +1,20 @@
 import { Separator } from "@/shadcn/separator";
 
 import { CurrencySettings } from "./CurrencySettings";
-import { MaterialSettings } from "./MaterialSettings";
+import { DefaultSpoolSettings } from "./MaterialSettings";
 import { ShortcutsSettings } from "./ShortcutSettings";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { VendorSettings } from "./VendorSettings";
 
 export function AppSettings() {
     return (
         <div className="space-y-6">
-            <ThemeSwitcher />
+            <div className="flex gap-4">
+                <ThemeSwitcher />
+                <Separator orientation="vertical" className="mx-auto" />
+                <CurrencySettings />
+            </div>
             <Separator />
-            <CurrencySettings />
-            <Separator />
-            <VendorSettings />
-            <Separator />
-            <MaterialSettings />
+            <DefaultSpoolSettings />
             <Separator />
             <ShortcutsSettings />
         </div>

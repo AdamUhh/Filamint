@@ -1,5 +1,6 @@
 import { useThemeSettings } from "@/hooks/useTheme";
 
+import { Label } from "@/shadcn/label";
 import {
     Select,
     SelectContent,
@@ -14,19 +15,25 @@ export function ThemeSwitcher() {
     const { theme, setTheme } = useThemeSettings();
 
     return (
-        <section className="space-y-3">
+        <section className="space-y-4">
             <div>
                 <h2 className="text-lg font-semibold tracking-tight">Theme</h2>
                 <p className="text-sm text-muted-foreground">
                     Select your theme!
                 </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2">
+                <Label
+                    htmlFor="theme"
+                    className="text-xs font-medium text-muted-foreground"
+                >
+                    Theme
+                </Label>
                 <Select
                     value={theme}
                     onValueChange={(value) => setTheme(value as Theme)}
                 >
-                    <SelectTrigger className="w-45">
+                    <SelectTrigger id="theme" className="w-45">
                         <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
 

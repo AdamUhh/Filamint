@@ -7,55 +7,137 @@ import {
     InputGroupAddon,
     InputGroupTextarea,
 } from "@/shadcn/input-group";
+import { Label } from "@/shadcn/label";
 
-export function MaterialSettings() {
+import {
+    DEFAULT_SPOOL_COLORS,
+    DEFAULT_SPOOL_MATERIALS,
+    DEFAULT_SPOOL_MATERIALTYPES,
+    DEFAULT_SPOOL_VENDORS,
+} from "@/lib/constant-spools";
+
+type Field = "vendors" | "materials" | "materialTypes" | "colors";
+
+type ListSettingsProps = {
+    title: string;
+    field: Field;
+    placeholder?: string;
+};
+
+const DEFAULTS: Record<Field, string[]> = {
+    vendors: DEFAULT_SPOOL_VENDORS,
+    materials: DEFAULT_SPOOL_MATERIALS,
+    materialTypes: DEFAULT_SPOOL_MATERIALTYPES,
+    colors: DEFAULT_SPOOL_COLORS,
+};
+
+const FIELDS: ListSettingsProps[] = [
+    { title: "Vendors", field: "vendors", placeholder: "One vendor per line." },
+    {
+        title: "Materials",
+        field: "materials",
+        placeholder: "One material per line.",
+    },
+    {
+        title: "Material Types",
+        field: "materialTypes",
+        placeholder: "One material type per line.",
+    },
+    { title: "Colors", field: "colors", placeholder: "One color per line." },
+];
+
+const normalize = (values: string[]) =>
+    values.map((v) => v.trim()).filter(Boolean);
+
+function DefaultSettings({
+    title,
+    field,
+    placeholder = "One item per line...",
+}: ListSettingsProps) {
     const { options, setOptions } = useApp();
+    const source = options[field] ?? [];
 
-    const [materials, setMaterials] = useState<string[]>(
-        options.materials ?? []
-    );
+    const sourceText = source.join("\n");
+    const [text, setText] = useState(sourceText);
 
-    const isDirty = materials !== options.materials;
+    const isDirty =
+        normalize(text.split("\n")).join("\n") !== normalize(source).join("\n");
 
     const handleSave = () => {
         if (!isDirty) return;
-        const trimmed = materials
-            .map((v) => v.trim())
-            .filter((v) => v.length > 0);
-        setMaterials(trimmed);
-        setOptions((prev) => ({ ...prev, materials: trimmed }));
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMaterials(e.target.value.split("\n"));
+        const normalized = normalize(text.split("\n"));
+        setText(normalized.join("\n")); // collapse empty lines in the textarea too
+        setOptions((prev) => ({ ...prev, [field]: normalized }));
     };
 
     return (
-        <section className="space-y-4">
-            <div>
-                <h2 className="text-lg font-semibold tracking-tight">
-                    Materials
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    For autocomplete suggestions when creating a spool.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                    One material per line
-                </p>
+        <div className="group flex-1 space-y-2">
+            <div className="flex items-center justify-between">
+                <Label
+                    htmlFor={field}
+                    className="text-xs font-medium text-muted-foreground"
+                >
+                    {title}
+                </Label>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
+                    onClick={() => setText(DEFAULTS[field].join("\n"))}
+                >
+                    Reset Defaults
+                </Button>
             </div>
 
             <InputGroup>
                 <InputGroupTextarea
-                    value={(materials ?? []).join("\n")}
-                    onChange={handleChange}
-                    rows={8}
-                    placeholder="One material per line..."
-                    className="font-mono text-sm"
+                    id={field}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder={placeholder}
+                    className="max-h-32 min-h-32 text-sm"
                 />
-                <InputGroupAddon align="block-end" className="justify-end">
-                    {isDirty && <Button onClick={handleSave}>Save</Button>}
+                <InputGroupAddon
+                    align="block-end"
+                    className="justify-end"
+                    // className="absolute bottom-0 justify-end"
+                >
+                    {isDirty && (
+                        <>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setText(sourceText)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSave}>Save</Button>
+                        </>
+                    )}
                 </InputGroupAddon>
             </InputGroup>
+        </div>
+    );
+}
+
+export function DefaultSpoolSettings() {
+    return (
+        <section className="space-y-4">
+            <div>
+                <h2 className="text-lg font-semibold tracking-tight">
+                    Autocomplete Defaults
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Manage the suggested values shown in spool input fields.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-2 grid-rows-2 gap-4">
+                {FIELDS.map((row) => (
+                    <DefaultSettings key={row.field} {...row} />
+                ))}
+            </div>
         </section>
     );
 }

@@ -104,35 +104,9 @@ export function SpoolMaterialFormField({
 }) {
     const field = useFieldContext<Spool["material"]>();
 
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+    const { options } = useApp();
 
-    const materials = [
-        "PLA",
-        "ABS",
-        "PET",
-        "PETG",
-        "PCTG",
-        "Nylon",
-        "TPU",
-        "TPE",
-        "ASA",
-        "HIPS",
-        "PVA",
-        "PC",
-        "PC‑ABS",
-        "PP",
-        "PVB",
-        "PLA‑Pro",
-        "PLA‑CF",
-        "PETG‑CF",
-        "PA12‑CF",
-        "PA12‑GF",
-        "PLA‑Wood",
-        "PLA‑Metal",
-        "Silk PLA",
-        "Glow‑in‑the‑Dark",
-        "Conductive PLA",
-    ];
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
         <Field data-invalid={isInvalid} className="group">
@@ -153,7 +127,7 @@ export function SpoolMaterialFormField({
 
             <Autocomplete
                 name={field.name}
-                items={materials}
+                items={options.materials}
                 value={field.state.value}
                 onValueChange={field.handleChange}
                 openOnInputClick
@@ -191,21 +165,9 @@ export function SpoolMaterialTypeFormField({
 }) {
     const field = useFieldContext<Spool["materialType"]>();
 
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+    const { options } = useApp();
 
-    const materialTypes = [
-        "Basic",
-        "Silk",
-        "Matte",
-        "Wood",
-        "Metal",
-        "Carbon Fiber",
-        "Composite",
-        "Flexible",
-        "Support",
-        "Engineering",
-        "Special Effects",
-    ];
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
         <Field data-invalid={isInvalid} className="group">
@@ -226,7 +188,7 @@ export function SpoolMaterialTypeFormField({
 
             <Autocomplete
                 name={field.name}
-                items={materialTypes}
+                items={options.materialTypes}
                 value={field.state.value}
                 onValueChange={field.handleChange}
                 openOnInputClick
@@ -265,30 +227,9 @@ export function SpoolColorFormField({
 }) {
     const field = useFieldContext<Spool["color"]>();
 
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+    const { options } = useApp();
 
-    const colors = [
-        "Black",
-        "White",
-        "Gray",
-        "Red",
-        "Orange",
-        "Yellow",
-        "Green",
-        "Blue",
-        "Purple",
-        "Pink",
-        "Brown",
-        "Beige",
-        "Cyan",
-        "Magenta",
-        "Turquoise",
-        "Gold",
-        "Silver",
-        "Copper",
-        "Transparent",
-        "Clear",
-    ];
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
     return (
         <Field data-invalid={isInvalid} className="group">
@@ -309,7 +250,7 @@ export function SpoolColorFormField({
 
             <Autocomplete
                 name={field.name}
-                items={colors}
+                items={options.colors}
                 value={field.state.value}
                 onValueChange={field.handleChange}
                 openOnInputClick
