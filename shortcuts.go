@@ -21,8 +21,6 @@ func RegisterShortcuts(app *application.App, db *Database) error {
 		shortcutsEnabled: true,
 	}
 
-	// Listen for dialog state changes from frontend
-	// TODO: I dont like that we use an event here, should be via functions
 	app.Event.On("shortcuts:set_enabled", func(e *application.CustomEvent) {
 		if enabled, ok := e.Data.(bool); ok {
 			shortcutRegistrar.mu.Lock()

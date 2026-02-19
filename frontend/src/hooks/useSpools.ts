@@ -50,7 +50,7 @@ export function useSpools(params: SpoolQueryParams = {}) {
         isTemplate: params.isTemplate ?? false,
         sortBy: params.sortBy ?? "updated_at",
         sortOrder: params.sortOrder ?? "desc",
-        limit: params.limit ?? 1000,
+        limit: params.limit ?? 15,
         offset: params.offset ?? 0,
     };
 

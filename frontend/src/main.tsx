@@ -14,12 +14,13 @@ import { RouterProvider } from "react-router/dom";
 import { Toaster } from "@/shadcn/sonner";
 
 import { AppEventHandler } from "@/components/AppEventHandler";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { Navbar } from "@/components/Navbar";
+import { PrintsPage } from "@/components/Prints";
 import { SpoolsPage } from "@/components/Spools";
 
 import { getThemeScript } from "@/lib/util-theme";
 
-import { PrintsPage } from "./components/Prints";
 import "./index.css";
 
 // === Pre-hydration theme injection ===
@@ -33,7 +34,7 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             staleTime: 60 * 1000, // Data is fresh for 1 minute
-            gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+            gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes
             retry: 1, // Retry failed requests once
             refetchOnWindowFocus: false, // Don't refetch on window focus (good for desktop app)
         },
@@ -87,6 +88,10 @@ export function RouteError() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const error = useRouteError() as any;
 
+    const errorMessage = error.status
+        ? `${error.status} ${error.statusText}`
+        : error.message;
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
@@ -98,11 +103,14 @@ export function RouteError() {
             </p>
 
             {error && (
-                <pre className="mt-4 w-full max-w-xl overflow-auto rounded bg-gray-100 p-3 text-left text-sm whitespace-pre-wrap text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-                    Error:{" "}
-                    {error.status
-                        ? `${error.status} ${error.statusText}`
-                        : error.message}
+                <pre className="group relative mt-4 w-full max-w-xl overflow-auto rounded bg-gray-100 p-3 text-left text-sm whitespace-pre-wrap text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+                    <div className="absolute top-2 right-2">
+                        <CopyToClipboard
+                            textToCopy={errorMessage}
+                            tooltipContent="Copy Error Message"
+                        />
+                    </div>
+                    {errorMessage}
                 </pre>
             )}
 

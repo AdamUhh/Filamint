@@ -3,6 +3,8 @@
 
 > Spools
 - [ ] In normal spool mode, 'create template from this spool', because i want to prevent them from duplicating in normal mode
+- [ ] Check out filamenttracker online to see how they get spool code
+- [ ] Allow create and update to change spoolcode
 
 > Prints
 - [ ] Need to update spools client side, or fetch again
@@ -15,3 +17,7 @@
 - [ ] Remove default context menus
 - [ ] GetShortcuts should not show developer stuff in production
 
+> Window State
+- [ ] Check out:
+- - [ ] https://v3alpha.wails.io/features/windows/events/#position-and-size-events
+- - [ ] https://v3alpha.wails.io/features/windows/frameless/#complete-example

@@ -48,7 +48,7 @@ export function Navbar() {
 
                     <button
                         onClick={() => handleDialogChange(true)}
-                        className={` ${navItem} ${inactiveItem}`}
+                        className={`${navItem} ${inactiveItem}`}
                     >
                         <SettingsIcon className={iconItem} />
                         <span>Settings</span>
@@ -57,13 +57,11 @@ export function Navbar() {
             </div>
 
             <Dialog open={settingsOpen} onOpenChange={handleDialogChange}>
-                <DialogContent className="max-h-[90vh] overflow-y-scroll p-6 sm:max-w-2xl">
+                <DialogContent className="max-h-[85vh] overflow-y-scroll p-6 sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Settings</DialogTitle>
                     </DialogHeader>
-                    <div>
-                        <AppSettings />
-                    </div>
+                    <AppSettings />
                 </DialogContent>
             </Dialog>
         </>

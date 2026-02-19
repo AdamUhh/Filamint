@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { SpoolPagination } from "@/components/Pagination";
 import { SpoolSearch } from "@/components/Search";
+import { SpoolTable } from "@/components/Spools/SpoolTable";
 import {
     DeleteSpoolDialog,
     type DeleteState,
@@ -31,7 +32,6 @@ import { type EditState, SpoolForm } from "@/components/Spools/form";
 import { defaultSpoolValues } from "@/components/Spools/lib/defaults";
 import { useAppForm } from "@/components/Spools/lib/hooks";
 import { spoolSchema } from "@/components/Spools/lib/schema";
-import { SpoolTable } from "@/components/Spools/SpoolTable";
 
 import { Spool } from "@bindings";
 
@@ -287,9 +287,9 @@ function SpoolListSection({
 
     return (
         <>
-            <div className="scroll flex items-center gap-2">
+            <div className="scroll flex gap-2">
                 <SpoolSearch onSearch={onSearch} />
-                <div className="text-xs text-muted-foreground">
+                <div className="mt-2 text-xs text-muted-foreground">
                     {isFetching
                         ? "Loading spools..."
                         : `Showing ${spools.size} of ${total} spools${

@@ -239,7 +239,22 @@ func (s *SpoolService) ListSpools() ([]Spool, error) {
 	return spools, err
 }
 
-// New query method with filtering, sorting, and pagination
+func parseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
+	qualifiers = make(map[string]string)
+	var freeTextParts []string
+
+	for token := range strings.FieldsSeq(search) {
+		if key, value, found := strings.Cut(token, ":"); found && key != "" && value != "" {
+			qualifiers[strings.ToLower(key)] = strings.ToLower(value)
+		} else {
+			freeTextParts = append(freeTextParts, token)
+		}
+	}
+
+	freeText = strings.Join(freeTextParts, " ")
+	return
+}
+
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
 	// Set defaults
 	if params.SortBy == "" {
@@ -249,34 +264,40 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		params.SortOrder = "DESC"
 	}
 	if params.Limit <= 0 {
-		params.Limit = 1000 // Default to all
+		params.Limit = 15
 	}
 
 	// Build WHERE clause
 	var whereClauses []string
-	var args []interface{}
+	var args []any
 	argPosition := 1
 
 	if params.Search != "" {
-		searchPattern := "%" + params.Search + "%"
-		whereClauses = append(whereClauses, fmt.Sprintf(
-			"(spool_code LIKE ?%d OR vendor LIKE ?%d OR material LIKE ?%d OR color LIKE ?%d)",
-			argPosition, argPosition+1, argPosition+2, argPosition+3,
-		))
-		args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
-		argPosition += 4
-	}
+		qualifiers, freeText := parseSearchQuery(params.Search)
 
-	if params.Material != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("material = ?%d", argPosition))
-		args = append(args, params.Material)
-		argPosition++
-	}
+		qualifierColumns := map[string]string{
+			"spool":    "spool_code",
+			"material": "material",
+			"vendor":   "vendor",
+			"color":    "color",
+		}
+		for qualifier, column := range qualifierColumns {
+			if val, ok := qualifiers[qualifier]; ok {
+				whereClauses = append(whereClauses, fmt.Sprintf("LOWER(%s) = ?%d", column, argPosition))
+				args = append(args, val)
+				argPosition++
+			}
+		}
 
-	if params.Vendor != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("vendor = ?%d", argPosition))
-		args = append(args, params.Vendor)
-		argPosition++
+		if freeText != "" {
+			searchPattern := "%" + strings.ToLower(freeText) + "%"
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(LOWER(spool_code) LIKE ?%d OR LOWER(vendor) LIKE ?%d OR LOWER(material) LIKE ?%d OR LOWER(color) LIKE ?%d)",
+				argPosition, argPosition+1, argPosition+2, argPosition+3,
+			))
+			args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
+			argPosition += 4
+		}
 	}
 
 	if params.IsTemplate != nil {
@@ -304,12 +325,10 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		"created_at":    true,
 		"updated_at":    true,
 	}
-
 	sortColumn := params.SortBy
 	if !validSortColumns[sortColumn] {
 		sortColumn = "updated_at"
 	}
-
 	sortOrder := strings.ToUpper(params.SortOrder)
 	if sortOrder != "ASC" && sortOrder != "DESC" {
 		sortOrder = "DESC"

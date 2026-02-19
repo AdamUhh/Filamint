@@ -38,9 +38,6 @@ export function ListSpools(): $CancellablePromise<$models.Spool[]> {
     });
 }
 
-/**
- * New query method with filtering, sorting, and pagination
- */
 export function QuerySpools(params: $models.SpoolQueryParams): $CancellablePromise<$models.SpoolQueryResult | null> {
     return $Call.ByID(2723076002, params).then(($result: any) => {
         return $$createType4($result);
