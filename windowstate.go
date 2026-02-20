@@ -3,11 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-
-	"os"
-
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"os"
 )
 
 type WindowState struct {
@@ -92,11 +90,13 @@ func (mw *ManagedWindow) LoadState() {
 	data, err := os.ReadFile(mw.file)
 	if err != nil {
 		fmt.Println("Failed to read window state file:", err)
+		mw.window.Center()
 		return
 	}
 
 	if err := json.Unmarshal(data, &mw.state); err != nil {
 		fmt.Println("Failed to unmarshal window state:", err)
+		mw.window.Center()
 		return
 	}
 
