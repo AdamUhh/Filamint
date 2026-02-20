@@ -61,12 +61,32 @@ func main() {
 		log.Fatalf("Failed to register shortcuts: %v", err)
 	}
 
+	// app.Window.NewWithOptions(application.WebviewWindowOptions{
+	// 	Title: "Filament Tracker",
+	// 	Mac: application.MacWindow{
+	// 		InvisibleTitleBarHeight: 50,
+	// 		Backdrop:                application.MacBackdropTranslucent,
+	// 		TitleBar:                application.MacTitleBarHiddenInset,
+	// 	},
+	// 	BackgroundColour: application.NewRGB(27, 38, 54),
+	// 	URL:              "/",
+	// 	Width:            1200,
+	// 	Height:           700,
+	// 	// XY wont work without initialPosition
+	// 	// InitialPosition:  application.WindowXY,
+	// 	// X:                100,
+	// 	// Y:                100,
+	// })
+
+	// Create managed window (state persistence handled automatically)
+	mw := NewManagedWindow(app, "window-state.json")
+
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
 	// 'Mac' options tailor the window when running on macOS.
 	// 'BackgroundColour' is the background colour of the window.
 	// 'URL' is the URL that will be loaded into the webview.
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
+	mw.Create(application.WebviewWindowOptions{
 		Title: "Filament Tracker",
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
@@ -77,6 +97,9 @@ func main() {
 		URL:              "/",
 		Width:            1200,
 		Height:           700,
+		InitialPosition:  application.WindowXY,
+		X:                0,
+		Y:                0,
 	})
 
 	// Create a goroutine that emits an event containing the current time every second.

@@ -48,7 +48,7 @@ function rebuildSearchString(
 
 export function SpoolSearch({
     onSearch,
-    placeholder = "Search spools by spool:  vendor:  material:  or color:",
+    placeholder = "Search spools by spool:  vendor:  material:  or  color:",
 }: {
     onSearch: (searchTerm: string) => void;
     placeholder?: string;
