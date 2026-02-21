@@ -17,8 +17,3 @@
 - [ ] Remove default context menus
 - [ ] GetShortcuts should not show developer stuff in production
 - [ ] Need to cleanup on window.OnDestroy(), look at example cleanup: https://v3alpha.wails.io/features/windows/events/#ondestroy
-
-> Window State
-- [ ] Check out:
-- - [ ] https://v3alpha.wails.io/features/windows/events/#position-and-size-events
-- - [ ] https://v3alpha.wails.io/features/windows/frameless/#complete-example

@@ -37,24 +37,24 @@ import { CopyToClipboard } from "../CopyToClipboard";
 
 export function SpoolTable({
     spools,
+    isLoading,
     templateOpen,
+    sortBy,
+    sortOrder,
     onEdit,
     onDuplicate,
     onDelete,
-    sortBy,
-    sortOrder,
     onSort,
-    isLoading,
 }: {
     spools: Map<number, Spool>;
+    isLoading: boolean;
     templateOpen: boolean;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
     onEdit: (spool: Spool) => void;
     onDuplicate: (spool: Spool) => void;
     onDelete: (id: number) => void;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
     onSort?: (column: string) => void;
-    isLoading: boolean;
 }) {
     const { options } = useApp();
     const spoolArray = Array.from(spools.values());

@@ -1,5 +1,6 @@
 import { useKeyCombos } from "@/hooks/useKeyCombo";
 import {
+    type SpoolQueryParams,
     useCreateSpool,
     useDeleteSpool,
     useSpoolEvents,
@@ -7,7 +8,7 @@ import {
     useUpdateSpool,
 } from "@/hooks/useSpools";
 import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
@@ -20,39 +21,23 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import type { Spool } from "@bindings";
+import { SpoolPagination } from "@/components/Pagination";
+import { SpoolSearch } from "@/components/Search";
+import { SpoolTable } from "@/components/Spools/SpoolTable";
+import {
+    DeleteSpoolDialog,
+    type DeleteState,
+} from "@/components/Spools/deleteDialog";
+import { type EditState, SpoolForm } from "@/components/Spools/form";
+import { defaultSpoolValues } from "@/components/Spools/lib/defaults";
+import { useAppForm } from "@/components/Spools/lib/hooks";
+import { spoolSchema } from "@/components/Spools/lib/schema";
 
-import { SpoolPagination } from "../Pagination";
-import { SpoolSearch } from "../Search";
-import { SpoolTable } from "./SpoolTable";
-import { DeleteSpoolDialog, type DeleteState } from "./deleteDialog";
-import { SpoolForm } from "./form";
-import { defaultSpoolValues } from "./lib/defaults";
-import { useAppForm } from "./lib/hooks";
-import { spoolSchema } from "./lib/schema";
-
-export type EditState = {
-    isOpen: boolean;
-    id: number;
-    original: Spool | null;
-};
-
-export interface SpoolQueryParams {
-    search?: string;
-    material?: string;
-    vendor?: string;
-    isTemplate?: boolean;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-    limit?: number;
-    offset?: number;
-}
+import { Spool } from "@bindings";
 
 const PAGE_SIZE = 15;
 
 export function SpoolsPage() {
-    const [templateOpen, setTemplateOpen] = useState(false);
-
     const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
         search: "",
         sortBy: "updated_at",
@@ -61,30 +46,22 @@ export function SpoolsPage() {
         offset: 0,
     });
 
-    const [editState, setEditState] = useState<EditState>({
-        isOpen: false,
-        id: 0,
-        original: null,
-    });
-
-    const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
+    const [templateOpen, setTemplateOpen] = useState(false);
 
     const { spools, total, isFetching } = useSpools({
         ...queryParams,
         isTemplate: templateOpen ? true : undefined,
     });
 
-    const deleteMutation = useDeleteSpool();
-
-    const handleSearch = (searchTerm: string) => {
+    const handleSearch = useCallback((searchTerm: string) => {
         setQueryParams((prev) => ({
             ...prev,
             search: searchTerm,
             offset: 0,
         }));
-    };
+    }, []);
 
-    const handleSort = (column: string) => {
+    const handleSort = useCallback((column: string) => {
         setQueryParams((prev) => ({
             ...prev,
             sortBy: column,
@@ -93,14 +70,14 @@ export function SpoolsPage() {
                     ? "asc"
                     : "desc",
         }));
-    };
+    }, []);
 
-    const handlePageChange = (page: number) => {
+    const handlePageChange = useCallback((page: number) => {
         setQueryParams((prev) => ({
             ...prev,
             offset: (page - 1) * PAGE_SIZE,
         }));
-    };
+    }, []);
 
     const currentPage =
         Math.floor(
@@ -109,103 +86,81 @@ export function SpoolsPage() {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    const handleViewTemplate = () => {
-        setTemplateOpen((prev) => !prev);
-    };
-
-    const handleCreate = () => {
-        setEditState({ isOpen: true, id: 0, original: null });
-    };
-
-    useSpoolEvents(handleCreate, handleViewTemplate);
-
-    const handleDeleteConfirm = async () => {
-        if (!deleteIntent) return;
-        try {
-            await deleteMutation.mutateAsync(deleteIntent.spoolId);
-        } finally {
-            setDeleteIntent(null);
-        }
-    };
-
     return (
         <div className="space-y-6 p-6">
-            <SpoolHeader
+            <SpoolHeaderContainer
                 templateOpen={templateOpen}
-                onViewTemplate={handleViewTemplate}
-                onCreate={handleCreate}
+                setTemplateOpen={setTemplateOpen}
             />
-            <div className="scroll flex gap-2">
-                <SpoolSearch onSearch={handleSearch} />
-                <div className="mt-2 text-xs text-muted-foreground">
-                    {isFetching
-                        ? "Loading spools..."
-                        : `Showing ${spools.size} of ${total} spools${
-                              queryParams.search
-                                  ? ` matching "${queryParams.search}"`
-                                  : ""
-                          }`}
-                </div>
-            </div>
 
-            <SpoolTable
-                isLoading={isFetching}
+            <SpoolListSection
                 spools={spools}
+                total={total}
+                isFetching={isFetching}
                 templateOpen={templateOpen}
-                onDelete={(id) => setDeleteIntent({ spoolId: id })}
-                onEdit={(spool) =>
-                    setEditState({
-                        id: spool.id,
-                        isOpen: true,
-                        original: spool,
-                    })
-                }
-                onDuplicate={(spool) =>
-                    setEditState({
-                        id: 0,
-                        isOpen: true,
-                        original: spool,
-                    })
-                }
+                search={queryParams.search}
                 sortBy={queryParams.sortBy}
                 sortOrder={queryParams.sortOrder}
+                onSearch={handleSearch}
                 onSort={handleSort}
-            />
-
-            <SpoolPagination
+                onPageChange={handlePageChange}
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={handlePageChange}
             />
-
-            <SpoolFormDialog
-                spools={spools}
-                editState={editState}
-                setEditState={setEditState}
-            />
-
-            {deleteIntent && (
-                <DeleteSpoolDialog
-                    intent={deleteIntent}
-                    onIntentChange={setDeleteIntent}
-                    onConfirm={handleDeleteConfirm}
-                />
-            )}
         </div>
     );
 }
 
+function SpoolHeaderContainer({
+    templateOpen,
+    setTemplateOpen,
+}: {
+    templateOpen: boolean;
+    setTemplateOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+    const [editState, setEditState] = useState<EditState>({
+        isOpen: false,
+        id: 0,
+        original: null,
+    });
+
+    const handleCreate = useCallback(() => {
+        setEditState({ isOpen: true, id: 0, original: null });
+    }, []);
+
+    const handleViewTemplate = useCallback(() => {
+        setTemplateOpen((prev) => !prev);
+    }, [setTemplateOpen]);
+
+    useSpoolEvents(handleCreate, handleViewTemplate);
+
+    return (
+        <>
+            <SpoolHeader
+                onCreate={handleCreate}
+                templateOpen={templateOpen}
+                onViewTemplate={handleViewTemplate}
+            />
+
+            <SpoolFormDialog
+                editState={editState}
+                setEditState={setEditState}
+            />
+        </>
+    );
+}
+
 function SpoolFormDialog({
-    spools,
     editState,
     setEditState,
 }: {
-    spools: Map<number, Spool>;
     editState: EditState;
-    setEditState: Dispatch<SetStateAction<EditState>>;
+    setEditState: React.Dispatch<React.SetStateAction<EditState>>;
 }) {
     const createMutation = useCreateSpool();
     const updateMutation = useUpdateSpool();
+    // TODO: What on earth is this???
+    const { spools } = useSpools({ limit: 1 }); // lightweight access
 
     const form = useAppForm({
         defaultValues: defaultSpoolValues,
@@ -239,51 +194,10 @@ function SpoolFormDialog({
         },
     });
 
-    useEffect(() => {
-        if (editState.isOpen && editState.original) {
-            form.setFieldValue("vendor", editState.original.vendor, {
-                dontValidate: true,
-            });
-            form.setFieldValue("usedWeight", editState.original.usedWeight, {
-                dontValidate: true,
-            });
-            form.setFieldValue("cost", editState.original.cost, {
-                dontValidate: true,
-            });
-            form.setFieldValue(
-                "referenceLink",
-                editState.original.referenceLink
-            );
-            form.setFieldValue("notes", editState.original.notes, {
-                dontValidate: true,
-            });
-            form.setFieldValue("totalWeight", editState.original.totalWeight, {
-                dontValidate: true,
-            });
-            form.setFieldValue("color", editState.original.color, {
-                dontValidate: true,
-            });
-            form.setFieldValue("colorHex", editState.original.colorHex, {
-                dontValidate: true,
-            });
-            form.setFieldValue("material", editState.original.material, {
-                dontValidate: true,
-            });
-            form.setFieldValue(
-                "materialType",
-                editState.original.materialType,
-                { dontValidate: true }
-            );
-            form.setFieldValue("isTemplate", editState.original.isTemplate, {
-                dontValidate: true,
-            });
-        }
-    }, [editState, form]);
-
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         form.reset();
         setEditState({ id: 0, isOpen: false, original: null });
-    };
+    }, [form, setEditState]);
 
     return (
         <Dialog
@@ -329,6 +243,87 @@ function SpoolFormDialog({
                 </form>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function SpoolListSection({
+    spools,
+    total,
+    isFetching,
+    templateOpen,
+    search,
+    sortBy,
+    sortOrder,
+    onSearch,
+    onSort,
+    onPageChange,
+    currentPage,
+    totalPages,
+}: {
+    spools: Map<number, Spool>;
+    total: number;
+    isFetching: boolean;
+    templateOpen: boolean;
+    search: string | undefined;
+    sortBy: string | undefined;
+    sortOrder: "asc" | "desc" | undefined;
+    onSearch: (v: string) => void;
+    onSort: (v: string) => void;
+    onPageChange: (p: number) => void;
+    currentPage: number;
+    totalPages: number;
+}) {
+    const deleteMutation = useDeleteSpool();
+    const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteIntent) return;
+        try {
+            await deleteMutation.mutateAsync(deleteIntent.spoolId);
+        } finally {
+            setDeleteIntent(null);
+        }
+    };
+
+    return (
+        <>
+            <div className="scroll flex gap-2">
+                <SpoolSearch onSearch={onSearch} />
+                <div className="mt-2 text-xs text-muted-foreground">
+                    {isFetching
+                        ? "Loading spools..."
+                        : `Showing ${spools.size} of ${total} spools${
+                              search ? ` matching "${search}"` : ""
+                          }`}
+                </div>
+            </div>
+
+            <SpoolTable
+                isLoading={isFetching}
+                spools={spools}
+                templateOpen={templateOpen}
+                onDelete={(id) => setDeleteIntent({ spoolId: id })}
+                onEdit={() => {}}
+                onDuplicate={() => {}}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+            />
+
+            <SpoolPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={onPageChange}
+            />
+
+            {deleteIntent && (
+                <DeleteSpoolDialog
+                    intent={deleteIntent}
+                    onIntentChange={setDeleteIntent}
+                    onConfirm={handleDeleteConfirm}
+                />
+            )}
+        </>
     );
 }
 
