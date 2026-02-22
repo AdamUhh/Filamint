@@ -16,7 +16,7 @@ import { Toaster } from "@/shadcn/sonner";
 import { AppEventHandler } from "@/components/AppEventHandler";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { Navbar } from "@/components/Navbar";
-import { PrintsPage } from "@/components/Prints";
+// import { PrintsPage } from "@/components/Prints";
 import { SpoolsPage } from "@/components/Spools";
 
 import { getThemeScript } from "@/lib/util-theme";
@@ -73,7 +73,7 @@ const router = createBrowserRouter([
                 element: <Navigate to="/spools" replace />,
             },
             { path: "/spools", element: <SpoolsPage /> },
-            { path: "/prints", element: <PrintsPage /> },
+            // { path: "/prints", element: <PrintsPage /> },
         ],
     },
 ]);

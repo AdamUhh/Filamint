@@ -34,8 +34,6 @@ type Spool struct {
 
 type SpoolQueryParams struct {
 	Search     string `json:"search"`
-	Material   string `json:"material"`
-	Vendor     string `json:"vendor"`
 	IsTemplate *bool  `json:"isTemplate"`
 	SortBy     string `json:"sortBy"`
 	SortOrder  string `json:"sortOrder"`

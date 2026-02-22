@@ -1,11 +1,4 @@
 import { useKeyCombos } from "@/hooks/useKeyCombo";
-import {
-    useCreateSpool,
-    useDeleteSpool,
-    useSpoolEvents,
-    useSpools,
-    useUpdateSpool,
-} from "@/hooks/useSpools";
 import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
@@ -20,41 +13,36 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import type { Spool } from "@bindings";
+import type { Spool, SpoolQueryParams } from "@bindings";
 
-import { SpoolPagination } from "../Pagination";
-import { SpoolSearch } from "../Search";
+import { AppPagination } from "../Pagination";
+import { AppSearch } from "../Search";
 import { SpoolTable } from "./SpoolTable";
 import { DeleteSpoolDialog, type DeleteState } from "./deleteDialog";
 import { SpoolForm } from "./form";
-import { defaultSpoolValues } from "./lib/defaults";
+import { PAGE_SIZE, defaultSpoolValues } from "./lib/defaults";
+import {
+    useCreateSpool,
+    useDeleteSpool,
+    useSpoolEvents,
+    useSpools,
+    useUpdateSpool,
+} from "./lib/fetch-hooks";
 import { useAppForm } from "./lib/hooks";
 import { spoolSchema } from "./lib/schema";
 
-export type EditState = {
+type EditState = {
     isOpen: boolean;
     id: number;
     original: Spool | null;
 };
-
-export interface SpoolQueryParams {
-    search?: string;
-    material?: string;
-    vendor?: string;
-    isTemplate?: boolean;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-    limit?: number;
-    offset?: number;
-}
-
-const PAGE_SIZE = 15;
 
 export function SpoolsPage() {
     const [templateOpen, setTemplateOpen] = useState(false);
 
     const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
         search: "",
+        isTemplate: templateOpen,
         sortBy: "updated_at",
         sortOrder: "desc",
         limit: PAGE_SIZE,
@@ -71,7 +59,7 @@ export function SpoolsPage() {
 
     const { spools, total, isFetching } = useSpools({
         ...queryParams,
-        isTemplate: templateOpen ? true : undefined,
+        isTemplate: templateOpen ? true : false,
     });
 
     const deleteMutation = useDeleteSpool();
@@ -123,6 +111,9 @@ export function SpoolsPage() {
         if (!deleteIntent) return;
         try {
             await deleteMutation.mutateAsync(deleteIntent.spoolId);
+        } catch (error) {
+            console.error("Failed to delete print:", error);
+            // TODO: Show error toast
         } finally {
             setDeleteIntent(null);
         }
@@ -136,7 +127,10 @@ export function SpoolsPage() {
                 onCreate={handleCreate}
             />
             <div className="scroll flex gap-2">
-                <SpoolSearch onSearch={handleSearch} />
+                <AppSearch
+                    onSearch={handleSearch}
+                    qualifierKeys={["vendor", "spool", "material", "color"]}
+                />
                 <div className="mt-2 text-xs text-muted-foreground">
                     {isFetching
                         ? "Loading spools..."
@@ -168,11 +162,11 @@ export function SpoolsPage() {
                     })
                 }
                 sortBy={queryParams.sortBy}
-                sortOrder={queryParams.sortOrder}
+                sortOrder={queryParams.sortOrder as "asc" | "desc"}
                 onSort={handleSort}
             />
 
-            <SpoolPagination
+            <AppPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
@@ -211,8 +205,6 @@ function SpoolFormDialog({
         defaultValues: defaultSpoolValues,
         validators: { onChange: spoolSchema },
         onSubmit: async ({ value }) => {
-            console.log("submitting", value);
-            return;
             const now = new Date().toISOString();
 
             const spoolToSave: Spool = {
@@ -252,7 +244,8 @@ function SpoolFormDialog({
             });
             form.setFieldValue(
                 "referenceLink",
-                editState.original.referenceLink
+                editState.original.referenceLink,
+                { dontValidate: true }
             );
             form.setFieldValue("notes", editState.original.notes, {
                 dontValidate: true,

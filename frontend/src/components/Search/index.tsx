@@ -9,14 +9,14 @@ import {
     InputGroupInput,
 } from "@/shadcn/input-group";
 
-const QUALIFIER_KEYS = ["spool", "vendor", "material", "color"] as const;
-type QualifierKey = (typeof QUALIFIER_KEYS)[number];
-
-function parseSearchQuery(search: string): {
-    qualifiers: Partial<Record<QualifierKey, string>>;
+function parseSearchQuery(
+    search: string,
+    qualifierKeys: string[]
+): {
+    qualifiers: Partial<Record<string, string>>;
     freeText: string;
 } {
-    const qualifiers: Partial<Record<QualifierKey, string>> = {};
+    const qualifiers: Partial<Record<string, string>> = {};
     const freeTextParts: string[] = [];
 
     for (const token of search.trim().split(/\s+/)) {
@@ -24,8 +24,8 @@ function parseSearchQuery(search: string): {
         if (colonIdx > 0) {
             const key = token.slice(0, colonIdx).toLowerCase();
             const value = token.slice(colonIdx + 1);
-            if (QUALIFIER_KEYS.includes(key as QualifierKey) && value) {
-                qualifiers[key as QualifierKey] = value;
+            if (qualifierKeys.includes(key) && value) {
+                qualifiers[key] = value;
                 continue;
             }
         }
@@ -36,7 +36,7 @@ function parseSearchQuery(search: string): {
 }
 
 function rebuildSearchString(
-    qualifiers: Partial<Record<QualifierKey, string>>,
+    qualifiers: Partial<Record<string, string>>,
     freeText: string
 ): string {
     const parts = Object.entries(qualifiers).map(
@@ -46,16 +46,21 @@ function rebuildSearchString(
     return parts.join(" ");
 }
 
-export function SpoolSearch({
+export function AppSearch({
     onSearch,
+    qualifierKeys = ["spool", "vendor", "material", "color"],
     placeholder = "Search spools by spool:  vendor:  material:  or  color:",
 }: {
     onSearch: (searchTerm: string) => void;
+    qualifierKeys: string[];
     placeholder?: string;
 }) {
     const [inputValue, setInputValue] = useState("");
 
-    const { qualifiers, freeText } = parseSearchQuery(inputValue);
+    const { qualifiers, freeText } = parseSearchQuery(
+        inputValue,
+        qualifierKeys
+    );
     const hasQualifiers = Object.keys(qualifiers).length > 0;
 
     const handleSearch = () => onSearch(inputValue);
@@ -65,7 +70,7 @@ export function SpoolSearch({
         onSearch("");
     };
 
-    const handleRemoveQualifier = (key: QualifierKey) => {
+    const handleRemoveQualifier = (key: string) => {
         const next = { ...qualifiers };
         delete next[key];
         const rebuilt = rebuildSearchString(next, freeText);
@@ -115,12 +120,7 @@ export function SpoolSearch({
             <div className="relative">
                 {hasQualifiers && (
                     <div className="absolute flex flex-wrap gap-1.5">
-                        {(
-                            Object.entries(qualifiers) as [
-                                QualifierKey,
-                                string,
-                            ][]
-                        ).map(([key, value]) => (
+                        {Object.entries(qualifiers).map(([key, value]) => (
                             <Badge
                                 key={key + value}
                                 variant="secondary"

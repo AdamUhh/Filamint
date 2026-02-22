@@ -65,7 +65,6 @@ export class Print {
 
 export class PrintQueryParams {
     "search": string;
-    "status": string;
     "sortBy": string;
     "sortOrder": string;
     "limit": number;
@@ -75,9 +74,6 @@ export class PrintQueryParams {
     constructor($$source: Partial<PrintQueryParams> = {}) {
         if (!("search" in $$source)) {
             this["search"] = "";
-        }
-        if (!("status" in $$source)) {
-            this["status"] = "";
         }
         if (!("sortBy" in $$source)) {
             this["sortBy"] = "";
@@ -311,8 +307,6 @@ export class Spool {
 
 export class SpoolQueryParams {
     "search": string;
-    "material": string;
-    "vendor": string;
     "isTemplate": boolean | null;
     "sortBy": string;
     "sortOrder": string;
@@ -323,12 +317,6 @@ export class SpoolQueryParams {
     constructor($$source: Partial<SpoolQueryParams> = {}) {
         if (!("search" in $$source)) {
             this["search"] = "";
-        }
-        if (!("material" in $$source)) {
-            this["material"] = "";
-        }
-        if (!("vendor" in $$source)) {
-            this["vendor"] = "";
         }
         if (!("isTemplate" in $$source)) {
             this["isTemplate"] = null;

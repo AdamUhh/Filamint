@@ -2,24 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo } from "react";
 
+import type { Spool, SpoolQueryParams } from "@bindings";
 import { SpoolService } from "@bindings";
-import type { Spool } from "@bindings";
 
-export interface SpoolQueryParams {
-    search?: string;
-    material?: string;
-    vendor?: string;
-    isTemplate?: boolean;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-    limit?: number;
-    offset?: number;
-}
-
-interface SpoolQueryResult {
-    spools: Spool[];
-    total: number;
-}
+import { PAGE_SIZE } from "./defaults";
 
 export function useSpoolEvents(
     onCreate: () => void,
@@ -42,33 +28,20 @@ export function useSpoolEvents(
 /**
  * Hook to query spools with filtering, sorting, and pagination
  */
-export function useSpools(params: SpoolQueryParams = {}) {
-    const normalized = {
-        search: params.search ?? "",
-        material: params.material ?? "",
-        vendor: params.vendor ?? "",
-        isTemplate: params.isTemplate ?? false,
-        sortBy: params.sortBy ?? "updated_at",
-        sortOrder: params.sortOrder ?? "desc",
-        limit: params.limit ?? 15,
-        offset: params.offset ?? 0,
+export function useSpools(params: Partial<SpoolQueryParams> = {}) {
+    const queryParams: SpoolQueryParams = {
+        search: "",
+        isTemplate: false,
+        sortBy: "updated_at",
+        sortOrder: "desc",
+        limit: PAGE_SIZE,
+        offset: 0,
+        ...params,
     };
 
     const query = useQuery({
-        queryKey: [
-            "spools",
-            normalized.search,
-            normalized.material,
-            normalized.vendor,
-            normalized.isTemplate,
-            normalized.sortBy,
-            normalized.sortOrder,
-            normalized.limit,
-            normalized.offset,
-        ],
-        queryFn: async (): Promise<SpoolQueryResult | null> => {
-            return SpoolService.QuerySpools(normalized);
-        },
+        queryKey: ["spools", queryParams],
+        queryFn: () => SpoolService.QuerySpools(queryParams),
         staleTime: 2 * 60 * 1000,
         gcTime: 5 * 60 * 1000,
     });
@@ -159,50 +132,55 @@ export function useDeleteSpool() {
     });
 }
 
+// interface SpoolQueryResult {
+//     spools: Spool[];
+//     total: number;
+// }
+
 /**
  * Hook for optimistic updates (optional - use if you want instant UI updates)
  */
-export function useOptimisticUpdateSpool() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: (spool: Spool) => SpoolService.UpdateSpool(spool),
-
-        // Optimistically update the UI before the server responds
-        onMutate: async (updatedSpool) => {
-            // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: ["spools"] });
-
-            // Snapshot the previous value
-            const previousSpools = queryClient.getQueryData(["spools"]);
-
-            // Optimistically update cache
-            queryClient.setQueriesData(
-                { queryKey: ["spools"] },
-                (old: SpoolQueryResult | undefined) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        spools: old.spools.map((s) =>
-                            s.id === updatedSpool.id ? updatedSpool : s
-                        ),
-                    };
-                }
-            );
-
-            return { previousSpools };
-        },
-
-        // If mutation fails, rollback
-        onError: (_err, _updatedSpool, context) => {
-            if (context?.previousSpools) {
-                queryClient.setQueryData(["spools"], context.previousSpools);
-            }
-        },
-
-        // Always refetch after error or success
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["spools"] });
-        },
-    });
-}
+// export function useOptimisticUpdateSpool() {
+//     const queryClient = useQueryClient();
+//
+//     return useMutation({
+//         mutationFn: (spool: Spool) => SpoolService.UpdateSpool(spool),
+//
+//         // Optimistically update the UI before the server responds
+//         onMutate: async (updatedSpool) => {
+//             // Cancel outgoing refetches
+//             await queryClient.cancelQueries({ queryKey: ["spools"] });
+//
+//             // Snapshot the previous value
+//             const previousSpools = queryClient.getQueryData(["spools"]);
+//
+//             // Optimistically update cache
+//             queryClient.setQueriesData(
+//                 { queryKey: ["spools"] },
+//                 (old: SpoolQueryResult | undefined) => {
+//                     if (!old) return old;
+//                     return {
+//                         ...old,
+//                         spools: old.spools.map((s) =>
+//                             s.id === updatedSpool.id ? updatedSpool : s
+//                         ),
+//                     };
+//                 }
+//             );
+//
+//             return { previousSpools };
+//         },
+//
+//         // If mutation fails, rollback
+//         onError: (_err, _updatedSpool, context) => {
+//             if (context?.previousSpools) {
+//                 queryClient.setQueryData(["spools"], context.previousSpools);
+//             }
+//         },
+//
+//         // Always refetch after error or success
+//         onSettled: () => {
+//             queryClient.invalidateQueries({ queryKey: ["spools"] });
+//         },
+//     });
+// }

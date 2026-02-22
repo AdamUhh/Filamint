@@ -1,15 +1,6 @@
 import { useKeyCombo } from "@/hooks/useKeyCombo";
-import {
-    type PrintQueryParams,
-    useCreatePrint,
-    useDeletePrint,
-    usePrints,
-    useUpdatePrint,
-} from "@/hooks/usePrints";
-import { useSpools } from "@/hooks/useSpools";
-import { Events } from "@wailsio/runtime";
-import { PlusIcon, RotateCwIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { PlusIcon } from "lucide-react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -21,21 +12,30 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import { SpoolPagination } from "@/components/Pagination";
+import { AppPagination } from "@/components/Pagination";
 import {
     DeletePrintDialog,
     type DeleteState,
 } from "@/components/Prints/deleteDialog";
 import { type EditState, PrintForm } from "@/components/Prints/form";
-import { defaultPrintValues } from "@/components/Prints/lib/defaults";
+import {
+    PAGE_SIZE,
+    defaultPrintValues,
+} from "@/components/Prints/lib/defaults";
 import { useAppForm } from "@/components/Prints/lib/hooks";
 import { printSchema } from "@/components/Prints/lib/schema";
 import { PrintTable } from "@/components/Prints/printTable";
-import { SpoolSearch } from "@/components/Search";
+import { AppSearch } from "@/components/Search";
 
-import { type Print, PrintSpool } from "@bindings";
+import { type Print, PrintQueryParams, PrintSpool, Spool } from "@bindings";
 
-const PAGE_SIZE = 20;
+import {
+    useCreatePrint,
+    useDeletePrint,
+    usePrintEvents,
+    usePrints,
+    useUpdatePrint,
+} from "./lib/fetch-hooks";
 
 export function PrintsPage() {
     const [queryParams, setQueryParams] = useState<PrintQueryParams>({
@@ -46,18 +46,157 @@ export function PrintsPage() {
         offset: 0,
     });
 
-    const { prints, total, isFetching } = usePrints(queryParams);
-    const { spools } = useSpools();
-    const createMutation = useCreatePrint();
-    const updateMutation = useUpdatePrint();
-    const deleteMutation = useDeletePrint();
-
     const [editState, setEditState] = useState<EditState>({
         isOpen: false,
         id: 0,
         original: null,
     });
+
     const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
+
+    const { prints, total, isFetching } = usePrints(queryParams);
+    // const { spools } = useSpools();
+
+    const deleteMutation = useDeletePrint();
+
+    const handleSearch = (searchTerm: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            search: searchTerm,
+            offset: 0,
+        }));
+    };
+
+    const handleSort = (column: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            sortBy: column,
+            sortOrder:
+                prev.sortBy === column && prev.sortOrder === "desc"
+                    ? "asc"
+                    : "desc",
+        }));
+    };
+
+    const handlePageChange = (page: number) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            offset: (page - 1) * PAGE_SIZE,
+        }));
+    };
+
+    const currentPage =
+        Math.floor(
+            (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
+        ) + 1;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    const handleCreate = () => {
+        setEditState({ isOpen: true, id: 0, original: null });
+    };
+
+    usePrintEvents(handleCreate);
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteIntent) return;
+
+        try {
+            await deleteMutation.mutateAsync({
+                id: deleteIntent.printId,
+                restoreSpoolGrams: deleteIntent.restoreSpoolGrams,
+            });
+        } catch (error) {
+            console.error("Failed to delete print:", error);
+            // TODO: Show error toast
+        } finally {
+            setDeleteIntent(null);
+        }
+    };
+
+    return (
+        <div className="space-y-6 p-6">
+            <PrintHeader onCreate={handleCreate} />
+
+            <div className="scroll flex gap-2">
+                <AppSearch
+                    onSearch={handleSearch}
+                    placeholder="Search prints by name or status"
+                    qualifierKeys={["name", "spool", "status"]}
+                />
+                <div className="mt-2 text-xs text-muted-foreground">
+                    {isFetching
+                        ? "Loading prints..."
+                        : `Showing ${prints.size} of ${total} prints${
+                              queryParams.search
+                                  ? ` matching "${queryParams.search}"`
+                                  : ""
+                          }`}
+                </div>
+            </div>
+
+            <PrintTable
+                isLoading={isFetching}
+                prints={prints}
+                spools={spools}
+                onEdit={(print) =>
+                    setEditState({
+                        id: print.id,
+                        isOpen: true,
+                        original: print,
+                    })
+                }
+                onDuplicate={(print) =>
+                    setEditState({
+                        id: 0,
+                        isOpen: true,
+                        original: print,
+                    })
+                }
+                onDelete={(printId) =>
+                    setDeleteIntent({ printId, restoreSpoolGrams: true })
+                }
+                sortBy={queryParams.sortBy}
+                sortOrder={queryParams.sortOrder as "asc" | "desc"}
+                onSort={handleSort}
+            />
+
+            <AppPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+            />
+
+            <PrintFormDialog
+                prints={prints}
+                spools={spools}
+                editState={editState}
+                setEditState={setEditState}
+            />
+
+            {deleteIntent && (
+                <DeletePrintDialog
+                    intent={deleteIntent}
+                    onIntentChange={setDeleteIntent}
+                    onConfirm={handleDeleteConfirm}
+                />
+            )}
+        </div>
+    );
+}
+
+function PrintFormDialog({
+    prints,
+    spools,
+    editState,
+    setEditState,
+}: {
+    prints: Map<number, Print>;
+    spools: Map<number, Spool>;
+    editState: EditState;
+    setEditState: Dispatch<SetStateAction<EditState>>;
+}) {
+    const createMutation = useCreatePrint();
+    const updateMutation = useUpdatePrint();
 
     const form = useAppForm({
         defaultValues: defaultPrintValues,
@@ -102,23 +241,29 @@ export function PrintsPage() {
         },
     });
 
-    const handleCreate = useCallback(() => {
-        setEditState({ isOpen: true, id: 0, original: null });
-        form.reset();
-    }, [form]);
-
-    const populateFormFromPrint = useCallback(
-        (print: Print, isDuplicate = false) => {
-            form.setFieldValue("name", print.name);
-            form.setFieldValue("status", print.status);
-            form.setFieldValue("notes", print.notes);
+    useEffect(() => {
+        if (editState.isOpen && editState.original) {
+            form.setFieldValue("name", editState.original.name, {
+                dontValidate: true,
+            });
             form.setFieldValue(
                 "datePrinted",
-                isDuplicate ? new Date().toISOString() : print.datePrinted
+                editState.id > 0
+                    ? editState.original.datePrinted
+                    : new Date().toISOString(),
+                {
+                    dontValidate: true,
+                }
             );
+            form.setFieldValue("notes", editState.original.notes, {
+                dontValidate: true,
+            });
+            form.setFieldValue("status", editState.original.status, {
+                dontValidate: true,
+            });
             form.setFieldValue(
                 "spools",
-                print.spools!.map((ps) => {
+                editState.original.spools!.map((ps) => {
                     const spool = spools.get(ps.spoolId);
                     if (!spool) {
                         throw new Error(`Spool not found for id ${ps.spoolId}`);
@@ -133,202 +278,71 @@ export function PrintsPage() {
                             vendor: spool.vendor,
                         },
                     };
-                })
+                }),
+                {
+                    dontValidate: true,
+                }
             );
-        },
-        [form, spools]
-    );
-
-    const handleEdit = useCallback(
-        (print: Print) => {
-            form.reset();
-            setEditState({ isOpen: true, id: print.id, original: print });
-            populateFormFromPrint(print);
-        },
-        [form, populateFormFromPrint]
-    );
-
-    const handleDuplicate = useCallback(
-        (print: Print) => {
-            form.reset();
-            setEditState({ isOpen: true, id: 0, original: print });
-            populateFormFromPrint(print, true);
-        },
-        [form, populateFormFromPrint]
-    );
-
-    useEffect(() => {
-        const unsubscribe = Events.On("print:create", handleCreate);
-
-        return () => {
-            unsubscribe();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const handleDelete = (printId: number) => {
-        setDeleteIntent({ printId, restoreSpoolGrams: true });
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!deleteIntent) return;
-
-        try {
-            await deleteMutation.mutateAsync({
-                id: deleteIntent.printId,
-                restoreSpoolGrams: deleteIntent.restoreSpoolGrams,
-            });
-        } catch (error) {
-            console.error("Failed to delete print:", error);
-            // TODO: Show error toast
-        } finally {
-            setDeleteIntent(null);
         }
-    };
+    }, [editState, form, spools]);
 
-    const handleCloseDialog = useCallback(() => {
+    const handleClose = () => {
         form.reset();
         setEditState({ id: 0, isOpen: false, original: null });
-    }, [form]);
-
-    const handleSearch = useCallback((searchTerm: string) => {
-        setQueryParams((prev) => ({
-            ...prev,
-            search: searchTerm,
-            offset: 0, // Reset to first page on search
-        }));
-    }, []);
-
-    const handleSort = useCallback((column: string) => {
-        setQueryParams((prev) => ({
-            ...prev,
-            sortBy: column,
-            sortOrder:
-                prev.sortBy === column && prev.sortOrder === "desc"
-                    ? "asc"
-                    : "desc",
-        }));
-    }, []);
-
-    const handlePageChange = useCallback((page: number) => {
-        setQueryParams((prev) => ({
-            ...prev,
-            offset: (page - 1) * PAGE_SIZE,
-        }));
-    }, []);
-
-    const currentPage =
-        Math.floor(
-            (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
-        ) + 1;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-
-    console.debug("errors! : ", form.state.isValid, form.state.errors);
+    };
 
     return (
-        <div className="space-y-6 p-6">
-            <PrintHeader onCreate={handleCreate} />
+        <Dialog
+            open={editState.isOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) handleClose();
+            }}
+        >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {editState.id > 0 ? "Edit Print" : "Add New Print"}
+                    </DialogTitle>
+                </DialogHeader>
 
-            <div className="flex items-center gap-2">
-                <SpoolSearch
-                    onSearch={handleSearch}
-                    // TODO: search by code as well
-                    placeholder="Search prints by name or status"
-                />
-                {isFetching ? (
-                    <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
-                        <RotateCwIcon className="size-3 animate-spin" />
-                        <span>Loading prints...</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <p>
-                            Showing {prints.size} of {total} prints
-                            {queryParams.search &&
-                                ` matching "${queryParams.search}"`}
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            <PrintTable
-                isLoading={isFetching}
-                prints={prints}
-                spools={spools}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-                sortBy={queryParams.sortBy}
-                sortOrder={queryParams.sortOrder}
-                onSort={handleSort}
-            />
-
-            <SpoolPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-            />
-
-            <Dialog
-                open={editState.isOpen}
-                onOpenChange={(isOpen) => {
-                    if (!isOpen) handleCloseDialog();
-                }}
-            >
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {editState.id > 0 ? "Edit Print" : "Add New Print"}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            form.handleSubmit();
-                        }}
-                    >
-                        <PrintForm
-                            form={form}
-                            editState={editState}
-                            spools={spools}
-                        />
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCloseDialog}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    createMutation.isPending ||
-                                    updateMutation.isPending
-                                }
-                            >
-                                {createMutation.isPending ||
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        form.handleSubmit();
+                    }}
+                >
+                    <PrintForm
+                        form={form}
+                        editState={editState}
+                        spools={spools}
+                    />
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClose}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                createMutation.isPending ||
                                 updateMutation.isPending
-                                    ? "Saving..."
-                                    : editState.id > 0
-                                      ? "Update"
-                                      : "Create"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {deleteIntent && (
-                <DeletePrintDialog
-                    intent={deleteIntent}
-                    onIntentChange={setDeleteIntent}
-                    onConfirm={handleDeleteConfirm}
-                />
-            )}
-        </div>
+                            }
+                        >
+                            {createMutation.isPending ||
+                            updateMutation.isPending
+                                ? "Saving..."
+                                : editState.id > 0
+                                  ? "Update"
+                                  : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 

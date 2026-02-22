@@ -8,17 +8,17 @@ import {
     PaginationPrevious,
 } from "@/shadcn/pagination";
 
-interface SpoolPaginationProps {
+interface AppPaginationProps {
     currentPage: number;
     totalPages: number;
     onPageChange: (page: number) => void;
 }
 
-export function SpoolPagination({
+export function AppPagination({
     currentPage,
     totalPages,
     onPageChange,
-}: SpoolPaginationProps) {
+}: AppPaginationProps) {
     // Don't show pagination if only 1 page or no pages
     if (totalPages <= 1) return null;
 

@@ -72,7 +72,7 @@ function DefaultSettings({
 
     return (
         <div className="group flex-1 space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex h-4 items-center justify-between">
                 <Label
                     htmlFor={field}
                     className="text-xs font-medium text-muted-foreground"
@@ -129,7 +129,8 @@ export function DefaultSpoolSettings() {
                     Autocomplete Defaults
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                    Manage the suggested values shown in spool input fields.
+                    Manage the suggested values shown in spool input fields. One
+                    item per line.
                 </p>
             </div>
 

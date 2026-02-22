@@ -40,7 +40,6 @@ type Print struct {
 
 type PrintQueryParams struct {
 	Search    string `json:"search"`
-	Status    string `json:"status"`
 	SortBy    string `json:"sortBy"`
 	SortOrder string `json:"sortOrder"`
 	Limit     int    `json:"limit"`
@@ -293,28 +292,47 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		params.SortOrder = "DESC"
 	}
 	if params.Limit <= 0 {
-		params.Limit = 1000 // Default to all
+		params.Limit = 15
 	}
 
 	// Build WHERE clause
 	var whereClauses []string
-	var args []interface{}
+	var args []any
 	argPosition := 1
 
 	if params.Search != "" {
-		searchPattern := "%" + params.Search + "%"
-		whereClauses = append(whereClauses, fmt.Sprintf(
-			"(name LIKE ?%d OR notes LIKE ?%d)",
-			argPosition, argPosition+1,
-		))
-		args = append(args, searchPattern, searchPattern)
-		argPosition += 2
-	}
+		qualifiers, freeText := parseSearchQuery(params.Search)
 
-	if params.Status != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("status = ?%d", argPosition))
-		args = append(args, params.Status)
-		argPosition++
+		if val, ok := qualifiers["name"]; ok {
+			whereClauses = append(whereClauses, fmt.Sprintf("LOWER(name) = ?%d", argPosition))
+			args = append(args, val)
+			argPosition++
+		}
+
+		if val, ok := qualifiers["status"]; ok {
+			whereClauses = append(whereClauses, fmt.Sprintf("LOWER(status) = ?%d", argPosition))
+			args = append(args, val)
+			argPosition++
+		}
+
+		if val, ok := qualifiers["spool"]; ok {
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				`id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?%d))`,
+				argPosition,
+			))
+			args = append(args, val)
+			argPosition++
+		}
+
+		if freeText != "" {
+			searchPattern := "%" + strings.ToLower(freeText) + "%"
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(LOWER(name) LIKE ?%d OR LOWER(notes) LIKE ?%d)",
+				argPosition, argPosition+1,
+			))
+			args = append(args, searchPattern, searchPattern)
+			argPosition += 2
+		}
 	}
 
 	whereClause := ""
