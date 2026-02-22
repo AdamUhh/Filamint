@@ -18,7 +18,7 @@ type PrintSpool struct {
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 
-	Spool *Spool `json:"spool,omitempty"`
+	// Spool *Spool `json:"spool,omitempty"`
 }
 
 type Print struct {

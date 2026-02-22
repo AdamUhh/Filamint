@@ -136,7 +136,6 @@ export class PrintSpool {
     "gramsUsed": number;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
-    "spool"?: Spool | null;
 
     /** Creates a new PrintSpool instance. */
     constructor($$source: Partial<PrintSpool> = {}) {
@@ -166,11 +165,7 @@ export class PrintSpool {
      * Creates a new PrintSpool instance from a string or object.
      */
     static createFrom($$source: any = {}): PrintSpool {
-        const $$createField6_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("spool" in $$parsedSource) {
-            $$parsedSource["spool"] = $$createField6_0($$parsedSource["spool"]);
-        }
         return new PrintSpool($$parsedSource as Partial<PrintSpool>);
     }
 }
@@ -366,7 +361,7 @@ export class SpoolQueryResult {
      * Creates a new SpoolQueryResult instance from a string or object.
      */
     static createFrom($$source: any = {}): SpoolQueryResult {
-        const $$createField0_0 = $$createType6;
+        const $$createField0_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
             $$parsedSource["spools"] = $$createField0_0($$parsedSource["spools"]);
@@ -381,5 +376,4 @@ const $$createType1 = $Create.Array($$createType0);
 const $$createType2 = Print.createFrom;
 const $$createType3 = $Create.Array($$createType2);
 const $$createType4 = Spool.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = $Create.Array($$createType4);
+const $$createType5 = $Create.Array($$createType4);
