@@ -176,6 +176,7 @@ export class Shortcut {
     "keyCombo": string;
     "description": string;
     "category": string;
+    "devOnly": boolean;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
 
@@ -195,6 +196,9 @@ export class Shortcut {
         }
         if (!("category" in $$source)) {
             this["category"] = "";
+        }
+        if (!("devOnly" in $$source)) {
+            this["devOnly"] = false;
         }
         if (!("createdAt" in $$source)) {
             this["createdAt"] = null;

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon, TrashIcon } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
@@ -37,7 +38,13 @@ import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
 import type { ArrayElementOf } from "@/lib/util-types";
 
-import type { Print, Spool } from "@bindings";
+import type { Print, Spool, SpoolQueryParams } from "@bindings";
+
+import { AppPagination } from "../Pagination";
+import { AppSearch } from "../Search";
+import { useSpools } from "../Spools/lib/fetch-hooks";
+import { SelectSpoolTable } from "./SelectSpoolTable";
+import { PAGE_SIZE } from "./lib/defaults";
 
 export function PrintNameFormField({
     editingId,
@@ -229,6 +236,116 @@ export function PrintSpoolFormField({
             </Combobox>
             {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
         </Field>
+    );
+}
+
+export function PrintSpoolContainerFormField({
+    editingId,
+    onReset,
+}: {
+    editingId: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReset: (name: any) => void;
+}) {
+    const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
+        search: "",
+        isTemplate: false,
+        sortBy: "updated_at",
+        sortOrder: "desc",
+        limit: PAGE_SIZE,
+        offset: 0,
+    });
+
+    const { spools, total, isFetching } = useSpools({
+        ...queryParams,
+    });
+
+    const field = useFieldContext<Print["spools"]>();
+
+    const handleSearch = (searchTerm: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            search: searchTerm,
+            offset: 0,
+        }));
+    };
+
+    const handleSort = (column: string) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            sortBy: column,
+            sortOrder:
+                prev.sortBy === column && prev.sortOrder === "desc"
+                    ? "asc"
+                    : "desc",
+        }));
+    };
+
+    const handlePageChange = (page: number) => {
+        setQueryParams((prev) => ({
+            ...prev,
+            offset: (page - 1) * PAGE_SIZE,
+        }));
+    };
+
+    const currentPage =
+        Math.floor(
+            (queryParams.offset || 0) / (queryParams.limit || PAGE_SIZE)
+        ) + 1;
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    return (
+        <>
+            {field.state.value?.map((s, indx) => (
+                <div className="flex gap-2">
+                    <Button
+                        type="button"
+                        variant="outline-destructive"
+                        size="sm"
+                        className="aspect-square h-full p-0"
+                        onClick={() => field.removeValue(indx)}
+                    >
+                        <TrashIcon className="size-3" />
+                    </Button>
+                    <div>{s.spoolId}</div>
+                </div>
+            ))}
+            <div className="flex items-center justify-between">
+                <div className="flex w-full gap-2">
+                    <AppSearch
+                        onSearch={handleSearch}
+                        qualifierKeys={["vendor", "spool", "material", "color"]}
+                    />
+                    <div className="mt-2 shrink-0 text-xs text-muted-foreground">
+                        {isFetching
+                            ? "Loading spools..."
+                            : `Showing ${spools.size} of ${total} spools${
+                                  queryParams.search
+                                      ? ` matching "${queryParams.search}"`
+                                      : ""
+                              }`}
+                    </div>
+                </div>
+
+                <AppPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                />
+            </div>
+            <SelectSpoolTable
+                editingId={editingId}
+                value={field.state.value?.map((s) => s.spoolId) || []}
+                onAdd={field.pushValue}
+                onDelete={field.removeValue}
+                spools={spools}
+                isLoading={isFetching}
+                sortBy={queryParams.sortBy}
+                sortOrder={queryParams.sortOrder as "asc" | "desc"}
+                onSort={handleSort}
+            />
+        </>
     );
 }
 

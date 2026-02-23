@@ -60,7 +60,7 @@ func registerShortcutsInternal(app *application.App, service *ShortcutService) e
 	envInfo := app.Env.Info()
 	keyComboMap := make(map[string][]Shortcut)
 	for _, shortcut := range shortcuts {
-		if !envInfo.Debug && (shortcut.Action == "window:devtools" || shortcut.Action == "window:reload") {
+		if shortcut.DevOnly && !envInfo.Debug {
 			continue
 		}
 		keyComboMap[shortcut.KeyCombo] = append(keyComboMap[shortcut.KeyCombo], shortcut)

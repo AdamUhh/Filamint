@@ -29,18 +29,9 @@ export function GetSpoolByCode(code: string): $CancellablePromise<$models.Spool 
     });
 }
 
-/**
- * Legacy method - kept for backward compatibility
- */
-export function ListSpools(): $CancellablePromise<$models.Spool[]> {
-    return $Call.ByID(2639247538).then(($result: any) => {
-        return $$createType2($result);
-    });
-}
-
 export function QuerySpools(params: $models.SpoolQueryParams): $CancellablePromise<$models.SpoolQueryResult | null> {
     return $Call.ByID(2723076002, params).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType3($result);
     });
 }
 
@@ -51,6 +42,5 @@ export function UpdateSpool(spool: $models.Spool): $CancellablePromise<void> {
 // Private type creation functions
 const $$createType0 = $models.Spool.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $Create.Array($$createType0);
-const $$createType3 = $models.SpoolQueryResult.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
+const $$createType2 = $models.SpoolQueryResult.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);

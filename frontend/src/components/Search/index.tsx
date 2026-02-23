@@ -83,7 +83,7 @@ export function AppSearch({
     };
 
     return (
-        <div className="flex w-full max-w-md flex-col gap-2">
+        <div className="flex w-full max-w-md shrink-0 flex-col gap-2">
             <InputGroup>
                 <InputGroupAddon align="inline-start">
                     <SearchIcon className="size-4" />

@@ -16,26 +16,25 @@ import { AppPagination } from "@/components/Pagination";
 import {
     DeletePrintDialog,
     type DeleteState,
-} from "@/components/Prints/deleteDialog";
-import { type EditState, PrintForm } from "@/components/Prints/form";
+} from "@/components/Prints/DeleteDialog";
+import { type EditState, PrintForm } from "@/components/Prints/Form";
+import { PrintTable } from "@/components/Prints/PrintTable";
 import {
     PAGE_SIZE,
     defaultPrintValues,
 } from "@/components/Prints/lib/defaults";
-import { useAppForm } from "@/components/Prints/lib/hooks";
-import { printSchema } from "@/components/Prints/lib/schema";
-import { PrintTable } from "@/components/Prints/printTable";
-import { AppSearch } from "@/components/Search";
-
-import { type Print, PrintQueryParams, PrintSpool, Spool } from "@bindings";
-
 import {
     useCreatePrint,
     useDeletePrint,
     usePrintEvents,
     usePrints,
     useUpdatePrint,
-} from "./lib/fetch-hooks";
+} from "@/components/Prints/lib/fetch-hooks";
+import { useAppForm } from "@/components/Prints/lib/hooks";
+import { printSchema } from "@/components/Prints/lib/schema";
+import { AppSearch } from "@/components/Search";
+
+import { type Print, PrintQueryParams, Spool } from "@bindings";
 
 export function PrintsPage() {
     const [queryParams, setQueryParams] = useState<PrintQueryParams>({
@@ -137,7 +136,7 @@ export function PrintsPage() {
             <PrintTable
                 isLoading={isFetching}
                 prints={prints}
-                spools={spools}
+                spools={new Map()}
                 onEdit={(print) =>
                     setEditState({
                         id: print.id,
@@ -168,7 +167,7 @@ export function PrintsPage() {
 
             <PrintFormDialog
                 prints={prints}
-                spools={spools}
+                spools={new Map()}
                 editState={editState}
                 setEditState={setEditState}
             />
@@ -214,10 +213,10 @@ function PrintFormDialog({
                         ? prints.get(editState.id)?.createdAt || now
                         : now,
                 updatedAt: now,
-                spools: (value.spools as PrintSpool[]).map((s) => ({
+                spools: value.spools.map((s) => ({
                     id: editState.id,
                     printId: editState.id,
-                    spoolId: s.spool!.id,
+                    spoolId: s.spool.id,
                     gramsUsed: s.gramsUsed,
                     createdAt:
                         editState.id > 0

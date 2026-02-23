@@ -13,23 +13,29 @@ import {
 } from "@/shadcn/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import type { Spool, SpoolQueryParams } from "@bindings";
-
-import { AppPagination } from "../Pagination";
-import { AppSearch } from "../Search";
-import { SpoolTable } from "./SpoolTable";
-import { DeleteSpoolDialog, type DeleteState } from "./deleteDialog";
-import { SpoolForm } from "./form";
-import { PAGE_SIZE, defaultSpoolValues } from "./lib/defaults";
+import { AppPagination } from "@/components/Pagination";
+import { AppSearch } from "@/components/Search";
+import {
+    DeleteSpoolDialog,
+    type DeleteState,
+} from "@/components/Spools/DeleteDialog";
+import { SpoolForm } from "@/components/Spools/Form";
+import { SpoolTable } from "@/components/Spools/SpoolTable";
+import {
+    PAGE_SIZE,
+    defaultSpoolValues,
+} from "@/components/Spools/lib/defaults";
 import {
     useCreateSpool,
     useDeleteSpool,
     useSpoolEvents,
     useSpools,
     useUpdateSpool,
-} from "./lib/fetch-hooks";
-import { useAppForm } from "./lib/hooks";
-import { spoolSchema } from "./lib/schema";
+} from "@/components/Spools/lib/fetch-hooks";
+import { useAppForm } from "@/components/Spools/lib/hooks";
+import { spoolSchema } from "@/components/Spools/lib/schema";
+
+import type { Spool, SpoolQueryParams } from "@bindings";
 
 type EditState = {
     isOpen: boolean;
@@ -126,20 +132,28 @@ export function SpoolsPage() {
                 onViewTemplate={handleViewTemplate}
                 onCreate={handleCreate}
             />
-            <div className="scroll flex gap-2">
-                <AppSearch
-                    onSearch={handleSearch}
-                    qualifierKeys={["vendor", "spool", "material", "color"]}
-                />
-                <div className="mt-2 text-xs text-muted-foreground">
-                    {isFetching
-                        ? "Loading spools..."
-                        : `Showing ${spools.size} of ${total} spools${
-                              queryParams.search
-                                  ? ` matching "${queryParams.search}"`
-                                  : ""
-                          }`}
+            <div className="flex items-center justify-between">
+                <div className="flex w-full gap-2">
+                    <AppSearch
+                        onSearch={handleSearch}
+                        qualifierKeys={["vendor", "spool", "material", "color"]}
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">
+                        {isFetching
+                            ? "Loading spools..."
+                            : `Showing ${spools.size} of ${total} spools${
+                                  queryParams.search
+                                      ? ` matching "${queryParams.search}"`
+                                      : ""
+                              }`}
+                    </div>
                 </div>
+
+                <AppPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                />
             </div>
 
             <SpoolTable
@@ -164,12 +178,6 @@ export function SpoolsPage() {
                 sortBy={queryParams.sortBy}
                 sortOrder={queryParams.sortOrder as "asc" | "desc"}
                 onSort={handleSort}
-            />
-
-            <AppPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
             />
 
             <SpoolFormDialog

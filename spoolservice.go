@@ -230,13 +230,6 @@ func (s *SpoolService) GetSpool(id int64) (*Spool, error) {
 	return &spool, nil
 }
 
-// Legacy method - kept for backward compatibility
-func (s *SpoolService) ListSpools() ([]Spool, error) {
-	var spools []Spool
-	err := s.db.Select(&spools, `SELECT * FROM spools ORDER BY updated_at DESC`)
-	return spools, err
-}
-
 func parseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
 	qualifiers = make(map[string]string)
 	var freeTextParts []string
@@ -362,3 +355,10 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		Total:  total,
 	}, nil
 }
+
+// Legacy method - kept for backward compatibility
+// func (s *SpoolService) ListSpools() ([]Spool, error) {
+// 	var spools []Spool
+// 	err := s.db.Select(&spools, `SELECT * FROM spools ORDER BY updated_at DESC`)
+// 	return spools, err
+// }

@@ -14,6 +14,7 @@ type Shortcut struct {
 	KeyCombo    string    `db:"key_combo" json:"keyCombo"`
 	Description string    `db:"description" json:"description"`
 	Category    string    `db:"category" json:"category"`
+	DevOnly     bool      `db:"dev_only" json:"devOnly"`
 	CreatedAt   time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updatedAt"`
 }
@@ -47,12 +48,14 @@ func getDefaultShortcuts() []Shortcut {
 			KeyCombo:    "F12",
 			Description: "Open developer tools",
 			Category:    "window",
+			DevOnly:     true,
 		},
 		{
 			Action:      "window:reload",
 			KeyCombo:    Ctrl + "R",
 			Description: "Reload window",
 			Category:    "window",
+			DevOnly:     true,
 		},
 
 		// Spool shortcuts
@@ -115,8 +118,8 @@ func (s *ShortcutService) initialize() error {
 		defaults := getDefaultShortcuts()
 		for _, shortcut := range defaults {
 			_, err := s.db.db.NamedExec(`
-				INSERT INTO shortcuts (action, key_combo, description, category)
-				VALUES (:action, :key_combo, :description, :category)
+				INSERT INTO shortcuts (action, key_combo, description, category, dev_only)
+				VALUES (:action, :key_combo, :description, :category, :dev_only)
 			`, shortcut)
 			if err != nil {
 				return err
@@ -127,7 +130,7 @@ func (s *ShortcutService) initialize() error {
 	// Load all shortcuts from database into cache (ONLY HAPPENS ONCE)
 	var shortcuts []Shortcut
 	err := s.db.Select(&shortcuts, `
-		SELECT id, action, key_combo, description, category, created_at, updated_at
+		SELECT id, action, key_combo, description, category, dev_only, created_at, updated_at
 		FROM shortcuts
 		ORDER BY category, action
 	`)
@@ -257,15 +260,15 @@ func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) erro
 
 	// Update cache
 	s.mu.Lock()
+	original := currentShortcut
 	currentShortcut.KeyCombo = newKeyCombo
 	currentShortcut.UpdatedAt = time.Now()
 	s.cache[action] = currentShortcut
 	s.mu.Unlock()
 
 	if err := s.syncCacheToDatabase(currentShortcut); err != nil {
-		// Rollback cache on database error
 		s.mu.Lock()
-		s.cache[action] = currentShortcut // Restore original
+		s.cache[action] = original // Restore original
 		s.mu.Unlock()
 		return fmt.Errorf("failed to sync to database: %w", err)
 	}

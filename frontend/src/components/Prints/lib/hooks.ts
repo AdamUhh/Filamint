@@ -5,9 +5,10 @@ import {
     PrintGramsUsedFormField,
     PrintNameFormField,
     PrintNotesFormField,
+    PrintSpoolContainerFormField,
     PrintSpoolFormField,
     PrintStatusFormField,
-} from "@/components/Prints/formBlocks";
+} from "@/components/Prints/FormBlocks";
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
     createFormHookContexts();
@@ -22,6 +23,7 @@ export const { useAppForm, withForm } = createFormHook({
         PrintDateTimeFormField,
         PrintNotesFormField,
         PrintSpoolFormField,
+        PrintSpoolContainerFormField,
     },
     formComponents: {},
 });

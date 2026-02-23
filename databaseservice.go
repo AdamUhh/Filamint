@@ -119,6 +119,7 @@ func (d *Database) initSchema() error {
 		key_combo TEXT NOT NULL,
 		description TEXT NOT NULL DEFAULT '',
 		category TEXT NOT NULL,
+		dev_only INTEGER NOT NULL DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);

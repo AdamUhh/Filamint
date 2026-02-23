@@ -13,7 +13,7 @@ import {
     SpoolTotalWeightFormField,
     SpoolUsedWeightFormField,
     SpoolVendorFormField,
-} from "@/components/Spools/formBlocks";
+} from "@/components/Spools/FormBlocks";
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
     createFormHookContexts();
