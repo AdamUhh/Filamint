@@ -54,7 +54,6 @@ export function PrintsPage() {
     const [deleteIntent, setDeleteIntent] = useState<DeleteState | null>(null);
 
     const { prints, total, isFetching } = usePrints(queryParams);
-    // const { spools } = useSpools();
 
     const deleteMutation = useDeletePrint();
 
