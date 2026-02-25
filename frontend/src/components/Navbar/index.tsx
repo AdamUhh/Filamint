@@ -4,13 +4,13 @@ import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router";
 
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/shadcn/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { AppSettings } from "./Settings";
 
@@ -80,14 +80,12 @@ function NavbarLink({
     const comboKey = useKeyCombo(action);
 
     return (
-        <Tooltip>
-            <TooltipTrigger>
+        <LazyTooltip content={comboKey}>
+            <div>
                 <NavLink
                     to={href}
                     className={({ isActive }) =>
-                        `group ${navItem} ${
-                            isActive ? activeItem : inactiveItem
-                        }`
+                        `group ${navItem} ${isActive ? activeItem : inactiveItem}`
                     }
                 >
                     {name === "spools" ? (
@@ -97,8 +95,7 @@ function NavbarLink({
                     )}
                     <span className="capitalize">{name}</span>
                 </NavLink>
-            </TooltipTrigger>
-            <TooltipContent>{comboKey}</TooltipContent>
-        </Tooltip>
+            </div>
+        </LazyTooltip>
     );
 }

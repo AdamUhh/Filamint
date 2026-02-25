@@ -2,9 +2,10 @@ import { CheckIcon, ClipboardIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/shadcn/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { cn } from "@/lib/utils";
+
+import { LazyTooltip } from "./ui/custom/lazy-tooltip";
 
 export function CopyToClipboard({
     textToCopy,
@@ -28,27 +29,26 @@ export function CopyToClipboard({
     };
 
     return (
-        <Tooltip open={open} onOpenChange={setOpen}>
-            <TooltipTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCopy}
-                    className={cn(
-                        "pointer-events-none opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100",
-                        copied && "bg-green-500 hover:bg-green-500"
-                    )}
-                >
-                    {copied ? (
-                        <CheckIcon className="size-3.25" />
-                    ) : (
-                        <ClipboardIcon className="size-3.25" />
-                    )}
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-                {copied ? "Copied" : tooltipContent}
-            </TooltipContent>
-        </Tooltip>
+        <LazyTooltip
+            open={open}
+            onOpenChange={setOpen}
+            content={copied ? "Copied" : tooltipContent}
+        >
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopy}
+                className={cn(
+                    "pointer-events-none opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100",
+                    copied && "bg-green-500 hover:bg-green-500"
+                )}
+            >
+                {copied ? (
+                    <CheckIcon className="size-3.25" />
+                ) : (
+                    <ClipboardIcon className="size-3.25" />
+                )}
+            </Button>
+        </LazyTooltip>
     );
 }

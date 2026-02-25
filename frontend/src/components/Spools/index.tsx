@@ -4,6 +4,7 @@ import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     Dialog,
     DialogContent,
@@ -11,7 +12,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/shadcn/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { AppPagination } from "@/components/Pagination";
 import { AppSearch } from "@/components/Search";
@@ -358,36 +358,26 @@ function SpoolHeader({
                 </p>
             </div>
             <ButtonGroup>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="outline" onClick={onViewTemplate}>
-                            {templateOpen ? (
-                                <>
-                                    <MenuIcon />
-                                    Back to Spools
-                                </>
-                            ) : (
-                                <>
-                                    <StarIcon /> View Templates
-                                </>
-                            )}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{templateCombo}</p>
-                    </TooltipContent>
-                </Tooltip>
+                <LazyTooltip content={templateCombo}>
+                    <Button variant="outline" onClick={onViewTemplate}>
+                        {templateOpen ? (
+                            <>
+                                <MenuIcon />
+                                Back to Spools
+                            </>
+                        ) : (
+                            <>
+                                <StarIcon /> View Templates
+                            </>
+                        )}
+                    </Button>
+                </LazyTooltip>
 
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button onClick={onCreate}>
-                            <PlusIcon /> Add Spool
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{createCombo}</p>
-                    </TooltipContent>
-                </Tooltip>
+                <LazyTooltip content={createCombo}>
+                    <Button onClick={onCreate}>
+                        <PlusIcon /> Add Spool
+                    </Button>
+                </LazyTooltip>
             </ButtonGroup>
         </div>
     );

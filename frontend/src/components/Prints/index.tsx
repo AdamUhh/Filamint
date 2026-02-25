@@ -3,6 +3,7 @@ import { PlusIcon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     Dialog,
     DialogContent,
@@ -10,7 +11,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/shadcn/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import { AppPagination } from "@/components/Pagination";
 import {
@@ -18,7 +18,6 @@ import {
     type DeleteState,
 } from "@/components/Prints/DeleteDialog";
 import { type EditState, PrintForm } from "@/components/Prints/Form";
-import { PrintTable } from "@/components/Prints/PrintTable";
 import {
     PAGE_SIZE,
     defaultPrintValues,
@@ -35,6 +34,8 @@ import { printSchema } from "@/components/Prints/lib/schema";
 import { AppSearch } from "@/components/Search";
 
 import { type Print, PrintQueryParams, Spool } from "@bindings";
+
+import { PrintTable } from "./printTable";
 
 export function PrintsPage() {
     const [queryParams, setQueryParams] = useState<PrintQueryParams>({
@@ -360,16 +361,11 @@ function PrintHeader({ onCreate }: { onCreate: () => void }) {
                     </p>
                 </div>
 
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button onClick={onCreate}>
-                            <PlusIcon /> Add Print
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{keyCombo}</p>
-                    </TooltipContent>
-                </Tooltip>
+                <LazyTooltip content={keyCombo}>
+                    <Button onClick={onCreate}>
+                        <PlusIcon /> Add Print
+                    </Button>
+                </LazyTooltip>
             </div>
 
             {/* Results info with loading indicator */}

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,7 +28,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/shadcn/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
 import type { Print } from "@bindings";
 
@@ -78,21 +78,19 @@ export function PrintTable({
                                             const color = ps?.color || "Black";
 
                                             return (
-                                                <Tooltip key={i}>
-                                                    <TooltipTrigger>
-                                                        <div
-                                                            key={ps.spoolId}
-                                                            className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    colorHex,
-                                                            }}
-                                                        />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        {color} · {colorHex}
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                <LazyTooltip
+                                                    key={i}
+                                                    content={`${ps.spoolCode} · ${ps.vendor} · ${color} · ${colorHex}`}
+                                                >
+                                                    <div
+                                                        key={ps.spoolId}
+                                                        className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] hover:cursor-help"
+                                                        style={{
+                                                            backgroundColor:
+                                                                colorHex,
+                                                        }}
+                                                    />
+                                                </LazyTooltip>
                                             );
                                         })}
                                     </div>
