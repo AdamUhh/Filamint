@@ -135,7 +135,6 @@ export function PrintsPage() {
             <PrintTable
                 isLoading={isFetching}
                 prints={prints}
-                spools={new Map()}
                 onEdit={(print) =>
                     setEditState({
                         id: print.id,
@@ -215,7 +214,12 @@ function PrintFormDialog({
                 spools: value.spools.map((s) => ({
                     id: editState.id,
                     printId: editState.id,
-                    spoolId: s.spool.id,
+                    spoolId: s.spoolId,
+                    spoolCode: "NaN", // default, doesnt do anything
+                    material: "NaN", // default, doesnt do anything
+                    vendor: "NaN", // default, doesnt do anything
+                    color: "NaN", // default, doesnt do anything
+                    colorHex: "NaN", // default, doesnt do anything
                     gramsUsed: s.gramsUsed,
                     createdAt:
                         editState.id > 0
@@ -268,15 +272,14 @@ function PrintFormDialog({
                     }
                     return {
                         gramsUsed: ps.gramsUsed,
-                        spool: {
-                            id: spool.id,
-                            spoolCode: spool.spoolCode,
-                            color: spool.color,
-                            material: spool.material,
-                            vendor: spool.vendor,
-                        },
+                        spoolId: spool.id,
+                        spoolCode: spool.spoolCode,
+                        color: spool.color,
+                        colorHex: spool.colorHex,
+                        material: spool.material,
+                        vendor: spool.vendor,
                     };
-                }),
+                }) || [],
                 {
                     dontValidate: true,
                 }

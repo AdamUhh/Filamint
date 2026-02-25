@@ -136,6 +136,11 @@ export class PrintSpool {
     "gramsUsed": number;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
+    "spoolCode": string;
+    "vendor": string;
+    "material": string;
+    "color": string;
+    "colorHex": string;
 
     /** Creates a new PrintSpool instance. */
     constructor($$source: Partial<PrintSpool> = {}) {
@@ -156,6 +161,21 @@ export class PrintSpool {
         }
         if (!("updatedAt" in $$source)) {
             this["updatedAt"] = null;
+        }
+        if (!("spoolCode" in $$source)) {
+            this["spoolCode"] = "";
+        }
+        if (!("vendor" in $$source)) {
+            this["vendor"] = "";
+        }
+        if (!("material" in $$source)) {
+            this["material"] = "";
+        }
+        if (!("color" in $$source)) {
+            this["color"] = "";
+        }
+        if (!("colorHex" in $$source)) {
+            this["colorHex"] = "";
         }
 
         Object.assign(this, $$source);

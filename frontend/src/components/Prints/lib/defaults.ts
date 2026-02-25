@@ -8,15 +8,15 @@ export const defaultPrintValues: TPrintSchema = {
     notes: "",
     datePrinted: new Date().toISOString(),
     spools: [
-        {
-            gramsUsed: 0,
-            spool: {
-                id: 0,
-                spoolCode: "",
-                color: "#000000",
-                material: "PLA",
-                vendor: "Bambu Labs",
-            },
-        },
+        // {
+        //     gramsUsed: 0,
+        //     spool: {
+        //         id: 0,
+        //         spoolCode: "",
+        //         color: "#000000",
+        //         material: "PLA",
+        //         vendor: "Bambu Labs",
+        //     },
+        // },
     ],
 };

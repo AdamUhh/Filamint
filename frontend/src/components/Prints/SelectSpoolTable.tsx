@@ -53,10 +53,17 @@ export function SelectSpoolTable({
             onAdd({
                 id: editingId,
                 printId: editingId,
-                spoolId: id,
+                spoolId: spool.id,
                 gramsUsed: 0,
+
                 createdAt: spool.createdAt,
                 updatedAt: spool.updatedAt,
+
+                spoolCode: spool.spoolCode,
+                vendor: spool.vendor,
+                material: spool.material,
+                color: spool.color,
+                colorHex: spool.colorHex,
             });
         }
     };

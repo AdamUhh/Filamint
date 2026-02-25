@@ -1,3 +1,5 @@
+import { TrashIcon } from "lucide-react";
+
 import { Button } from "@/shadcn/button";
 import {
     Dialog,
@@ -6,7 +8,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/shadcn/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/shadcn/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/shadcn/field";
 
 import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { withForm } from "@/components/Prints/lib/hooks";
@@ -82,33 +84,88 @@ export const PrintForm = withForm({
                             <div className="space-y-2">
                                 <Field
                                     data-invalid={isInvalid}
-                                    className="flex-row"
+                                    className="flex-col"
                                 >
-                                    <FieldLabel>Spools</FieldLabel>
+                                    <div className="flex items-center justify-between">
+                                        <FieldLabel>Spools</FieldLabel>
 
-                                    <Dialog modal>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 w-fit!"
-                                            >
-                                                + Select Spools
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
-                                            <DialogHeader>
-                                                <DialogTitle>
-                                                    Select Spool
-                                                </DialogTitle>
-                                            </DialogHeader>
-                                            <field.PrintSpoolContainerFormField
-                                                editingId={editState.id}
-                                                onReset={resetToOriginal}
+                                        <Dialog modal>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 w-fit!"
+                                                >
+                                                    + Select Spools
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>
+                                                        Select Spool
+                                                    </DialogTitle>
+                                                </DialogHeader>
+                                                <field.PrintSpoolContainerFormField
+                                                    editingId={editState.id}
+                                                    onReset={resetToOriginal}
+                                                />
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+
+                                    {field.state.value.map((s, i) => (
+                                        <div key={i} className="flex gap-2">
+                                            <div className="group relative flex h-8 flex-2 items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
+                                                        style={{
+                                                            backgroundColor:
+                                                                s.colorHex,
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost-destructive"
+                                                        size="icon-xs"
+                                                        className="absolute top-0.75 left-1 hidden bg-background group-hover:flex hover:bg-red-50"
+                                                        onClick={() =>
+                                                            field.removeValue(i)
+                                                        }
+                                                    >
+                                                        <TrashIcon className="size-3.5" />
+                                                    </Button>
+
+                                                    <span className="truncate">
+                                                        <span className="font-medium">
+                                                            {s.spoolCode}
+                                                        </span>
+                                                        <span className="text-muted-foreground">
+                                                            {" "}
+                                                            · {s.vendor} ·{" "}
+                                                            {s.material} ·{" "}
+                                                            {s.color}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <form.AppField
+                                                key={i}
+                                                name={`spools[${i}].gramsUsed`}
+                                                children={(subField) => (
+                                                    <subField.PrintGramsUsedFormField />
+                                                )}
                                             />
-                                        </DialogContent>
-                                    </Dialog>
+                                        </div>
+                                    ))}
+
+                                    {isInvalid && (
+                                        <FieldError
+                                            errors={field.state.meta.errors}
+                                        />
+                                    )}
                                 </Field>
                             </div>
                         );

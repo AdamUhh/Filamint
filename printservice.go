@@ -18,7 +18,11 @@ type PrintSpool struct {
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 
-	// Spool *Spool `json:"spool,omitempty"`
+	SpoolCode string `db:"spool_code" json:"spoolCode"`
+	Vendor    string `db:"vendor" json:"vendor"`
+	Material  string `db:"material" json:"material"`
+	Color     string `db:"color" json:"color"`
+	ColorHex  string `db:"color_hex" json:"colorHex"`
 }
 
 type Print struct {
@@ -261,27 +265,6 @@ func (s *PrintService) GetPrint(id int64) (*Print, error) {
 	return &p, nil
 }
 
-// Legacy method - kept for backward compatibility
-func (s *PrintService) ListPrints() ([]Print, error) {
-	var prints []Print
-	err := s.db.Select(&prints, `SELECT * FROM prints ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-
-	// Load spools for each print
-	for i := range prints {
-		var spools []PrintSpool
-		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
-		if err != nil {
-			return nil, err
-		}
-		prints[i].Spools = spools
-	}
-
-	return prints, nil
-}
-
 // New query method with filtering, sorting, and pagination
 func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, error) {
 	// Set defaults
@@ -388,10 +371,29 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 	// Load spools for each print
 	for i := range prints {
 		var spools []PrintSpool
-		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
+
+		err := s.db.Select(&spools, `
+		SELECT 
+			ps.id,
+			ps.print_id,
+			ps.spool_id,
+			ps.grams_used,
+			ps.created_at,
+			ps.updated_at,
+			s.color,
+			s.color_hex,
+			s.vendor,
+			s.material,
+			s.spool_code
+		FROM print_spools ps
+		JOIN spools s ON s.id = ps.spool_id
+		WHERE ps.print_id = ?
+	`, prints[i].ID)
+
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to load spools: %w", err)
 		}
+
 		prints[i].Spools = spools
 	}
 
@@ -400,3 +402,24 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		Total:  total,
 	}, nil
 }
+
+// Legacy method - kept for backward compatibility
+// func (s *PrintService) ListPrints() ([]Print, error) {
+// 	var prints []Print
+// 	err := s.db.Select(&prints, `SELECT * FROM prints ORDER BY created_at DESC`)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	// Load spools for each print
+// 	for i := range prints {
+// 		var spools []PrintSpool
+// 		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		prints[i].Spools = spools
+// 	}
+//
+// 	return prints, nil
+// }

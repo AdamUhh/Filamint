@@ -29,11 +29,10 @@ import {
 } from "@/shadcn/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shadcn/tooltip";
 
-import type { Print, Spool } from "@bindings";
+import type { Print } from "@bindings";
 
 export function PrintTable({
     prints,
-    spools,
     onEdit,
     onDuplicate,
     onDelete,
@@ -43,7 +42,6 @@ export function PrintTable({
     onSort,
 }: {
     prints: Map<number, Print>;
-    spools: Map<number, Spool>;
     onEdit: (print: Print) => void;
     onDuplicate: (print: Print) => void;
     onDelete: (id: number) => void;
@@ -74,14 +72,10 @@ export function PrintTable({
                                 <TableCell>
                                     <div className="flex gap-1">
                                         {print.spools?.map((ps, i) => {
-                                            const _spool = spools.get(
-                                                ps.spoolId
-                                            );
                                             const colorHex =
-                                                _spool?.colorHex || "#000000";
+                                                ps?.colorHex || "#000000";
 
-                                            const color =
-                                                _spool?.color || "Black";
+                                            const color = ps?.color || "Black";
 
                                             return (
                                                 <Tooltip key={i}>

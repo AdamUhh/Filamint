@@ -5,14 +5,6 @@ import { useState } from "react";
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
 import { Calendar } from "@/shadcn/calendar";
-import {
-    Combobox,
-    ComboboxContent,
-    ComboboxEmpty,
-    ComboboxInput,
-    ComboboxItem,
-    ComboboxList,
-} from "@/shadcn/combobox";
 import { Field, FieldError, FieldLabel } from "@/shadcn/field";
 import { Input } from "@/shadcn/input";
 import {
@@ -34,11 +26,8 @@ import {
 } from "@/shadcn/select";
 
 import { useFieldContext } from "@/components/Prints/lib/hooks";
-import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
-import type { ArrayElementOf } from "@/lib/util-types";
-
-import type { Print, Spool, SpoolQueryParams } from "@bindings";
+import type { Print, SpoolQueryParams } from "@bindings";
 
 import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";
@@ -152,96 +141,9 @@ export function PrintGramsUsedFormField() {
     );
 }
 
-export function PrintSpoolFormField({
-    spools,
-    onRemoveSpool: onRemoveSpool,
-}: {
-    spools: Map<number, Spool>;
-    onRemoveSpool: () => void;
-}) {
-    const field =
-        useFieldContext<ArrayElementOf<TPrintSchema["spools"]>["spool"]>();
-
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-    const selectedSpool = spools.get(field.state.value?.id) ?? null;
-
-    return (
-        <Field data-invalid={isInvalid} className="group flex-3">
-            <Combobox
-                name={field.name}
-                items={Array.from(spools.values())}
-                value={selectedSpool}
-                onValueChange={(value) =>
-                    value &&
-                    field.handleChange({
-                        id: value.id,
-                        spoolCode: value.spoolCode,
-                        color: value.color,
-                        material: value.material,
-                        vendor: value.vendor,
-                    })
-                }
-                itemToStringLabel={(value) =>
-                    `${value.spoolCode} · ${value.vendor} · ${value.color} · ${value.material}`
-                }
-            >
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline-destructive"
-                        size="sm"
-                        className="aspect-square h-full p-0"
-                        onClick={onRemoveSpool}
-                    >
-                        <TrashIcon className="size-3" />
-                    </Button>
-                    <ComboboxInput
-                        className="w-full"
-                        placeholder="Select a spool"
-                        onBlur={field.handleBlur}
-                        aria-invalid={isInvalid}
-                    />
-                </div>
-                <ComboboxContent>
-                    <ComboboxEmpty>No items found.</ComboboxEmpty>
-                    <ComboboxList className="pointer-events-auto">
-                        {(spool: Spool) => (
-                            <ComboboxItem key={spool.id} value={spool}>
-                                <div className="flex w-full items-center justify-between font-mono hover:cursor-pointer">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="col-span-3 font-medium">
-                                            {spool.spoolCode}
-                                        </span>
-
-                                        <span className="truncate text-muted-foreground">
-                                            {spool.vendor} · {spool.color} ·{" "}
-                                            {spool.material}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-right text-muted-foreground opacity-0">
-                                            {spool.id}
-                                        </span>
-                                        <span className="text-right text-muted-foreground">
-                                            {spool.totalWeight}g
-                                        </span>
-                                    </div>
-                                </div>
-                            </ComboboxItem>
-                        )}
-                    </ComboboxList>
-                </ComboboxContent>
-            </Combobox>
-            {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
-        </Field>
-    );
-}
-
 export function PrintSpoolContainerFormField({
     editingId,
-    onReset,
+    // onReset,
 }: {
     editingId: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -297,20 +199,42 @@ export function PrintSpoolContainerFormField({
 
     return (
         <>
-            {field.state.value?.map((s, indx) => (
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline-destructive"
-                        size="sm"
-                        className="aspect-square h-full p-0"
-                        onClick={() => field.removeValue(indx)}
+            <div className="flex flex-wrap gap-2">
+                {field.state.value?.map((s, index) => (
+                    <div
+                        key={s.spoolId ?? index}
+                        className="group relative flex h-8 w-fit items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs"
                     >
-                        <TrashIcon className="size-3" />
-                    </Button>
-                    <div>{s.spoolId}</div>
-                </div>
-            ))}
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
+                                style={{
+                                    backgroundColor: s.colorHex,
+                                }}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost-destructive"
+                                size="icon-xs"
+                                className="absolute top-0.75 left-1 hidden bg-background group-hover:flex hover:bg-red-50"
+                                onClick={() => field.removeValue(index)}
+                            >
+                                <TrashIcon className="size-3.5" />
+                            </Button>
+
+                            <span className="truncate">
+                                <span className="font-medium">
+                                    {s.spoolCode}
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {" "}
+                                    · {s.vendor} · {s.material} · {s.color}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
             <div className="flex items-center justify-between">
                 <div className="flex w-full gap-2">
                     <AppSearch
@@ -638,3 +562,90 @@ export function PrintNotesFormField({
         </Field>
     );
 }
+
+// export function PrintSpoolFormField({
+//     spools,
+//     onRemoveSpool: onRemoveSpool,
+// }: {
+//     spools: Map<number, Spool>;
+//     onRemoveSpool: () => void;
+// }) {
+//     const field =
+//         useFieldContext<ArrayElementOf<TPrintSchema["spools"]>["spool"]>();
+//
+//     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+//
+//     const selectedSpool = spools.get(field.state.value?.id) ?? null;
+//
+//     return (
+//         <Field data-invalid={isInvalid} className="group flex-3">
+//             <Combobox
+//                 name={field.name}
+//                 items={Array.from(spools.values())}
+//                 value={selectedSpool}
+//                 onValueChange={(value) =>
+//                     value &&
+//                     field.handleChange({
+//                         id: value.id,
+//                         spoolCode: value.spoolCode,
+//                         color: value.color,
+//                         material: value.material,
+//                         vendor: value.vendor,
+//                     })
+//                 }
+//                 itemToStringLabel={(value) =>
+//                     `${value.spoolCode} · ${value.vendor} · ${value.color} · ${value.material}`
+//                 }
+//             >
+//                 <div className="flex gap-2">
+//                     <Button
+//                         type="button"
+//                         variant="outline-destructive"
+//                         size="sm"
+//                         className="aspect-square h-full p-0"
+//                         onClick={onRemoveSpool}
+//                     >
+//                         <TrashIcon className="size-3" />
+//                     </Button>
+//                     <ComboboxInput
+//                         className="w-full"
+//                         placeholder="Select a spool"
+//                         onBlur={field.handleBlur}
+//                         aria-invalid={isInvalid}
+//                     />
+//                 </div>
+//                 <ComboboxContent>
+//                     <ComboboxEmpty>No items found.</ComboboxEmpty>
+//                     <ComboboxList className="pointer-events-auto">
+//                         {(spool: Spool) => (
+//                             <ComboboxItem key={spool.id} value={spool}>
+//                                 <div className="flex w-full items-center justify-between font-mono hover:cursor-pointer">
+//                                     <div className="flex flex-col gap-1">
+//                                         <span className="col-span-3 font-medium">
+//                                             {spool.spoolCode}
+//                                         </span>
+//
+//                                         <span className="truncate text-muted-foreground">
+//                                             {spool.vendor} · {spool.color} ·{" "}
+//                                             {spool.material}
+//                                         </span>
+//                                     </div>
+//
+//                                     <div className="flex flex-col gap-1">
+//                                         <span className="text-right text-muted-foreground opacity-0">
+//                                             {spool.id}
+//                                         </span>
+//                                         <span className="text-right text-muted-foreground">
+//                                             {spool.totalWeight}g
+//                                         </span>
+//                                     </div>
+//                                 </div>
+//                             </ComboboxItem>
+//                         )}
+//                     </ComboboxList>
+//                 </ComboboxContent>
+//             </Combobox>
+//             {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
+//         </Field>
+//     );
+// }

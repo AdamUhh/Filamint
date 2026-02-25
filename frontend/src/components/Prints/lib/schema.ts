@@ -10,13 +10,12 @@ export const printSchema = z.object({
     spools: z
         .array(
             z.object({
-                spool: z.object({
-                    id: z.number().int().nonnegative(),
-                    spoolCode: z.string().min(1, "Please select a spool"),
-                    color: z.string(),
-                    vendor: z.string(),
-                    material: z.string(),
-                }),
+                spoolId: z.number().int().nonnegative(),
+                spoolCode: z.string().min(1, "Please select a spool"),
+                color: z.string(),
+                colorHex: z.string(),
+                vendor: z.string(),
+                material: z.string(),
                 gramsUsed: z
                     .number()
                     .min(1, "How many grams did this print use?")
