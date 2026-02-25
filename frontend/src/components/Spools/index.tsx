@@ -181,7 +181,6 @@ export function SpoolsPage() {
             />
 
             <SpoolFormDialog
-                spools={spools}
                 editState={editState}
                 setEditState={setEditState}
             />
@@ -198,11 +197,9 @@ export function SpoolsPage() {
 }
 
 function SpoolFormDialog({
-    spools,
     editState,
     setEditState,
 }: {
-    spools: Map<number, Spool>;
     editState: EditState;
     setEditState: Dispatch<SetStateAction<EditState>>;
 }) {
@@ -213,19 +210,14 @@ function SpoolFormDialog({
         defaultValues: defaultSpoolValues,
         validators: { onChange: spoolSchema },
         onSubmit: async ({ value }) => {
-            const now = new Date().toISOString();
-
             const spoolToSave: Spool = {
                 id: editState.id,
                 spoolCode: String(editState.id),
                 ...value,
-                firstUsedAt: null,
-                lastUsedAt: null,
-                createdAt:
-                    editState.id > 0
-                        ? spools.get(editState.id)?.createdAt || now
-                        : now,
-                updatedAt: now,
+                firstUsedAt: null, // placeholder, ignored by db
+                lastUsedAt: null, // placeholder, ignored by db
+                createdAt: null, // placeholder, ignored by db
+                updatedAt: null, // placeholder, ignored by db
             };
 
             if (editState.id > 0) {

@@ -116,22 +116,30 @@ export function PrintsPage() {
         <div className="space-y-6 p-6">
             <PrintHeader onCreate={handleCreate} />
 
-            <div className="scroll flex gap-2">
-                <AppSearch
-                    onSearch={handleSearch}
-                    placeholder="Search prints by name or status"
-                    qualifierKeys={["name", "spool", "status"]}
-                />
-                <div className="mt-2 text-xs text-muted-foreground">
-                    {isFetching
-                        ? "Loading prints..."
-                        : `Showing ${prints.size} of ${total} prints${
-                              queryParams.search
-                                  ? ` matching "${queryParams.search}"`
-                                  : ""
-                          }`}
+            <div className="flex items-center justify-between">
+                <div className="flex w-full gap-2">
+                    <AppSearch
+                        onSearch={handleSearch}
+                        placeholder="Search prints by name or status"
+                        qualifierKeys={["name", "spool", "status"]}
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">
+                        {isFetching
+                            ? "Loading prints..."
+                            : `Showing ${prints.size} of ${total} prints${
+                                  queryParams.search
+                                      ? ` matching "${queryParams.search}"`
+                                      : ""
+                              }`}
+                    </div>
                 </div>
             </div>
+
+            <AppPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+            />
 
             <PrintTable
                 isLoading={isFetching}
@@ -158,14 +166,7 @@ export function PrintsPage() {
                 onSort={handleSort}
             />
 
-            <AppPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-            />
-
             <PrintFormDialog
-                prints={prints}
                 editState={editState}
                 setEditState={setEditState}
             />
@@ -182,11 +183,9 @@ export function PrintsPage() {
 }
 
 function PrintFormDialog({
-    prints,
     editState,
     setEditState,
 }: {
-    prints: Map<number, Print>;
     editState: EditState;
     setEditState: Dispatch<SetStateAction<EditState>>;
 }) {
@@ -197,38 +196,28 @@ function PrintFormDialog({
         defaultValues: defaultPrintValues,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
-            const now = new Date().toISOString();
             const printToSave: Print = {
                 id: editState.id,
                 name: value.name,
                 status: value.status,
                 notes: value.notes,
                 datePrinted: new Date(value.datePrinted),
-                createdAt:
-                    editState.id > 0
-                        ? prints.get(editState.id)?.createdAt || now
-                        : now,
-                updatedAt: now,
+                createdAt: null,
+                updatedAt: null,
                 spools: value.spools.map((s) => ({
-                    id: editState.id,
                     printId: editState.id,
                     spoolId: s.spoolId,
-                    spoolCode: "NaN", // default, doesnt do anything
-                    material: "NaN", // default, doesnt do anything
-                    vendor: "NaN", // default, doesnt do anything
-                    color: "NaN", // default, doesnt do anything
-                    colorHex: "NaN", // default, doesnt do anything
                     gramsUsed: s.gramsUsed,
-                    createdAt:
-                        editState.id > 0
-                            ? prints.get(editState.id)?.createdAt || now
-                            : now,
-                    updatedAt: now,
+                    id: editState.id, // placeholder, ignored by db
+                    spoolCode: "NaN", // placeholder, ignored by db
+                    material: "NaN", // placeholder
+                    vendor: "NaN", // placeholder
+                    color: "NaN", // placeholder
+                    colorHex: "NaN", // placeholder
+                    createdAt: null, // placeholder
+                    updatedAt: null, // placeholder
                 })),
             };
-
-            console.debug("submitting", printToSave);
-            // return;
 
             try {
                 if (editState.id > 0) {
@@ -349,24 +338,19 @@ function PrintHeader({ onCreate }: { onCreate: () => void }) {
     const keyCombo = useKeyCombo("print:create");
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                    <h1 className="text-3xl font-bold">Prints</h1>
-                    <p className="text-muted-foreground">
-                        This is where your prints live.
-                    </p>
-                </div>
-
-                <LazyTooltip content={keyCombo}>
-                    <Button onClick={onCreate}>
-                        <PlusIcon /> Add Print
-                    </Button>
-                </LazyTooltip>
+        <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+                <h1 className="text-3xl font-bold">Prints</h1>
+                <p className="text-muted-foreground">
+                    This is where your prints live.
+                </p>
             </div>
 
-            {/* Results info with loading indicator */}
-            <div className="flex items-center gap-2"></div>
+            <LazyTooltip content={keyCombo}>
+                <Button onClick={onCreate}>
+                    <PlusIcon /> Add Print
+                </Button>
+            </LazyTooltip>
         </div>
     );
 }

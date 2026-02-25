@@ -2,17 +2,14 @@
 - - [ ] 
 
 > Spools
-- [ ] Check out filamenttracker online to see how they get spool code
 - [ ] Allow create and update to change spoolcode
 - [ ] When deleting, show prints that will also be deleted. 
 - - [  ] Need another option to switch print spools to another, or simply delete spool and foreign key.
 - [ ] Allow selection of multiple spools across pages, where the user can then select "add a print with these spools"
 
 > Prints
-- [ ] Need to remove spool templates from list of choices
-- [ ] Need to update spools client side, or fetch again
-- [ ] When choosing spools, open a new modal, that has pagination, that a user can select from a list of spools
-- - [  ] Will have "Selected Spools" at the top
+- [ ] Add ability to upload 3MF/STL files, and view them (3d) in a window
+- [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: When clicking Spools cell, should open a modal with spool info?
 
 > Search
@@ -24,6 +21,7 @@
 - [ ] Figure out where db.db is stored on build (AppData?)
 
 > QoL
+- [ ] Add updater
 - [ ] Remove default context menus
 - [ ] GetShortcuts should not show developer stuff in production
 - [ ] Need to cleanup on window.OnDestroy(), look at example cleanup: https://v3alpha.wails.io/features/windows/events/#ondestroy
