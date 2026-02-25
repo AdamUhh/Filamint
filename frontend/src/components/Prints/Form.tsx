@@ -14,7 +14,7 @@ import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { withForm } from "@/components/Prints/lib/hooks";
 import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
-import type { Print, Spool } from "@bindings";
+import type { Print } from "@bindings";
 
 export type EditState = {
     isOpen: boolean;
@@ -30,7 +30,6 @@ export const PrintForm = withForm({
             id: 0,
             original: null,
         } as EditState,
-        spools: {} as Map<number, Spool>,
     },
     render: function Render({ form, editState }) {
         const resetToOriginal = (field: keyof TPrintSchema) => {

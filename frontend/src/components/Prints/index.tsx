@@ -33,7 +33,7 @@ import { useAppForm } from "@/components/Prints/lib/hooks";
 import { printSchema } from "@/components/Prints/lib/schema";
 import { AppSearch } from "@/components/Search";
 
-import { type Print, PrintQueryParams, Spool } from "@bindings";
+import { type Print, PrintQueryParams } from "@bindings";
 
 import { PrintTable } from "./printTable";
 
@@ -166,7 +166,6 @@ export function PrintsPage() {
 
             <PrintFormDialog
                 prints={prints}
-                spools={new Map()}
                 editState={editState}
                 setEditState={setEditState}
             />
@@ -184,12 +183,10 @@ export function PrintsPage() {
 
 function PrintFormDialog({
     prints,
-    spools,
     editState,
     setEditState,
 }: {
     prints: Map<number, Print>;
-    spools: Map<number, Spool>;
     editState: EditState;
     setEditState: Dispatch<SetStateAction<EditState>>;
 }) {
@@ -267,18 +264,19 @@ function PrintFormDialog({
             form.setFieldValue(
                 "spools",
                 editState.original.spools!.map((ps) => {
-                    const spool = spools.get(ps.spoolId);
-                    if (!spool) {
-                        throw new Error(`Spool not found for id ${ps.spoolId}`);
+                    if (!ps) {
+                        throw new Error(
+                            `Spool not found for id ${editState.id}`
+                        );
                     }
                     return {
                         gramsUsed: ps.gramsUsed,
-                        spoolId: spool.id,
-                        spoolCode: spool.spoolCode,
-                        color: spool.color,
-                        colorHex: spool.colorHex,
-                        material: spool.material,
-                        vendor: spool.vendor,
+                        spoolId: ps.id,
+                        spoolCode: ps.spoolCode,
+                        color: ps.color,
+                        colorHex: ps.colorHex,
+                        material: ps.material,
+                        vendor: ps.vendor,
                     };
                 }) || [],
                 {
@@ -286,7 +284,7 @@ function PrintFormDialog({
                 }
             );
         }
-    }, [editState, form, spools]);
+    }, [editState, form]);
 
     const handleClose = () => {
         form.reset();
@@ -314,11 +312,7 @@ function PrintFormDialog({
                         form.handleSubmit();
                     }}
                 >
-                    <PrintForm
-                        form={form}
-                        editState={editState}
-                        spools={spools}
-                    />
+                    <PrintForm form={form} editState={editState} />
                     <DialogFooter>
                         <Button
                             type="button"
