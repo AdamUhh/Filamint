@@ -1,6 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    useIsFetching,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import { Events } from "@wailsio/runtime";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Spool, SpoolQueryParams } from "@bindings";
 import { SpoolService } from "@bindings";
@@ -25,9 +30,6 @@ export function useSpoolEvents(
     }, [onCreate, onToggleTemplate]);
 }
 
-/**
- * Hook to query spools with filtering, sorting, and pagination
- */
 export function useSpools(params: Partial<SpoolQueryParams> = {}) {
     const queryParams: SpoolQueryParams = {
         search: "",
@@ -62,9 +64,6 @@ export function useSpools(params: Partial<SpoolQueryParams> = {}) {
     };
 }
 
-/**
- * Hook to get a single spool by ID
- */
 export function useSpool(id: number) {
     return useQuery({
         queryKey: ["spool", id],
@@ -77,34 +76,25 @@ export function useSpool(id: number) {
     });
 }
 
-/**
- * Hook to create a new spool
- */
 export function useCreateSpool() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (spool: Spool) => SpoolService.CreateSpool(spool),
         onSuccess: () => {
-            // Invalidate all spool queries to refetch with current filters
             queryClient.invalidateQueries({ queryKey: ["spools"] });
         },
     });
 }
 
-/**
- * Hook to update an existing spool
- */
 export function useUpdateSpool() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (spool: Spool) => SpoolService.UpdateSpool(spool),
         onSuccess: (_, updatedSpool) => {
-            // Invalidate all spool queries
             queryClient.invalidateQueries({ queryKey: ["spools"] });
 
-            // Also invalidate the specific spool query
             queryClient.invalidateQueries({
                 queryKey: ["spool", updatedSpool.id],
             });
@@ -112,24 +102,67 @@ export function useUpdateSpool() {
     });
 }
 
-/**
- * Hook to delete a spool
- */
 export function useDeleteSpool() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (id: number) => SpoolService.DeleteSpool(id),
         onSuccess: (_, deletedId) => {
-            // Invalidate all spool queries
             queryClient.invalidateQueries({ queryKey: ["spools"] });
 
-            // Remove the specific spool from cache
             queryClient.removeQueries({
                 queryKey: ["spool", deletedId],
             });
         },
     });
+}
+
+export function useInvalidateSpools(cooldownMs = 5000) {
+    const queryClient = useQueryClient();
+    const isFetching = useIsFetching({ queryKey: ["spools"] }) > 0;
+
+    const [secondsLeft, setSecondsLeft] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const intervalRef = useRef<any>(null);
+
+    const startCooldown = () => {
+        const totalSeconds = Math.ceil(cooldownMs / 1000);
+        setSecondsLeft(totalSeconds);
+
+        intervalRef.current = setInterval(() => {
+            setSecondsLeft((prev) => {
+                if (prev <= 1) {
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const invalidate = () => {
+        if (isFetching) return;
+        if (secondsLeft > 0) return;
+
+        queryClient.invalidateQueries({ queryKey: ["spools"] });
+        startCooldown();
+    };
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
+
+    return {
+        invalidate,
+        isFetching,
+        secondsLeft,
+        isCoolingDown: secondsLeft > 0,
+    };
 }
 
 // interface SpoolQueryResult {

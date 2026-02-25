@@ -178,17 +178,17 @@ function MyTableRowsEmpty() {
 const SortableHeader = ({
     column,
     label,
-    onSort,
     sortBy,
     sortOrder,
     className,
+    onSort,
 }: {
     column: string;
     label: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
-    onSort?: (column: string) => void;
     className?: string;
+    onSort?: (column: string) => void;
 }) => {
     if (!onSort) {
         return <TableHead>{label}</TableHead>;

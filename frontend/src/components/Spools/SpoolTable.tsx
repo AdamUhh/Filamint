@@ -9,10 +9,12 @@ import {
     FilePlusIcon,
     HistoryIcon,
     PencilIcon,
+    RotateCwIcon,
     TrashIcon,
 } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +36,7 @@ import {
 import type { Spool } from "@bindings";
 
 import { CopyToClipboard } from "../CopyToClipboard";
+import { useInvalidateSpools } from "./lib/fetch-hooks";
 
 export function SpoolTable({
     spools,
@@ -359,8 +362,35 @@ function MyTableHeaders({
                     label="Cost"
                     className="w-36"
                 />
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-12">
+                    <RefreshSpools />
+                </TableHead>
             </TableRow>
         </TableHeader>
+    );
+}
+
+function RefreshSpools() {
+    const { invalidate, isFetching, secondsLeft, isCoolingDown } =
+        useInvalidateSpools();
+
+    const tooltipText = isFetching
+        ? "Refreshing..."
+        : isCoolingDown
+          ? `Retry in ${secondsLeft}s`
+          : "Refresh Spool Data";
+
+    return (
+        <LazyTooltip content={tooltipText}>
+            <div>
+                <Button
+                    variant="ghost"
+                    onClick={invalidate}
+                    disabled={isFetching || isCoolingDown}
+                >
+                    <RotateCwIcon />
+                </Button>
+            </div>
+        </LazyTooltip>
     );
 }

@@ -40,7 +40,7 @@ import { PrintTable } from "./printTable";
 export function PrintsPage() {
     const [queryParams, setQueryParams] = useState<PrintQueryParams>({
         search: "",
-        sortBy: "created_at",
+        sortBy: "date_printed",
         sortOrder: "desc",
         limit: PAGE_SIZE,
         offset: 0,
@@ -227,6 +227,9 @@ function PrintFormDialog({
                 })),
             };
 
+            console.debug("submitting", printToSave);
+            // return;
+
             try {
                 if (editState.id > 0) {
                     await updateMutation.mutateAsync(printToSave);
@@ -263,7 +266,7 @@ function PrintFormDialog({
             });
             form.setFieldValue(
                 "spools",
-                editState.original.spools!.map((ps) => {
+                editState.original.spools?.map((ps) => {
                     if (!ps) {
                         throw new Error(
                             `Spool not found for id ${editState.id}`
@@ -271,7 +274,7 @@ function PrintFormDialog({
                     }
                     return {
                         gramsUsed: ps.gramsUsed,
-                        spoolId: ps.id,
+                        spoolId: ps.spoolId,
                         spoolCode: ps.spoolCode,
                         color: ps.color,
                         colorHex: ps.colorHex,

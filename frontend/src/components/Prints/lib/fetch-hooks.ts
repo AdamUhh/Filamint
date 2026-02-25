@@ -1,6 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    useIsFetching,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import { Events } from "@wailsio/runtime";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Print, PrintQueryParams } from "@bindings";
 import { PrintService } from "@bindings";
@@ -17,9 +22,6 @@ export function usePrintEvents(onCreate: () => void) {
     }, [onCreate]);
 }
 
-/**
- * Hook to query prints with filtering, sorting, and pagination
- */
 export function usePrints(params: Partial<PrintQueryParams> = {}) {
     const queryParams: PrintQueryParams = {
         search: "",
@@ -53,9 +55,6 @@ export function usePrints(params: Partial<PrintQueryParams> = {}) {
     };
 }
 
-/**
- * Hook to get a single print by ID
- */
 export function usePrint(id: number) {
     return useQuery({
         queryKey: ["print", id],
@@ -68,44 +67,36 @@ export function usePrint(id: number) {
     });
 }
 
-/**
- * Hook to create a new print
- */
 export function useCreatePrint() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (print: Print) => PrintService.CreatePrint(print),
         onSuccess: () => {
-            // Invalidate all print queries to refetch with current filters
             queryClient.invalidateQueries({ queryKey: ["prints"] });
         },
     });
 }
 
-/**
- * Hook to update an existing print
- */
 export function useUpdatePrint() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (print: Print) => PrintService.UpdatePrint(print),
         onSuccess: (_, updatedPrint) => {
-            // Invalidate all print queries
             queryClient.invalidateQueries({ queryKey: ["prints"] });
 
-            // Also invalidate the specific print query
             queryClient.invalidateQueries({
                 queryKey: ["print", updatedPrint.id],
+            });
+
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
             });
         },
     });
 }
 
-/**
- * Hook to delete a print
- */
 export function useDeletePrint() {
     const queryClient = useQueryClient();
 
@@ -113,15 +104,65 @@ export function useDeletePrint() {
         mutationFn: (args: { id: number; restoreSpoolGrams: boolean }) =>
             PrintService.DeletePrint(args.id, args.restoreSpoolGrams),
         onSuccess: (_, deletedId) => {
-            // Invalidate all print queries
             queryClient.invalidateQueries({ queryKey: ["prints"] });
 
-            // Remove the specific print from cache
             queryClient.removeQueries({
                 queryKey: ["print", deletedId],
             });
+
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
+            });
         },
     });
+}
+
+export function useInvalidatePrints(cooldownMs = 5000) {
+    const queryClient = useQueryClient();
+    const isFetching = useIsFetching({ queryKey: ["prints"] }) > 0;
+
+    const [secondsLeft, setSecondsLeft] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const intervalRef = useRef<any>(null);
+
+    const startCooldown = () => {
+        const totalSeconds = Math.ceil(cooldownMs / 1000);
+        setSecondsLeft(totalSeconds);
+
+        intervalRef.current = setInterval(() => {
+            setSecondsLeft((prev) => {
+                if (prev <= 1) {
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const invalidate = () => {
+        if (isFetching) return;
+        if (secondsLeft > 0) return;
+
+        queryClient.invalidateQueries({ queryKey: ["prints"] });
+        startCooldown();
+    };
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
+
+    return {
+        invalidate,
+        isFetching,
+        secondsLeft,
+        isCoolingDown: secondsLeft > 0,
+    };
 }
 
 // interface PrintQueryResult {

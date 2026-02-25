@@ -6,6 +6,7 @@ import {
     CopyPlusIcon,
     EllipsisIcon,
     PencilIcon,
+    RotateCwIcon,
     TrashIcon,
 } from "lucide-react";
 
@@ -30,6 +31,8 @@ import {
 } from "@/shadcn/table";
 
 import type { Print } from "@bindings";
+
+import { useInvalidatePrints } from "./lib/fetch-hooks";
 
 export function PrintTable({
     prints,
@@ -68,6 +71,10 @@ export function PrintTable({
                     ) : (
                         printArray.map((print) => (
                             <TableRow key={print.id} className="capitalize">
+                                <TableCell>
+                                    {print.datePrinted &&
+                                        format(print.datePrinted, "PPp")}
+                                </TableCell>
                                 <TableCell>{print.name}</TableCell>
                                 <TableCell>
                                     <div className="flex gap-1">
@@ -104,10 +111,6 @@ export function PrintTable({
                                         : "NaN"}
                                 </TableCell>
                                 <TableCell>{print.status}</TableCell>
-                                <TableCell>
-                                    {print.datePrinted &&
-                                        format(print.datePrinted, "PPp")}
-                                </TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -176,12 +179,14 @@ const SortableHeader = ({
     label,
     sortBy,
     sortOrder,
+    className,
     onSort,
 }: {
     column: string;
     label: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
+    className?: string;
     onSort?: (column: string) => void;
 }) => {
     if (!onSort) {
@@ -196,7 +201,7 @@ const SortableHeader = ({
           : ArrowUpIcon;
 
     return (
-        <TableHead>
+        <TableHead className={className}>
             <Button
                 variant="ghost"
                 size="sm"
@@ -226,6 +231,14 @@ function PrintTableHeaders({
                     sortBy={sortBy}
                     sortOrder={sortOrder}
                     onSort={onSort}
+                    column="date_printed"
+                    label="Printed On"
+                    className="w-48"
+                />
+                <SortableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={onSort}
                     column="name"
                     label="Name"
                 />
@@ -238,14 +251,9 @@ function PrintTableHeaders({
                     column="status"
                     label="Status"
                 />
-                <SortableHeader
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSort={onSort}
-                    column="date_printed"
-                    label="Printed On"
-                />
-                <TableHead></TableHead>
+                <TableHead className="w-12">
+                    <RefreshPrints />
+                </TableHead>
             </TableRow>
         </TableHeader>
     );
@@ -274,5 +282,30 @@ function PrintTableRowsEmpty() {
                 No prints found. Add your first print to get started.
             </TableCell>
         </TableRow>
+    );
+}
+
+function RefreshPrints() {
+    const { invalidate, isFetching, secondsLeft, isCoolingDown } =
+        useInvalidatePrints();
+
+    const tooltipText = isFetching
+        ? "Refreshing..."
+        : isCoolingDown
+          ? `Retry in ${secondsLeft}s`
+          : "Refresh Print Data";
+
+    return (
+        <LazyTooltip content={tooltipText}>
+            <div>
+                <Button
+                    variant="ghost"
+                    onClick={invalidate}
+                    disabled={isFetching || isCoolingDown}
+                >
+                    <RotateCwIcon />
+                </Button>
+            </div>
+        </LazyTooltip>
     );
 }
