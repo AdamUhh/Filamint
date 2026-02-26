@@ -1,150 +1,152 @@
-import { FieldGroup } from "@/shadcn/field";
+import { type Dispatch, type SetStateAction, useEffect } from "react";
 
+import { Button } from "@/shadcn/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/shadcn/dialog";
+
+import { SpoolForm } from "@/components/Spools/FormFields";
 import { defaultSpoolValues } from "@/components/Spools/lib/defaults";
-import { withForm } from "@/components/Spools/lib/hooks";
-import type { TSpoolSchema } from "@/components/Spools/lib/schema";
+import {
+    useCreateSpool,
+    useUpdateSpool,
+} from "@/components/Spools/lib/fetch-hooks";
+import { useAppForm } from "@/components/Spools/lib/hooks";
+import { spoolSchema } from "@/components/Spools/lib/schema";
 
 import type { Spool } from "@bindings";
 
-export type EditState = {
-    isOpen: boolean;
-    id: number;
-    original: Spool | null;
-};
+import type { EditState } from "./lib/types";
 
-export const SpoolForm = withForm({
-    defaultValues: defaultSpoolValues,
-    props: {
-        editState: {
-            isOpen: false,
-            id: 0,
-            original: null,
-        } as EditState,
-    },
-    render: function Render({ form, editState }) {
-        const resetToOriginal = (field: keyof TSpoolSchema) => {
-            if (!editState.original) return;
+export function SpoolFormDialog({
+    editState,
+    setEditState,
+}: {
+    editState: EditState;
+    setEditState: Dispatch<SetStateAction<EditState>>;
+}) {
+    const createMutation = useCreateSpool();
+    const updateMutation = useUpdateSpool();
 
-            form.setFieldValue(field, editState.original[field]);
-        };
+    const form = useAppForm({
+        defaultValues: defaultSpoolValues,
+        validators: { onChange: spoolSchema },
+        onSubmit: async ({ value }) => {
+            const spoolToSave: Spool = {
+                id: editState.id,
+                spoolCode: String(editState.id),
+                ...value,
+                firstUsedAt: null, // placeholder, ignored by db
+                lastUsedAt: null, // placeholder, ignored by db
+                createdAt: null, // placeholder, ignored by db
+                updatedAt: null, // placeholder, ignored by db
+            };
 
-        return (
-            <FieldGroup className="pb-4">
-                <form.AppField
-                    name="vendor"
-                    children={(field) => (
-                        <field.SpoolVendorFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                    <form.AppField
-                        name="material"
-                        children={(field) => (
-                            <field.SpoolMaterialFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
+            if (editState.id > 0) {
+                await updateMutation.mutateAsync(spoolToSave);
+            } else {
+                await createMutation.mutateAsync(spoolToSave);
+            }
 
-                    <form.AppField
-                        name="materialType"
-                        children={(field) => (
-                            <field.SpoolMaterialTypeFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
-                </div>
+            form.reset();
+            setEditState({ id: 0, isOpen: false, original: null });
+        },
+    });
 
-                <div className="grid grid-cols-2 gap-4">
-                    <form.AppField
-                        name="color"
-                        children={(field) => (
-                            <field.SpoolColorFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
+    useEffect(() => {
+        if (editState.isOpen && editState.original) {
+            form.setFieldValue("vendor", editState.original.vendor, {
+                dontValidate: true,
+            });
+            form.setFieldValue("usedWeight", editState.original.usedWeight, {
+                dontValidate: true,
+            });
+            form.setFieldValue("cost", editState.original.cost, {
+                dontValidate: true,
+            });
+            form.setFieldValue(
+                "referenceLink",
+                editState.original.referenceLink,
+                { dontValidate: true }
+            );
+            form.setFieldValue("notes", editState.original.notes, {
+                dontValidate: true,
+            });
+            form.setFieldValue("totalWeight", editState.original.totalWeight, {
+                dontValidate: true,
+            });
+            form.setFieldValue("color", editState.original.color, {
+                dontValidate: true,
+            });
+            form.setFieldValue("colorHex", editState.original.colorHex, {
+                dontValidate: true,
+            });
+            form.setFieldValue("material", editState.original.material, {
+                dontValidate: true,
+            });
+            form.setFieldValue(
+                "materialType",
+                editState.original.materialType,
+                { dontValidate: true }
+            );
+            form.setFieldValue("isTemplate", editState.original.isTemplate, {
+                dontValidate: true,
+            });
+        }
+    }, [editState, form]);
 
-                    <form.AppField
-                        name="colorHex"
-                        children={(field) => (
-                            <field.SpoolColorHexFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
-                </div>
+    const handleClose = () => {
+        form.reset();
+        setEditState({ id: 0, isOpen: false, original: null });
+    };
 
-                <div className="grid grid-cols-2 gap-4">
-                    <form.AppField
-                        name="totalWeight"
-                        children={(field) => (
-                            <field.SpoolTotalWeightFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
+    return (
+        <Dialog
+            open={editState.isOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) handleClose();
+            }}
+        >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        {editState.id > 0 ? "Edit Spool" : "Add New Spool"}
+                    </DialogTitle>
+                </DialogHeader>
 
-                    <div className="relative">
-                        <form.AppField
-                            name="usedWeight"
-                            children={(field) => (
-                                <field.SpoolUsedWeightFormField
-                                    editingId={editState.id}
-                                    onReset={resetToOriginal}
-                                />
-                            )}
-                        />
-                        <form.AppForm>
-                            <form.SpoolRemainingWeight />
-                        </form.AppForm>
-                    </div>
-                </div>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        form.handleSubmit();
+                    }}
+                >
+                    <SpoolForm form={form} editState={editState} />
 
-                <form.AppField
-                    name="cost"
-                    children={(field) => (
-                        <field.SpoolCostFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClose}
+                        >
+                            Cancel
+                        </Button>
 
-                <form.AppField
-                    name="referenceLink"
-                    children={(field) => (
-                        <field.SpoolReferenceLinkFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
-
-                <form.AppField
-                    name="notes"
-                    children={(field) => (
-                        <field.SpoolNotesFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
-
-                <form.AppField
-                    name="isTemplate"
-                    children={(field) => <field.SpoolIsTemplateFormField />}
-                />
-            </FieldGroup>
-        );
-    },
-});
+                        <Button
+                            type="submit"
+                            disabled={
+                                createMutation.isPending ||
+                                updateMutation.isPending
+                            }
+                        >
+                            {editState.id > 0 ? "Update" : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}

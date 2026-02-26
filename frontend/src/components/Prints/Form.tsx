@@ -1,259 +1,175 @@
-import { TrashIcon } from "lucide-react";
+import { type Dispatch, type SetStateAction, useEffect } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/shadcn/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/shadcn/field";
 
+import { PrintForm } from "@/components/Prints/FormFields";
 import { defaultPrintValues } from "@/components/Prints/lib/defaults";
-import { withForm } from "@/components/Prints/lib/hooks";
-import type { TPrintSchema } from "@/components/Prints/lib/schema";
+import {
+    useCreatePrint,
+    useUpdatePrint,
+} from "@/components/Prints/lib/fetch-hooks";
+import { useAppForm } from "@/components/Prints/lib/hooks";
+import { printSchema } from "@/components/Prints/lib/schema";
 
-import type { Print } from "@bindings";
+import { type Print } from "@bindings";
 
-export type EditState = {
-    isOpen: boolean;
-    id: number;
-    original: Print | null;
-};
+import type { EditState } from "./lib/types";
 
-export const PrintForm = withForm({
-    defaultValues: defaultPrintValues,
-    props: {
-        editState: {
-            isOpen: false,
-            id: 0,
-            original: null,
-        } as EditState,
-    },
-    render: function Render({ form, editState }) {
-        const resetToOriginal = (field: keyof TPrintSchema) => {
-            if (!editState.original) return;
+export function PrintFormDialog({
+    editState,
+    setEditState,
+}: {
+    editState: EditState;
+    setEditState: Dispatch<SetStateAction<EditState>>;
+}) {
+    const createMutation = useCreatePrint();
+    const updateMutation = useUpdatePrint();
 
-            form.setFieldValue(field, editState.original[field]);
-        };
+    const form = useAppForm({
+        defaultValues: defaultPrintValues,
+        validators: { onChange: printSchema },
+        onSubmit: async ({ value }) => {
+            const printToSave: Print = {
+                id: editState.id,
+                name: value.name,
+                status: value.status,
+                notes: value.notes,
+                datePrinted: new Date(value.datePrinted),
+                createdAt: null,
+                updatedAt: null,
+                spools: value.spools.map((s) => ({
+                    printId: editState.id,
+                    spoolId: s.spoolId,
+                    gramsUsed: s.gramsUsed,
+                    id: editState.id, // placeholder, ignored by db
+                    spoolCode: "NaN", // placeholder, ignored by db
+                    material: "NaN", // placeholder
+                    vendor: "NaN", // placeholder
+                    color: "NaN", // placeholder
+                    colorHex: "NaN", // placeholder
+                    createdAt: null, // placeholder
+                    updatedAt: null, // placeholder
+                })),
+            };
 
-        return (
-            <FieldGroup className="pb-4">
-                <form.AppField
-                    name="name"
-                    children={(field) => (
-                        <field.PrintNameFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
+            try {
+                if (editState.id > 0) {
+                    await updateMutation.mutateAsync(printToSave);
+                } else {
+                    await createMutation.mutateAsync(printToSave);
+                }
+                setEditState({ id: 0, isOpen: false, original: null });
+                form.reset();
+            } catch (err) {
+                console.error("Failed to save print:", err);
+            }
+        },
+    });
 
-                <FieldGroup className="flex-row gap-2">
-                    <form.AppField
-                        name="datePrinted"
-                        children={(field) => (
-                            <field.PrintDateTimeFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
-
-                    <form.AppField
-                        name="status"
-                        children={(field) => (
-                            <field.PrintStatusFormField
-                                editingId={editState.id}
-                                onReset={resetToOriginal}
-                            />
-                        )}
-                    />
-                </FieldGroup>
-
-                <form.AppField
-                    name="spools"
-                    mode="array"
-                    children={(field) => {
-                        const isInvalid =
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid;
-                        return (
-                            <div className="space-y-2">
-                                <Field
-                                    data-invalid={isInvalid}
-                                    className="flex-col"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <FieldLabel>Spools</FieldLabel>
-
-                                        <Dialog modal>
-                                            <DialogTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 w-fit!"
-                                                >
-                                                    + Select Spools
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
-                                                <DialogHeader>
-                                                    <DialogTitle>
-                                                        Select Spool
-                                                    </DialogTitle>
-                                                </DialogHeader>
-                                                <field.PrintSpoolContainerFormField
-                                                    editingId={editState.id}
-                                                    onReset={resetToOriginal}
-                                                />
-                                            </DialogContent>
-                                        </Dialog>
-                                    </div>
-
-                                    {field.state.value.map((s, i) => (
-                                        <div key={i} className="flex gap-2">
-                                            <div className="group relative flex h-8 flex-2 items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <div
-                                                        className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540]"
-                                                        style={{
-                                                            backgroundColor:
-                                                                s.colorHex,
-                                                        }}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost-destructive"
-                                                        size="icon-xs"
-                                                        className="absolute top-0.75 left-1 hidden bg-background group-hover:flex hover:bg-red-50"
-                                                        onClick={() =>
-                                                            field.removeValue(i)
-                                                        }
-                                                    >
-                                                        <TrashIcon className="size-3.5" />
-                                                    </Button>
-
-                                                    <span className="truncate">
-                                                        <span className="font-medium">
-                                                            {s.spoolCode}
-                                                        </span>
-                                                        <span className="text-muted-foreground">
-                                                            {" "}
-                                                            · {s.vendor} ·{" "}
-                                                            {s.material} ·{" "}
-                                                            {s.color}
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <form.AppField
-                                                key={i}
-                                                name={`spools[${i}].gramsUsed`}
-                                                children={(subField) => (
-                                                    <subField.PrintGramsUsedFormField />
-                                                )}
-                                            />
-                                        </div>
-                                    ))}
-
-                                    {isInvalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
-                                </Field>
-                            </div>
+    useEffect(() => {
+        if (editState.isOpen && editState.original) {
+            form.setFieldValue("name", editState.original.name, {
+                dontValidate: true,
+            });
+            form.setFieldValue(
+                "datePrinted",
+                editState.id > 0
+                    ? editState.original.datePrinted
+                    : new Date().toISOString(),
+                {
+                    dontValidate: true,
+                }
+            );
+            form.setFieldValue("notes", editState.original.notes, {
+                dontValidate: true,
+            });
+            form.setFieldValue("status", editState.original.status, {
+                dontValidate: true,
+            });
+            form.setFieldValue(
+                "spools",
+                editState.original.spools?.map((ps) => {
+                    if (!ps) {
+                        throw new Error(
+                            `Spool not found for id ${editState.id}`
                         );
-                    }}
-                />
-                {/* <form.AppField */}
-                {/*     name="spools" */}
-                {/*     mode="array" */}
-                {/*     children={(field) => { */}
-                {/*         const isInvalid = */}
-                {/*             field.state.meta.isTouched && */}
-                {/*             !field.state.meta.isValid; */}
-                {/*         return ( */}
-                {/*             <div className="space-y-2"> */}
-                {/*                 <Field */}
-                {/*                     data-invalid={isInvalid} */}
-                {/*                     className="flex-row" */}
-                {/*                 > */}
-                {/*                     <FieldLabel>Spools</FieldLabel> */}
-                {/*                     <Button */}
-                {/*                         type="button" */}
-                {/*                         variant="outline" */}
-                {/*                         size="sm" */}
-                {/*                         className="h-7 w-fit!" */}
-                {/*                         onClick={() => */}
-                {/*                             field.pushValue({ */}
-                {/*                                 spool: { */}
-                {/*                                     id: 0, */}
-                {/*                                     spoolCode: "", */}
-                {/*                                     color: "#000000", */}
-                {/*                                     material: "PLA", */}
-                {/*                                     vendor: "Bambu Labs", */}
-                {/*                                 }, */}
-                {/*                                 gramsUsed: 0, */}
-                {/*                             }) */}
-                {/*                         } */}
-                {/*                     > */}
-                {/*                         + Add Spool */}
-                {/*                     </Button> */}
-                {/*                 </Field> */}
-                {/*                 {field.state.value.map((_, i) => ( */}
-                {/*                     <div key={i} className="flex gap-2"> */}
-                {/*                         <form.AppField */}
-                {/*                             name={`spools[${i}].spool`} */}
-                {/*                             validators={{ */}
-                {/*                                 onMount: ({ value }) => */}
-                {/*                                     value.id <= 0 */}
-                {/*                                         ? "Please add a spool" */}
-                {/*                                         : undefined, */}
-                {/*                             }} */}
-                {/*                             children={(subField) => ( */}
-                {/*                                 <subField.PrintSpoolFormField */}
-                {/*                                     spools={spools} */}
-                {/*                                     onRemoveSpool={() => */}
-                {/*                                         field.removeValue(i) */}
-                {/*                                     } */}
-                {/*                                 /> */}
-                {/*                             )} */}
-                {/*                         /> */}
-                {/*                         <form.AppField */}
-                {/*                             key={i} */}
-                {/*                             name={`spools[${i}].gramsUsed`} */}
-                {/*                             children={(subField) => ( */}
-                {/*                                 <subField.PrintGramsUsedFormField /> */}
-                {/*                             )} */}
-                {/*                         /> */}
-                {/*                     </div> */}
-                {/*                 ))} */}
-                {/**/}
-                {/*                 {isInvalid && ( */}
-                {/*                     <FieldError */}
-                {/*                         errors={field.state.meta.errors} */}
-                {/*                     /> */}
-                {/*                 )} */}
-                {/*             </div> */}
-                {/*         ); */}
-                {/*     }} */}
-                {/* /> */}
+                    }
+                    return {
+                        gramsUsed: ps.gramsUsed,
+                        spoolId: ps.spoolId,
+                        spoolCode: ps.spoolCode,
+                        color: ps.color,
+                        colorHex: ps.colorHex,
+                        material: ps.material,
+                        vendor: ps.vendor,
+                    };
+                }) || [],
+                {
+                    dontValidate: true,
+                }
+            );
+        }
+    }, [editState, form]);
 
-                <form.AppField
-                    name="notes"
-                    children={(field) => (
-                        <field.PrintNotesFormField
-                            editingId={editState.id}
-                            onReset={resetToOriginal}
-                        />
-                    )}
-                />
-            </FieldGroup>
-        );
-    },
-});
+    const handleClose = () => {
+        form.reset();
+        setEditState({ id: 0, isOpen: false, original: null });
+    };
+
+    return (
+        <Dialog
+            open={editState.isOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) handleClose();
+            }}
+        >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {editState.id > 0 ? "Edit Print" : "Add New Print"}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        form.handleSubmit();
+                    }}
+                >
+                    <PrintForm form={form} editState={editState} />
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClose}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                createMutation.isPending ||
+                                updateMutation.isPending
+                            }
+                        >
+                            {createMutation.isPending ||
+                            updateMutation.isPending
+                                ? "Saving..."
+                                : editState.id > 0
+                                  ? "Update"
+                                  : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}

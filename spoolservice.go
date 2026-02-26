@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -83,7 +84,7 @@ func (s *SpoolService) generateSpoolCode(material, color string) (string, error)
 	)
 
 	for {
-		suffix, err := randomSuffix(4)
+		suffix, err := randomSuffix(5)
 		if err != nil {
 			return "", err
 		}
@@ -230,20 +231,51 @@ func (s *SpoolService) GetSpool(id int64) (*Spool, error) {
 	return &spool, nil
 }
 
+// tokenize splits search input into tokens, respecting key:"quoted value" syntax.
+func tokenize(search string) []string {
+	// Matches either:
+	//   key:"quoted value with spaces"
+	//   key:unquoted-value
+	//   bare-word
+	re := regexp.MustCompile(`\w+:"[^"]*"|\S+`)
+	return re.FindAllString(strings.TrimSpace(search), -1)
+}
+
 func parseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
 	qualifiers = make(map[string]string)
 	var freeTextParts []string
 
-	for token := range strings.FieldsSeq(search) {
-		if key, value, found := strings.Cut(token, ":"); found && key != "" && value != "" {
-			qualifiers[strings.ToLower(key)] = strings.ToLower(value)
-		} else {
+	for _, token := range tokenize(search) {
+		colonIdx := strings.Index(token, ":")
+		if colonIdx > 0 {
+			key := strings.ToLower(token[:colonIdx])
+			value := token[colonIdx+1:]
+			// Strip surrounding quotes from value if present
+			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+				value = value[1 : len(value)-1]
+			}
+			if value != "" {
+				qualifiers[key] = strings.ToLower(value)
+				continue
+			}
+		}
+		if token != "" {
 			freeTextParts = append(freeTextParts, token)
 		}
 	}
 
 	freeText = strings.Join(freeTextParts, " ")
 	return
+}
+
+// buildQualifierClause returns a WHERE clause fragment and args for a qualifier.
+// It handles wildcard (*) and exact match cases.
+func buildQualifierClause(column, val string, argPosition int) (clause string, arg any) {
+	if strings.Contains(val, "*") {
+		likeVal := strings.ReplaceAll(val, "*", "%")
+		return fmt.Sprintf("LOWER(%s) LIKE ?%d", column, argPosition), likeVal
+	}
+	return fmt.Sprintf("LOWER(%s) = ?%d", column, argPosition), val
 }
 
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
@@ -274,8 +306,9 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		}
 		for qualifier, column := range qualifierColumns {
 			if val, ok := qualifiers[qualifier]; ok {
-				whereClauses = append(whereClauses, fmt.Sprintf("LOWER(%s) = ?%d", column, argPosition))
-				args = append(args, val)
+				clause, arg := buildQualifierClause(column, val, argPosition)
+				whereClauses = append(whereClauses, clause)
+				args = append(args, arg)
 				argPosition++
 			}
 		}

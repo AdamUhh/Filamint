@@ -287,23 +287,33 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		qualifiers, freeText := parseSearchQuery(params.Search)
 
 		if val, ok := qualifiers["name"]; ok {
-			whereClauses = append(whereClauses, fmt.Sprintf("LOWER(name) = ?%d", argPosition))
-			args = append(args, val)
+			clause, arg := buildQualifierClause("name", val, argPosition)
+			whereClauses = append(whereClauses, clause)
+			args = append(args, arg)
 			argPosition++
 		}
-
 		if val, ok := qualifiers["status"]; ok {
-			whereClauses = append(whereClauses, fmt.Sprintf("LOWER(status) = ?%d", argPosition))
-			args = append(args, val)
+			clause, arg := buildQualifierClause("status", val, argPosition)
+			whereClauses = append(whereClauses, clause)
+			args = append(args, arg)
 			argPosition++
 		}
 
 		if val, ok := qualifiers["spool"]; ok {
-			whereClauses = append(whereClauses, fmt.Sprintf(
-				`id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?%d))`,
-				argPosition,
-			))
-			args = append(args, val)
+			if strings.Contains(val, "*") {
+				likeVal := strings.ReplaceAll(val, "*", "%")
+				whereClauses = append(whereClauses, fmt.Sprintf(
+					`id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) LIKE ?%d))`,
+					argPosition,
+				))
+				args = append(args, likeVal)
+			} else {
+				whereClauses = append(whereClauses, fmt.Sprintf(
+					`id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?%d))`,
+					argPosition,
+				))
+				args = append(args, val)
+			}
 			argPosition++
 		}
 
