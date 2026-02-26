@@ -100,7 +100,7 @@ func (mw *ManagedWindow) LoadState() {
 		return
 	}
 
-	fmt.Println("Loading window state:", mw.state)
+	// fmt.Println("Loading window state:", mw.state)
 	mw.window.SetRelativePosition(mw.state.X, mw.state.Y)
 	mw.window.SetSize(mw.state.Width, mw.state.Height)
 
@@ -114,7 +114,8 @@ func (mw *ManagedWindow) LoadState() {
 }
 
 func (mw *ManagedWindow) SaveState() {
-	fmt.Println("Saving window state:", mw.state)
+	// fmt.Println("Saving window state:", mw.state)
+
 	data, err := json.MarshalIndent(mw.state, "", "  ")
 	if err != nil {
 		fmt.Println("Failed to save window state:", err)

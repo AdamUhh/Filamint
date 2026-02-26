@@ -12,10 +12,7 @@
 - [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: When clicking Spools cell, should open a modal with spool info?
 
-> DB
-- [ ] Figure out where db.db is stored on build (AppData?)
-
 > QoL
 - [ ] Add updater
-- [ ] Need to cleanup on window.OnDestroy(), look at example cleanup: https://v3alpha.wails.io/features/windows/events/#ondestroy
+- [ ] Need to add proper title/description for build
 

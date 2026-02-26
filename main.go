@@ -2,7 +2,11 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -23,15 +27,51 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
+func getAppDataDir() (string, error) {
+	var base string
+	switch runtime.GOOS {
+	case "windows":
+		base = os.Getenv("APPDATA")
+		if base == "" {
+			return "", fmt.Errorf("APPDATA env var not set")
+		}
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Join(home, "Library", "Application Support")
+	default:
+		base = os.Getenv("XDG_DATA_HOME")
+		if base == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			base = filepath.Join(home, ".local", "share")
+		}
+	}
+
+	dir := filepath.Join(base, "filament-tracker")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create app data dir: %w", err)
+	}
+	return dir, nil
+}
+
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
 
-	// Initialize DB
-	db, err := NewDatabase("db.db")
+	appDataDir, err := getAppDataDir()
 	if err != nil {
-		log.Fatalf("Failed to initialize todo service: %v", err)
+		log.Fatalf("Failed to resolve app data path: %v", err)
+	}
+
+	db, err := NewDatabase(filepath.Join(appDataDir, "db.db"))
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
 
@@ -43,8 +83,8 @@ func main() {
 	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
 	// 'Mac' options tailor the application when running an macOS.
 	app := application.New(application.Options{
-		Name:        "filament_tracker",
-		Description: "A 3D printing filament manager to keep track of spools, usage, and stock",
+		Name:        "filament-tracker",
+		Description: "A 3D printing filament manager to keep track of spools, usage, and prints",
 		Services: []application.Service{
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
@@ -62,7 +102,7 @@ func main() {
 	shortcutService.registerShortcuts()
 
 	// Create managed window (state persistence handled automatically)
-	mw := NewManagedWindow(app, "window-state.json")
+	mw := NewManagedWindow(app, filepath.Join(appDataDir, "window-state.json"))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
