@@ -35,6 +35,8 @@ func main() {
 	}
 	defer db.Close()
 
+	shortcutService := NewShortcutService(db)
+
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
@@ -46,7 +48,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
-			application.NewService(NewShortcutService(db)),
+			application.NewService(shortcutService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -56,27 +58,8 @@ func main() {
 		},
 	})
 
-	// Register shortcuts from database
-	if err := RegisterShortcuts(app, db); err != nil {
-		log.Fatalf("Failed to register shortcuts: %v", err)
-	}
-
-	// app.Window.NewWithOptions(application.WebviewWindowOptions{
-	// 	Title: "Filament Tracker",
-	// 	Mac: application.MacWindow{
-	// 		InvisibleTitleBarHeight: 50,
-	// 		Backdrop:                application.MacBackdropTranslucent,
-	// 		TitleBar:                application.MacTitleBarHiddenInset,
-	// 	},
-	// 	BackgroundColour: application.NewRGB(27, 38, 54),
-	// 	URL:              "/",
-	// 	Width:            1200,
-	// 	Height:           700,
-	// 	// XY wont work without initialPosition
-	// 	// InitialPosition:  application.WindowXY,
-	// 	// X:                100,
-	// 	// Y:                100,
-	// })
+	shortcutService.setApp(app)
+	shortcutService.registerShortcuts()
 
 	// Create managed window (state persistence handled automatically)
 	mw := NewManagedWindow(app, "window-state.json")

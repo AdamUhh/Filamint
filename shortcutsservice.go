@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type Shortcut struct {
@@ -20,9 +22,12 @@ type Shortcut struct {
 }
 
 type ShortcutService struct {
-	db    *Database
-	cache map[string]Shortcut
-	mu    sync.RWMutex
+	db               *Database
+	cache            map[string]Shortcut
+	mu               sync.RWMutex
+	app              *application.App
+	shortcutsEnabled bool
+	registrarMu      sync.RWMutex
 }
 
 func getModifierKey() string {
@@ -96,8 +101,9 @@ func getDefaultShortcuts() []Shortcut {
 
 func NewShortcutService(db *Database) *ShortcutService {
 	service := &ShortcutService{
-		db:    db,
-		cache: make(map[string]Shortcut),
+		db:               db,
+		cache:            make(map[string]Shortcut),
+		shortcutsEnabled: true,
 	}
 
 	if err := service.initialize(); err != nil {
@@ -107,13 +113,16 @@ func NewShortcutService(db *Database) *ShortcutService {
 	return service
 }
 
+func (s *ShortcutService) setApp(app *application.App) {
+	s.app = app
+}
+
 func (s *ShortcutService) initialize() error {
 	var count int
 	if err := s.db.Get(&count, `SELECT COUNT(1) FROM shortcuts`); err != nil {
 		return err
 	}
 
-	// If database is empty, insert defaults
 	if count == 0 {
 		defaults := getDefaultShortcuts()
 		for _, shortcut := range defaults {
@@ -127,7 +136,6 @@ func (s *ShortcutService) initialize() error {
 		}
 	}
 
-	// Load all shortcuts from database into cache (ONLY HAPPENS ONCE)
 	var shortcuts []Shortcut
 	err := s.db.Select(&shortcuts, `
 		SELECT id, action, key_combo, description, category, dev_only, created_at, updated_at
@@ -149,6 +157,94 @@ func (s *ShortcutService) initialize() error {
 	return nil
 }
 
+func (s *ShortcutService) registerShortcuts() error {
+	s.app.Event.On("shortcuts:set_enabled", func(e *application.CustomEvent) {
+		if enabled, ok := e.Data.(bool); ok {
+			s.registrarMu.Lock()
+			s.shortcutsEnabled = enabled
+			s.registrarMu.Unlock()
+		}
+	})
+
+	return s.registerShortcutsInternal()
+}
+
+func (s *ShortcutService) areShortcutsEnabled() bool {
+	s.registrarMu.RLock()
+	defer s.registrarMu.RUnlock()
+	return s.shortcutsEnabled
+}
+
+func (s *ShortcutService) reloadShortcuts() error {
+	existingBindings := s.app.KeyBinding.GetAll()
+	for _, binding := range existingBindings {
+		s.app.KeyBinding.Remove(binding.Accelerator)
+	}
+
+	if err := s.registerShortcutsInternal(); err != nil {
+		return err
+	}
+
+	for _, window := range s.app.Window.GetAll() {
+		window.EmitEvent("window:reload_shortcuts", nil)
+	}
+
+	return nil
+}
+
+func (s *ShortcutService) registerShortcutsInternal() error {
+	shortcuts, err := s.GetAllShortcuts()
+	if err != nil {
+		return fmt.Errorf("failed to load shortcuts: %w", err)
+	}
+
+	envInfo := s.app.Env.Info()
+
+	keyComboMap := make(map[string][]Shortcut)
+	for _, shortcut := range shortcuts {
+		// hide devonly shortcuts in production
+		if shortcut.DevOnly && !envInfo.Debug {
+			continue
+		}
+		keyComboMap[shortcut.KeyCombo] = append(keyComboMap[shortcut.KeyCombo], shortcut)
+	}
+
+	for keyCombo, shortcuts := range keyComboMap {
+		shortcutsCopy := shortcuts
+		s.app.KeyBinding.Add(keyCombo, func(window application.Window) {
+			if !s.areShortcutsEnabled() {
+				return
+			}
+			for _, shortcut := range shortcutsCopy {
+				executeShortcutAction(window, shortcut.Action)
+			}
+		})
+	}
+
+	return nil
+}
+
+func executeShortcutAction(window application.Window, action string) {
+	switch action {
+	case "window:fullscreen":
+		window.ToggleFullscreen()
+	case "window:devtools":
+		window.OpenDevTools()
+	case "window:reload":
+		window.Reload()
+	case "spool:toggle_template":
+		window.EmitEvent("spool:toggle_template", nil)
+	case "spool:create":
+		window.EmitEvent("spool:create", nil)
+	case "spool:redirect":
+		window.EmitEvent("spool:redirect", nil)
+	case "print:redirect":
+		window.EmitEvent("print:redirect", nil)
+	case "print:create":
+		window.EmitEvent("print:create", nil)
+	}
+}
+
 func (s *ShortcutService) syncCacheToDatabase(shortcut Shortcut) error {
 	_, err := s.db.Exec(`
 		UPDATE shortcuts
@@ -156,15 +252,6 @@ func (s *ShortcutService) syncCacheToDatabase(shortcut Shortcut) error {
 		WHERE action = ?
 	`, shortcut.KeyCombo, shortcut.Action)
 	return err
-}
-
-func (s *ShortcutService) reloadShortcuts() error {
-	if shortcutRegistrar != nil {
-		if err := shortcutRegistrar.reloadShortcuts(s); err != nil {
-			return fmt.Errorf("failed to reload shortcuts: %w", err)
-		}
-	}
-	return nil
 }
 
 func (s *ShortcutService) GetShortcutCombo(action string) (string, error) {
@@ -175,7 +262,7 @@ func (s *ShortcutService) GetShortcutCombo(action string) (string, error) {
 		return shortcut.KeyCombo, nil
 	}
 
-	return "", nil // Return empty string for not found
+	return "", nil
 }
 
 func (s *ShortcutService) GetShortcutCombos(actions []string) ([]string, error) {
@@ -183,7 +270,6 @@ func (s *ShortcutService) GetShortcutCombos(actions []string) ([]string, error) 
 	defer s.mu.RUnlock()
 
 	combos := make([]string, 0, len(actions))
-
 	for _, action := range actions {
 		if shortcut, exists := s.cache[action]; exists {
 			combos = append(combos, shortcut.KeyCombo)
@@ -199,8 +285,14 @@ func (s *ShortcutService) GetAllShortcuts() ([]Shortcut, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	envInfo := s.app.Env.Info()
+
 	shortcuts := make([]Shortcut, 0, len(s.cache))
 	for _, shortcut := range s.cache {
+		// hide devonly shortcuts in production
+		if shortcut.DevOnly && !envInfo.Debug {
+			continue
+		}
 		shortcuts = append(shortcuts, shortcut)
 	}
 
@@ -211,7 +303,6 @@ func (s *ShortcutService) checkDuplicateInCache(newKeyCombo, excludeAction strin
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Window category: no duplicates allowed at all
 	if currentCategory == "window" {
 		for action, shortcut := range s.cache {
 			if shortcut.KeyCombo == newKeyCombo && action != excludeAction {
@@ -220,14 +311,12 @@ func (s *ShortcutService) checkDuplicateInCache(newKeyCombo, excludeAction strin
 			}
 		}
 	} else {
-		// For non-window categories, check duplicates within same category
 		for action, shortcut := range s.cache {
 			if shortcut.KeyCombo == newKeyCombo && action != excludeAction {
 				if shortcut.Category == currentCategory {
 					return fmt.Errorf("shortcut '%s' is already used by action '%s' in the same category '%s'",
 						newKeyCombo, action, currentCategory)
 				}
-				// Also check if this key combo is used by window category (window bindings are global)
 				if shortcut.Category == "window" {
 					return fmt.Errorf("shortcut '%s' is already used by window action '%s' (window shortcuts are global)",
 						newKeyCombo, action)
@@ -240,7 +329,6 @@ func (s *ShortcutService) checkDuplicateInCache(newKeyCombo, excludeAction strin
 }
 
 func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) error {
-	// Normalize key combo
 	newKeyCombo = strings.TrimSpace(newKeyCombo)
 	if newKeyCombo == "" {
 		return fmt.Errorf("key combo cannot be empty")
@@ -258,7 +346,6 @@ func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) erro
 		return err
 	}
 
-	// Update cache
 	s.mu.Lock()
 	original := currentShortcut
 	currentShortcut.KeyCombo = newKeyCombo
@@ -268,16 +355,12 @@ func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) erro
 
 	if err := s.syncCacheToDatabase(currentShortcut); err != nil {
 		s.mu.Lock()
-		s.cache[action] = original // Restore original
+		s.cache[action] = original
 		s.mu.Unlock()
 		return fmt.Errorf("failed to sync to database: %w", err)
 	}
 
-	if err := s.reloadShortcuts(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.reloadShortcuts()
 }
 
 func (s *ShortcutService) ResetShortcut(action string) error {
@@ -313,11 +396,7 @@ func (s *ShortcutService) ResetShortcut(action string) error {
 		return fmt.Errorf("failed to sync to database: %w", err)
 	}
 
-	if err := s.reloadShortcuts(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.reloadShortcuts()
 }
 
 func (s *ShortcutService) ResetAllShortcuts() error {
@@ -333,7 +412,6 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 	}
 	s.mu.Unlock()
 
-	// Sync all to database
 	for _, defaultShortcut := range defaults {
 		if shortcut, exists := s.cache[defaultShortcut.Action]; exists {
 			if err := s.syncCacheToDatabase(shortcut); err != nil {
@@ -342,35 +420,5 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 		}
 	}
 
-	if err := s.reloadShortcuts(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.reloadShortcuts()
 }
-
-// func (s *ShortcutService) GetShortcutsByCategory(category string) ([]Shortcut, error) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
-//
-// 	shortcuts := make([]Shortcut, 0)
-// 	for _, shortcut := range s.cache {
-// 		if shortcut.Category == category {
-// 			shortcuts = append(shortcuts, shortcut)
-// 		}
-// 	}
-//
-// 	return shortcuts, nil
-// }
-
-// getShortcutByAction returns a single shortcut by action from cache
-// func (s *ShortcutService) getShortcutByAction(action string) (Shortcut, error) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
-//
-// 	if shortcut, exists := s.cache[action]; exists {
-// 		return shortcut, nil
-// 	}
-//
-// 	return Shortcut{}, fmt.Errorf("shortcut with action '%s' not found", action)
-// }
