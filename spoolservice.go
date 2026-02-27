@@ -47,6 +47,12 @@ type SpoolQueryResult struct {
 	Total  int     `json:"total"`
 }
 
+type SpoolPrint struct {
+	PrintID   int64  `db:"print_id" json:"printId"`
+	PrintName string `db:"print_name" json:"printName"`
+	GramsUsed int    `db:"grams_used" json:"gramsUsed"`
+}
+
 type SpoolService struct {
 	db *Database
 }
@@ -229,6 +235,28 @@ func (s *SpoolService) GetSpool(id int64) (*Spool, error) {
 		return nil, err
 	}
 	return &spool, nil
+}
+
+func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
+	var prints []SpoolPrint
+
+	query := `
+		SELECT
+		    p.id AS print_id,
+		    p.name AS print_name,
+		    ps.grams_used
+		FROM print_spools ps
+		JOIN prints p ON p.id = ps.print_id
+		WHERE ps.spool_id = ?
+		ORDER BY p.date_printed DESC
+	`
+
+	err := s.db.Select(&prints, query, spoolID)
+	if err != nil {
+		return nil, err
+	}
+
+	return prints, nil
 }
 
 // tokenize splits search input into tokens, respecting key:"quoted value" syntax.

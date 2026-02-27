@@ -167,7 +167,7 @@ export function SpoolsPage() {
                 setEditState={setEditState}
             />
 
-            {deleteIntent && (
+            {deleteIntent && deleteIntent.spoolId && (
                 <DeleteSpoolDialog
                     intent={deleteIntent}
                     onIntentChange={setDeleteIntent}

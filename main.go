@@ -31,17 +31,20 @@ func getAppDataDir() (string, error) {
 	var base string
 	switch runtime.GOOS {
 	case "windows":
+		// C:\Users\<user>\AppData\Roaming\filament-tracker/
 		base = os.Getenv("APPDATA")
 		if base == "" {
 			return "", fmt.Errorf("APPDATA env var not set")
 		}
 	case "darwin":
+		// /Users/<user>/Library/Application Support/filament-tracker/
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
 		base = filepath.Join(home, "Library", "Application Support")
 	default:
+		// /home/<user>/.config/filament-tracker/
 		base = os.Getenv("XDG_DATA_HOME")
 		if base == "" {
 			home, err := os.UserHomeDir()

@@ -76,6 +76,18 @@ export function useSpool(id: number) {
     });
 }
 
+export function useSpoolPrints(id: number) {
+    return useQuery({
+        queryKey: ["spool_prints", id],
+        queryFn: async () => {
+            if (!id) return null;
+            return await SpoolService.GetSpoolPrints(id);
+        },
+        enabled: id > 0,
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
 export function useCreateSpool() {
     const queryClient = useQueryClient();
 

@@ -9,6 +9,8 @@ import {
     AlertDialogTitle,
 } from "@/shadcn/alert-dialog";
 
+import { useSpoolPrints } from "./lib/fetch-hooks";
+
 export type DeleteState = {
     spoolId: number;
 };
@@ -24,6 +26,8 @@ export function DeleteSpoolDialog({
     onIntentChange,
     onConfirm,
 }: DeletePrintDialogProps) {
+    const { data } = useSpoolPrints(intent!.spoolId);
+
     return (
         <AlertDialog
             open={intent !== null}
@@ -41,6 +45,30 @@ export function DeleteSpoolDialog({
                         delete the spool.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
+
+                {data && data.length > 0 && (
+                    <div className="mt-3 text-sm">
+                        <p className="mb-2 text-muted-foreground">
+                            Deleting this spool will affect these prints:
+                        </p>
+
+                        <ul className="max-h-[50vh] overflow-auto rounded-md border">
+                            {data.map((s) => (
+                                <li
+                                    key={s.printId}
+                                    className="flex justify-between px-3 py-1.5 odd:bg-muted/40 even:bg-background"
+                                >
+                                    <span className="capitalize">
+                                        {s.printName}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        {s.gramsUsed}g
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>

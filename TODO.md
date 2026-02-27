@@ -2,8 +2,6 @@
 - - [ ] 
 
 > Spools
-- [ ] When deleting, show prints that will also be deleted
-- - [  ] Will delete spool and print_spool foreign key (cascade)
 - [ ] Unsure: Allow selection of multiple spools across pages, where the user can then select "add a print with these spools"
 - [ ] Unsure: Allow create and update to change spoolcode
 

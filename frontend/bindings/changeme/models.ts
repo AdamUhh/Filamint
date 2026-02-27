@@ -324,6 +324,35 @@ export class Spool {
     }
 }
 
+export class SpoolPrint {
+    "printId": number;
+    "printName": string;
+    "gramsUsed": number;
+
+    /** Creates a new SpoolPrint instance. */
+    constructor($$source: Partial<SpoolPrint> = {}) {
+        if (!("printId" in $$source)) {
+            this["printId"] = 0;
+        }
+        if (!("printName" in $$source)) {
+            this["printName"] = "";
+        }
+        if (!("gramsUsed" in $$source)) {
+            this["gramsUsed"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SpoolPrint instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SpoolPrint {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SpoolPrint($$parsedSource as Partial<SpoolPrint>);
+    }
+}
+
 export class SpoolQueryParams {
     "search": string;
     "isTemplate": boolean | null;

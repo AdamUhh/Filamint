@@ -104,7 +104,7 @@ func (d *Database) initSchema() error {
 		ON UPDATE CASCADE,
 
 	    FOREIGN KEY (spool_id) REFERENCES spools(id)
-		ON DELETE RESTRICT
+		ON DELETE CASCADE
 		ON UPDATE CASCADE,
 
 	    UNIQUE (print_id, spool_id)

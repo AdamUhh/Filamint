@@ -17,6 +17,7 @@ export {
     PrintSpool,
     Shortcut,
     Spool,
+    SpoolPrint,
     SpoolQueryParams,
     SpoolQueryResult
 } from "./models.js";
