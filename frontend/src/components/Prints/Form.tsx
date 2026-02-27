@@ -42,14 +42,14 @@ export function PrintFormDialog({
                 status: value.status,
                 notes: value.notes,
                 datePrinted: new Date(value.datePrinted),
-                createdAt: null,
-                updatedAt: null,
+                createdAt: null, // placeholder, ignored by db
+                updatedAt: null, // placeholder
                 spools: value.spools.map((s) => ({
                     printId: editState.id,
                     spoolId: s.spoolId,
                     gramsUsed: s.gramsUsed,
-                    id: editState.id, // placeholder, ignored by db
-                    spoolCode: "NaN", // placeholder, ignored by db
+                    id: editState.id, // placeholder
+                    spoolCode: "NaN", // placeholder
                     material: "NaN", // placeholder
                     vendor: "NaN", // placeholder
                     color: "NaN", // placeholder
@@ -115,6 +115,10 @@ export function PrintFormDialog({
                     dontValidate: true,
                 }
             );
+        } else if (editState.isOpen && editState.id === 0) {
+            form.setFieldValue("datePrinted", new Date().toISOString(), {
+                dontValidate: true,
+            });
         }
     }, [editState, form]);
 

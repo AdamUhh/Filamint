@@ -41,9 +41,9 @@ export function SpoolFormDialog({
                 spoolCode: String(editState.id),
                 ...value,
                 firstUsedAt: null, // placeholder, ignored by db
-                lastUsedAt: null, // placeholder, ignored by db
-                createdAt: null, // placeholder, ignored by db
-                updatedAt: null, // placeholder, ignored by db
+                lastUsedAt: null, // placeholder
+                createdAt: null, // placeholder
+                updatedAt: null, // placeholder
             };
 
             if (editState.id > 0) {

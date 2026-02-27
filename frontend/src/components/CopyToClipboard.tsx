@@ -52,3 +52,47 @@ export function CopyToClipboard({
         </LazyTooltip>
     );
 }
+
+export function CopyOnClick({
+    textToCopy,
+    tooltipContent,
+    copiedContent,
+    children,
+}: {
+    textToCopy: string;
+    tooltipContent: React.ReactNode;
+    copiedContent?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    const [copied, setCopied] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setOpen(true);
+        setTimeout(() => {
+            setCopied(false);
+            setOpen(false);
+        }, 2000);
+    };
+
+    return (
+        <LazyTooltip
+            open={open}
+            onOpenChange={setOpen}
+            content={
+                copied
+                    ? (copiedContent ?? (
+                          <div className="flex items-center gap-1">
+                              <CheckIcon className="size-3.5" />
+                              <span>Copied</span>
+                          </div>
+                      ))
+                    : tooltipContent
+            }
+        >
+            <div onClick={handleCopy}>{children}</div>
+        </LazyTooltip>
+    );
+}

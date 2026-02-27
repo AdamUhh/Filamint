@@ -41,6 +41,7 @@ import {
 
 import type { Print } from "@bindings";
 
+import { CopyOnClick } from "../CopyToClipboard";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
 
 export function PrintTable({
@@ -92,30 +93,33 @@ export function PrintTable({
                                         <TableCell>{print.name}</TableCell>
                                         <TableCell>
                                             <div className="flex gap-1">
-                                                {print.spools?.map((ps, i) => {
-                                                    const colorHex =
-                                                        ps?.colorHex ||
-                                                        "#000000";
-
-                                                    const color =
-                                                        ps?.color || "Black";
-
-                                                    return (
-                                                        <LazyTooltip
-                                                            key={i}
-                                                            content={`${ps.spoolCode} · ${ps.vendor} · ${color} · ${colorHex}`}
-                                                        >
-                                                            <div
-                                                                key={ps.spoolId}
-                                                                className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] hover:cursor-help"
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        colorHex,
-                                                                }}
-                                                            />
-                                                        </LazyTooltip>
-                                                    );
-                                                })}
+                                                {print.spools?.map((ps, i) => (
+                                                    <CopyOnClick
+                                                        key={i}
+                                                        textToCopy={
+                                                            ps.spoolCode
+                                                        }
+                                                        tooltipContent={
+                                                            <div className="flex flex-col gap-1">
+                                                                <span>{`${ps.spoolCode} · ${ps.vendor} · ${ps.color} · ${ps.colorHex}`}</span>
+                                                                <span className="size-xs text-accent">
+                                                                    Click to
+                                                                    copy Spool
+                                                                    Code
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                    >
+                                                        <div
+                                                            key={ps.spoolId}
+                                                            className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] transition-transform hover:cursor-copy active:scale-90"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    ps.colorHex,
+                                                            }}
+                                                        />
+                                                    </CopyOnClick>
+                                                ))}
                                             </div>
                                         </TableCell>
                                         <TableCell>
