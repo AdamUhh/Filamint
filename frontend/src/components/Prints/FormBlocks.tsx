@@ -33,7 +33,9 @@ import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";
 import { useSpools } from "../Spools/lib/fetch-hooks";
 import { SelectSpoolTable } from "./SelectSpoolTable";
+import { Dropzone } from "./drop";
 import { PAGE_SIZE } from "./lib/defaults";
+import type { TPrintSchema } from "./lib/schema";
 
 export function PrintNameFormField({
     editingId,
@@ -70,7 +72,7 @@ export function PrintNameFormField({
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
                 aria-invalid={isInvalid}
-                placeholder="e.g., CC3D, Elegoo"
+                placeholder="e.g. Gridfinity, Pen Holder"
                 autoComplete="off"
             />
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -143,11 +145,8 @@ export function PrintGramsUsedFormField() {
 
 export function PrintSpoolContainerFormField({
     editingId,
-    // onReset,
 }: {
     editingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReset: (name: any) => void;
 }) {
     const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
         search: "",
@@ -306,7 +305,7 @@ export function PrintStatusFormField({
                 onValueChange={(e) => field.handleChange(e)}
                 value={field.state.value}
             >
-                <SelectTrigger className="capitalize">
+                <SelectTrigger className="text-xs capitalize">
                     <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent position="item-aligned">
@@ -400,9 +399,11 @@ export function PrintDateTimeFormField({
                     >
                         <div className="flex items-center gap-2">
                             <CalendarIcon className="size-3.5" />
-                            {field.state.value
-                                ? format(new Date(field.state.value), "PPp")
-                                : "Select date & time"}
+                            <span className="text-xs">
+                                {field.state.value
+                                    ? format(new Date(field.state.value), "PPp")
+                                    : "Select date & time"}
+                            </span>
                         </div>
                         <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
                     </Button>
@@ -563,89 +564,24 @@ export function PrintNotesFormField({
     );
 }
 
-// export function PrintSpoolFormField({
-//     spools,
-//     onRemoveSpool: onRemoveSpool,
-// }: {
-//     spools: Map<number, Spool>;
-//     onRemoveSpool: () => void;
-// }) {
-//     const field =
-//         useFieldContext<ArrayElementOf<TPrintSchema["spools"]>["spool"]>();
-//
-//     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-//
-//     const selectedSpool = spools.get(field.state.value?.id) ?? null;
-//
-//     return (
-//         <Field data-invalid={isInvalid} className="group flex-3">
-//             <Combobox
-//                 name={field.name}
-//                 items={Array.from(spools.values())}
-//                 value={selectedSpool}
-//                 onValueChange={(value) =>
-//                     value &&
-//                     field.handleChange({
-//                         id: value.id,
-//                         spoolCode: value.spoolCode,
-//                         color: value.color,
-//                         material: value.material,
-//                         vendor: value.vendor,
-//                     })
-//                 }
-//                 itemToStringLabel={(value) =>
-//                     `${value.spoolCode} · ${value.vendor} · ${value.color} · ${value.material}`
-//                 }
-//             >
-//                 <div className="flex gap-2">
-//                     <Button
-//                         type="button"
-//                         variant="outline-destructive"
-//                         size="sm"
-//                         className="aspect-square h-full p-0"
-//                         onClick={onRemoveSpool}
-//                     >
-//                         <TrashIcon className="size-3" />
-//                     </Button>
-//                     <ComboboxInput
-//                         className="w-full"
-//                         placeholder="Select a spool"
-//                         onBlur={field.handleBlur}
-//                         aria-invalid={isInvalid}
-//                     />
-//                 </div>
-//                 <ComboboxContent>
-//                     <ComboboxEmpty>No items found.</ComboboxEmpty>
-//                     <ComboboxList className="pointer-events-auto">
-//                         {(spool: Spool) => (
-//                             <ComboboxItem key={spool.id} value={spool}>
-//                                 <div className="flex w-full items-center justify-between font-mono hover:cursor-pointer">
-//                                     <div className="flex flex-col gap-1">
-//                                         <span className="col-span-3 font-medium">
-//                                             {spool.spoolCode}
-//                                         </span>
-//
-//                                         <span className="truncate text-muted-foreground">
-//                                             {spool.vendor} · {spool.color} ·{" "}
-//                                             {spool.material}
-//                                         </span>
-//                                     </div>
-//
-//                                     <div className="flex flex-col gap-1">
-//                                         <span className="text-right text-muted-foreground opacity-0">
-//                                             {spool.id}
-//                                         </span>
-//                                         <span className="text-right text-muted-foreground">
-//                                             {spool.totalWeight}g
-//                                         </span>
-//                                     </div>
-//                                 </div>
-//                             </ComboboxItem>
-//                         )}
-//                     </ComboboxList>
-//                 </ComboboxContent>
-//             </Combobox>
-//             {/* {isInvalid && <FieldError errors={field.state.meta.errors} />} */}
-//         </Field>
-//     );
-// }
+export function PrintFileUploadFormField() {
+    const field = useFieldContext<TPrintSchema["models"]>();
+
+    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+    return (
+        <Field data-invalid={isInvalid} className="group">
+            <Dropzone
+                accept={{
+                    "model/3mf": [".3mf"],
+                    "model/stl": [".stl"],
+                }}
+                maxSize={5 * 1024 * 1024}
+                value={field.state.value}
+                onDelete={field.removeValue}
+                onAdd={field.pushValue}
+                multiple
+            />
+        </Field>
+    );
+}

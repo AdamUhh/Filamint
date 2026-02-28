@@ -13,10 +13,13 @@ import { PrintForm } from "@/components/Prints/FormFields";
 import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import {
     useCreatePrint,
+    useDeletePrintModel,
+    usePrintModels,
     useUpdatePrint,
+    useUploadPrintModel,
 } from "@/components/Prints/lib/fetch-hooks";
 import { useAppForm } from "@/components/Prints/lib/hooks";
-import { printSchema } from "@/components/Prints/lib/schema";
+import { type TModelSchema, printSchema } from "@/components/Prints/lib/schema";
 
 import { type Print } from "@bindings";
 
@@ -31,11 +34,39 @@ export function PrintFormDialog({
 }) {
     const createMutation = useCreatePrint();
     const updateMutation = useUpdatePrint();
+    const uploadModelMutation = useUploadPrintModel();
+    const deleteModelMutation = useDeletePrintModel();
 
     const form = useAppForm({
         defaultValues: defaultPrintValues,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
+            console.debug("models", value.models);
+
+            const modelsToSave: TModelSchema[] = value.models;
+
+            const filesToUpload = modelsToSave.filter(
+                (m): m is File => m instanceof File
+            );
+
+            const existingModels = modelsToSave.filter(
+                (m): m is TModelSchema => "id" in m
+            );
+
+            const removedModels =
+                editState.original?.models?.filter(
+                    (orig) =>
+                        !existingModels.some(
+                            (m) => "id" in m && m.id === orig.id
+                        )
+                ) || [];
+
+            console.debug("Files to upload:", filesToUpload);
+            console.debug("Existing models:", existingModels);
+            console.debug("Removed models:", removedModels);
+
+            // return;
+
             const printToSave: Print = {
                 id: editState.id,
                 name: value.name,
@@ -44,6 +75,7 @@ export function PrintFormDialog({
                 datePrinted: new Date(value.datePrinted),
                 createdAt: null, // placeholder, ignored by db
                 updatedAt: null, // placeholder
+                models: [],
                 spools: value.spools.map((s) => ({
                     printId: editState.id,
                     spoolId: s.spoolId,
@@ -62,8 +94,41 @@ export function PrintFormDialog({
             try {
                 if (editState.id > 0) {
                     await updateMutation.mutateAsync(printToSave);
+
+                    // 2️⃣ Upload new files sequentially
+                    for (const file of filesToUpload) {
+                        await uploadModelMutation.mutateAsync({
+                            printId: editState.id,
+                            file,
+                        });
+                    }
+
+                    // 3️⃣ Delete removed models
+                    for (const removed of removedModels) {
+                        await deleteModelMutation.mutateAsync({
+                            printId: editState.id,
+                            modelId: removed.id,
+                            modelExt: removed.ext,
+                        });
+                    }
                 } else {
-                    await createMutation.mutateAsync(printToSave);
+                    const printId =
+                        await createMutation.mutateAsync(printToSave);
+
+                    // 2️⃣ Upload new files sequentially
+                    for (const file of filesToUpload) {
+                        await uploadModelMutation.mutateAsync({
+                            printId,
+                            file,
+                        });
+                    }
+
+                    for (const model of existingModels) {
+                        await uploadModelMutation.mutateAsync({
+                            printId,
+                            file: model,
+                        });
+                    }
                 }
                 setEditState({ id: 0, isOpen: false, original: null });
                 form.reset();
@@ -72,6 +137,27 @@ export function PrintFormDialog({
             }
         },
     });
+
+    const { data } = usePrintModels(
+        editState.id || editState?.original?.id || 0
+    );
+
+    useEffect(() => {
+        form.setFieldValue("models", data || [], {
+            dontValidate: true,
+        });
+        setEditState((prev) => {
+            if (!prev.original) return prev;
+
+            return {
+                ...prev,
+                original: {
+                    ...prev.original,
+                    models: data ?? [],
+                },
+            };
+        });
+    }, [data, form, setEditState]);
 
     useEffect(() => {
         if (editState.isOpen && editState.original) {
@@ -137,7 +223,11 @@ export function PrintFormDialog({
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>
-                        {editState.id > 0 ? "Edit Print" : "Add New Print"}
+                        {editState.id > 0
+                            ? "Edit Print"
+                            : editState.id === 0 && editState.original
+                              ? "Duplicate Print"
+                              : "Add New Print"}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -169,7 +259,9 @@ export function PrintFormDialog({
                                 ? "Saving..."
                                 : editState.id > 0
                                   ? "Update"
-                                  : "Create"}
+                                  : editState.id === 0 && editState.original
+                                    ? "Duplicate"
+                                    : "Create"}
                         </Button>
                     </DialogFooter>
                 </form>

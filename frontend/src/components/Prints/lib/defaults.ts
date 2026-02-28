@@ -7,6 +7,7 @@ export const defaultPrintValues: TPrintSchema = {
     status: "completed",
     notes: "",
     datePrinted: new Date().toISOString(),
+    models: [],
     spools: [
         // {
         //     gramsUsed: 0,

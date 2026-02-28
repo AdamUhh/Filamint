@@ -12,6 +12,7 @@ export {
 
 export {
     Print,
+    PrintModel,
     PrintQueryParams,
     PrintQueryResult,
     PrintSpool,

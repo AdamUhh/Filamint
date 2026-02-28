@@ -28,6 +28,7 @@ export const PrintForm = withForm({
     render: function Render({ form, editState }) {
         const resetToOriginal = (field: keyof TPrintSchema) => {
             if (!editState.original) return;
+            if (field === "models") return;
 
             form.setFieldValue(field, editState.original[field]);
         };
@@ -101,7 +102,6 @@ export const PrintForm = withForm({
                                                 </DialogHeader>
                                                 <field.PrintSpoolContainerFormField
                                                     editingId={editState.id}
-                                                    onReset={resetToOriginal}
                                                 />
                                             </DialogContent>
                                         </Dialog>
@@ -164,79 +164,6 @@ export const PrintForm = withForm({
                         );
                     }}
                 />
-                {/* <form.AppField */}
-                {/*     name="spools" */}
-                {/*     mode="array" */}
-                {/*     children={(field) => { */}
-                {/*         const isInvalid = */}
-                {/*             field.state.meta.isTouched && */}
-                {/*             !field.state.meta.isValid; */}
-                {/*         return ( */}
-                {/*             <div className="space-y-2"> */}
-                {/*                 <Field */}
-                {/*                     data-invalid={isInvalid} */}
-                {/*                     className="flex-row" */}
-                {/*                 > */}
-                {/*                     <FieldLabel>Spools</FieldLabel> */}
-                {/*                     <Button */}
-                {/*                         type="button" */}
-                {/*                         variant="outline" */}
-                {/*                         size="sm" */}
-                {/*                         className="h-7 w-fit!" */}
-                {/*                         onClick={() => */}
-                {/*                             field.pushValue({ */}
-                {/*                                 spool: { */}
-                {/*                                     id: 0, */}
-                {/*                                     spoolCode: "", */}
-                {/*                                     color: "#000000", */}
-                {/*                                     material: "PLA", */}
-                {/*                                     vendor: "Bambu Labs", */}
-                {/*                                 }, */}
-                {/*                                 gramsUsed: 0, */}
-                {/*                             }) */}
-                {/*                         } */}
-                {/*                     > */}
-                {/*                         + Add Spool */}
-                {/*                     </Button> */}
-                {/*                 </Field> */}
-                {/*                 {field.state.value.map((_, i) => ( */}
-                {/*                     <div key={i} className="flex gap-2"> */}
-                {/*                         <form.AppField */}
-                {/*                             name={`spools[${i}].spool`} */}
-                {/*                             validators={{ */}
-                {/*                                 onMount: ({ value }) => */}
-                {/*                                     value.id <= 0 */}
-                {/*                                         ? "Please add a spool" */}
-                {/*                                         : undefined, */}
-                {/*                             }} */}
-                {/*                             children={(subField) => ( */}
-                {/*                                 <subField.PrintSpoolFormField */}
-                {/*                                     spools={spools} */}
-                {/*                                     onRemoveSpool={() => */}
-                {/*                                         field.removeValue(i) */}
-                {/*                                     } */}
-                {/*                                 /> */}
-                {/*                             )} */}
-                {/*                         /> */}
-                {/*                         <form.AppField */}
-                {/*                             key={i} */}
-                {/*                             name={`spools[${i}].gramsUsed`} */}
-                {/*                             children={(subField) => ( */}
-                {/*                                 <subField.PrintGramsUsedFormField /> */}
-                {/*                             )} */}
-                {/*                         /> */}
-                {/*                     </div> */}
-                {/*                 ))} */}
-                {/**/}
-                {/*                 {isInvalid && ( */}
-                {/*                     <FieldError */}
-                {/*                         errors={field.state.meta.errors} */}
-                {/*                     /> */}
-                {/*                 )} */}
-                {/*             </div> */}
-                {/*         ); */}
-                {/*     }} */}
-                {/* /> */}
 
                 <form.AppField
                     name="notes"
@@ -246,6 +173,11 @@ export const PrintForm = withForm({
                             onReset={resetToOriginal}
                         />
                     )}
+                />
+
+                <form.AppField
+                    name="models"
+                    children={(field) => <field.PrintFileUploadFormField />}
                 />
             </FieldGroup>
         );

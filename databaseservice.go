@@ -113,15 +113,34 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_print_spools_print_id ON print_spools(print_id);
 	CREATE INDEX IF NOT EXISTS idx_print_spools_spool_id ON print_spools(spool_id);
 
+	CREATE TABLE IF NOT EXISTS models (
+	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+	    name TEXT NOT NULL,
+	    size INTEGER NOT NULL DEFAULT 0,
+	    file_type TEXT NOT NULL,
+	    file_hash TEXT UNIQUE, 
+	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS print_models (
+	    print_id INTEGER NOT NULL,
+	    model_id INTEGER NOT NULL,
+
+	    PRIMARY KEY (print_id, model_id),
+
+	    FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE,
+	    FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE
+	);
+
 	CREATE TABLE IF NOT EXISTS shortcuts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		action TEXT NOT NULL UNIQUE,
-		key_combo TEXT NOT NULL,
-		description TEXT NOT NULL DEFAULT '',
-		category TEXT NOT NULL,
-		dev_only INTEGER NOT NULL DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+	    action TEXT NOT NULL UNIQUE,
+	    key_combo TEXT NOT NULL,
+	    description TEXT NOT NULL DEFAULT '',
+	    category TEXT NOT NULL,
+	    dev_only INTEGER NOT NULL DEFAULT 0,
+	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_shortcuts_action ON shortcuts(action);

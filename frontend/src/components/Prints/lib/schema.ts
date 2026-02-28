@@ -1,5 +1,17 @@
 import z from "zod";
 
+const modelSchema = z.union([
+    z.custom<File>(), // for new uploads
+    z.object({
+        // for existing models
+        id: z.number(),
+        name: z.string(),
+        ext: z.string(),
+        size: z.number(),
+        data: z.string(),
+    }),
+]);
+
 export const printSchema = z.object({
     name: z.string().min(1, "Name is required").max(300),
     status: z.string().min(1).max(50),
@@ -7,6 +19,7 @@ export const printSchema = z.object({
     datePrinted: z.string().refine((val) => !isNaN(Date.parse(val)), {
         message: "Invalid date",
     }),
+    models: z.array(modelSchema),
     spools: z
         .array(
             z.object({
@@ -26,3 +39,4 @@ export const printSchema = z.object({
 });
 
 export type TPrintSchema = z.infer<typeof printSchema>;
+export type TModelSchema = z.infer<typeof modelSchema>;

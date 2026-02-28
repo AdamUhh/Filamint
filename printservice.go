@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -25,6 +29,14 @@ type PrintSpool struct {
 	ColorHex  string `db:"color_hex" json:"colorHex"`
 }
 
+type PrintModel struct {
+	ID   int64  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+	Ext  string `db:"ext" json:"ext"`
+	Size int64  `db:"size" json:"size"`
+	Data []byte `db:"data" json:"data"`
+}
+
 type Print struct {
 	ID int64 `db:"id" json:"id"`
 
@@ -40,6 +52,8 @@ type Print struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 
 	Spools []PrintSpool `json:"spools,omitempty"` // join table
+	Models []PrintModel `json:"models,omitempty"` // join table
+
 }
 
 type PrintQueryParams struct {
@@ -63,42 +77,56 @@ func NewPrintService(db *Database) *PrintService {
 	return &PrintService{db: db}
 }
 
+func computeSHA256(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+func getModelsDir() (string, error) {
+	base, err := getAppDataDir()
+	if err != nil {
+		return "", err
+	}
+
+	dir := filepath.Join(base, "models")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	return dir, nil
+}
+
 func (s *PrintService) CreatePrint(p Print) (int64, error) {
 	now := time.Now()
 
-	// Insert the print first
-	query := `
-	INSERT INTO prints (
-		name,
-		status,
-		notes,
-		date_printed,
-		created_at,
-		updated_at
-	) VALUES (?, ?, ?, ?, ?, ?)
-	`
-	result, err := s.db.Exec(
-		query,
-		p.Name,
-		p.Status,
-		p.Notes,
-		p.DatePrinted,
-		now,
-		now,
-	)
+	tx, err := s.db.db.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	// 1️⃣ Create print
+	res, err := tx.Exec(`
+		INSERT INTO prints (
+			name,
+			status,
+			notes,
+			date_printed,
+			created_at,
+			updated_at
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`, p.Name, p.Status, p.Notes, p.DatePrinted, now, now)
 	if err != nil {
 		return 0, err
 	}
 
-	printID, err := result.LastInsertId()
+	printID, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
 
-	// Insert related spools in print_spools and update used_weight
 	for _, ps := range p.Spools {
-		// Insert print_spool record
-		_, err := s.db.Exec(
+		_, err := tx.Exec(
 			`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?)`,
 			printID,
@@ -111,8 +139,7 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 			return 0, err
 		}
 
-		// Update the spool's used_weight
-		_, err = s.db.Exec(
+		_, err = tx.Exec(
 			`UPDATE spools 
 			 SET used_weight = used_weight + ?,
 			     last_used_at = ?,
@@ -128,6 +155,10 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	return printID, nil
@@ -241,28 +272,162 @@ func (s *PrintService) DeletePrint(id int64, deletePrintSpools bool) error {
 		}
 	}
 
-	// Delete the print (CASCADE will delete print_spools automatically)
-	_, err := s.db.Exec(`DELETE FROM prints WHERE id = ?`, id)
+	// Delete print_models links (so orphaned models can be found)
+	if _, err := s.db.Exec(`DELETE FROM print_models WHERE print_id = ?`, id); err != nil {
+		return err
+	}
+
+	// Get models that are now orphaned
+	var models []PrintModel
+	if err := s.db.Select(&models,
+		`SELECT id, file_type AS ext FROM models WHERE id NOT IN (SELECT model_id FROM print_models)`); err != nil {
+		return err
+	}
+
+	modelsDir, err := getModelsDir()
+	if err != nil {
+		return err
+	}
+
+	// Delete the files and DB rows
+	for _, m := range models {
+		os.Remove(filepath.Join(modelsDir, fmt.Sprintf("%d.%s", m.ID, m.Ext)))
+		if _, err := s.db.Exec(`DELETE FROM models WHERE id = ?`, m.ID); err != nil {
+			return err
+		}
+	}
+
+	// Finally delete the print itself
+	_, err = s.db.Exec(`DELETE FROM prints WHERE id = ?`, id)
 	return err
 }
 
-func (s *PrintService) GetPrint(id int64) (*Print, error) {
-	var p Print
+func (s *PrintService) GetPrintModels(printID int64) ([]PrintModel, error) {
+	var models []PrintModel
 
-	err := s.db.Get(&p, `SELECT * FROM prints WHERE id = ?`, id)
+	err := s.db.Select(&models, `
+		SELECT 
+			m.id,
+			m.name,
+			m.size,
+			m.file_type AS ext
+		FROM models m
+		INNER JOIN print_models pm ON pm.model_id = m.id
+		WHERE pm.print_id = ?
+	`, printID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Load associated spools
-	var spools []PrintSpool
-	err = s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, id)
+	return models, nil
+}
+
+func (s *PrintService) DuplicatePrintModel(printID int64, modelID int64) (*PrintModel, error) {
+	// 1️⃣ Load original model metadata
+	var orig PrintModel
+	err := s.db.Get(&orig, `SELECT id, name, file_type as ext, size FROM models WHERE id = ?`, modelID)
 	if err != nil {
 		return nil, err
 	}
 
-	p.Spools = spools
-	return &p, nil
+	// 2️⃣ Link the existing model to the new print
+	_, err = s.db.Exec(`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3️⃣ Return the model info
+	return &PrintModel{
+		ID:   orig.ID,
+		Name: orig.Name,
+		Ext:  orig.Ext,
+		Size: orig.Size,
+	}, nil
+}
+
+func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext string, size int64, data []byte) (*PrintModel, error) {
+
+	modelsDir, err := getModelsDir()
+	if err != nil {
+		return nil, err
+	}
+
+	hash := computeSHA256(data)
+
+	// Check if identical file already exists
+	var existingID int64
+	err = s.db.Get(&existingID, `SELECT id FROM models WHERE file_hash = ?`, hash)
+	if err == nil && existingID > 0 {
+		// Already exists, link to print
+		_, err := s.db.Exec(`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, existingID)
+		if err != nil {
+			return nil, err
+		}
+		return &PrintModel{ID: existingID, Name: fileName, Ext: ext, Size: size}, nil
+	}
+
+	// Insert new model metadata
+	res, err := s.db.Exec(`INSERT INTO models(name, size, file_type, file_hash, created_at) VALUES (?, ?, ?, ?, ?)`,
+		fileName, size, ext, hash, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	modelID, _ := res.LastInsertId()
+	absPath := filepath.Join(modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
+
+	// Save file locally
+	if err := os.WriteFile(absPath, data, 0644); err != nil {
+		return nil, err
+	}
+
+	// Link to print
+	_, err = s.db.Exec(`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PrintModel{ID: modelID, Name: fileName, Ext: ext, Size: size}, nil
+}
+
+// TODO: this is deleting the print model completely... first need to check if other fk print_models exist, then delete model
+func (s *PrintService) DeletePrintModel(printID int64, modelID int64, modelExt string) error {
+	// 1️⃣ Delete the link from print_models
+	_, err := s.db.Exec(`DELETE FROM print_models WHERE print_id = ? AND model_id = ?`, printID, modelID)
+	if err != nil {
+		return err
+	}
+
+	// 2️⃣ Check if any other prints still reference this model
+	var count int
+	err = s.db.Get(&count, `SELECT COUNT(*) FROM print_models WHERE model_id = ?`, modelID)
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		// Still used by other prints, do not delete file or model record
+		return nil
+	}
+
+	// 4️⃣ Delete model record
+	_, err = s.db.Exec(`DELETE FROM models WHERE id = ?`, modelID)
+	if err != nil {
+		return err
+	}
+
+	// 5️⃣ Delete local file
+	modelsDir, err := getModelsDir()
+	if err != nil {
+		return err
+	}
+
+	absPath := filepath.Join(modelsDir, fmt.Sprintf("%d.%s", modelID, modelExt))
+	if absPath != "" && modelExt != "" {
+		os.Remove(absPath)
+	}
+
+	return nil
 }
 
 // New query method with filtering, sorting, and pagination
@@ -412,24 +577,3 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		Total:  total,
 	}, nil
 }
-
-// Legacy method - kept for backward compatibility
-// func (s *PrintService) ListPrints() ([]Print, error) {
-// 	var prints []Print
-// 	err := s.db.Select(&prints, `SELECT * FROM prints ORDER BY created_at DESC`)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	// Load spools for each print
-// 	for i := range prints {
-// 		var spools []PrintSpool
-// 		err := s.db.Select(&spools, `SELECT * FROM print_spools WHERE print_id = ?`, prints[i].ID)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		prints[i].Spools = spools
-// 	}
-//
-// 	return prints, nil
-// }

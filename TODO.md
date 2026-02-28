@@ -6,7 +6,8 @@
 - [ ] Unsure: Allow create and update to change spoolcode
 
 > Prints
-- [ ] Add ability to upload 3MF/STL files, and view them (3d) in a window
+- [x] Add ability to upload 3MF/STL files
+- [ ] View 3MF/STL in a new window
 - [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: Add another way to view prints
 - - [  ] Whenever you add a file, it should also take a screenshot of the print
@@ -15,6 +16,9 @@
 - [ ] Unsure: When clicking Spools cell, should open a modal with spool info?
 
 > QoL
+- [ ] Cleanup all func and sql
+- - [  ] databaseservice.go has many funcs that try to cleanup sqlx func; I thought it was a good idea at the time, but not anymore, clean it up and redo all funcs
+- - [  ] After you clean up, you need to figure out how to optimize the code, there are too many db calls
 - [ ] Add updater
 - [ ] Need to add proper title/description for build
 - [ ] Clean up all service functions that are not being used

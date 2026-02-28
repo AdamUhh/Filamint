@@ -11,6 +11,7 @@ import type { Print, PrintQueryParams } from "@bindings";
 import { PrintService } from "@bindings";
 
 import { PAGE_SIZE } from "./defaults";
+import type { TModelSchema } from "./schema";
 
 export function usePrintEvents(onCreate: () => void) {
     useEffect(() => {
@@ -53,18 +54,6 @@ export function usePrints(params: Partial<PrintQueryParams> = {}) {
         error: query.error,
         refetch: query.refetch,
     };
-}
-
-export function usePrint(id: number) {
-    return useQuery({
-        queryKey: ["print", id],
-        queryFn: async () => {
-            if (!id) return null;
-            return await PrintService.GetPrint(id);
-        },
-        enabled: id > 0,
-        staleTime: 5 * 60 * 1000,
-    });
 }
 
 export function useCreatePrint() {
@@ -117,6 +106,69 @@ export function useDeletePrint() {
     });
 }
 
+export function usePrintModels(id: number) {
+    return useQuery({
+        queryKey: ["print_models", id],
+        queryFn: async () => {
+            if (!id || id === 0) return null;
+            return await PrintService.GetPrintModels(id);
+        },
+        enabled: id > 0,
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
+export function useUploadPrintModel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (args: { printId: number; file: TModelSchema }) => {
+            const { printId, file } = args;
+            const isFile = file instanceof File;
+
+            if (!isFile) {
+                return PrintService.DuplicatePrintModel(printId, file.id);
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            const byteArray = Array.from(uint8Array);
+
+            return PrintService.UploadPrintModel(
+                printId,
+                file.name.split(".").slice(0, -1).join("."),
+                file.name.split(".").pop() || "3mf",
+                file.size,
+                byteArray as unknown as string
+            );
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["print_models"] });
+        },
+    });
+}
+
+export function useDeletePrintModel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (args: {
+            printId: number;
+            modelId: number;
+            modelExt: string;
+        }) =>
+            PrintService.DeletePrintModel(
+                args.printId,
+                args.modelId,
+                args.modelExt
+            ),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["print_models"] });
+        },
+    });
+}
+
 export function useInvalidatePrints(cooldownMs = 5000) {
     const queryClient = useQueryClient();
     const isFetching = useIsFetching({ queryKey: ["prints"] }) > 0;
@@ -164,56 +216,3 @@ export function useInvalidatePrints(cooldownMs = 5000) {
         isCoolingDown: secondsLeft > 0,
     };
 }
-
-// interface PrintQueryResult {
-//     prints: Print[];
-//     total: number;
-// }
-
-/**
- * Hook for optimistic updates (optional - use if you want instant UI updates)
- */
-// export function useOptimisticUpdatePrint() {
-//     const queryClient = useQueryClient();
-//
-//     return useMutation({
-//         mutationFn: (print: Print) => PrintService.UpdatePrint(print),
-//
-//         // Optimistically update the UI before the server responds
-//         onMutate: async (updatedPrint) => {
-//             // Cancel outgoing refetches
-//             await queryClient.cancelQueries({ queryKey: ["prints"] });
-//
-//             // Snapshot the previous value
-//             const previousPrints = queryClient.getQueryData(["prints"]);
-//
-//             // Optimistically update cache
-//             queryClient.setQueriesData(
-//                 { queryKey: ["prints"] },
-//                 (old: PrintQueryResult | undefined) => {
-//                     if (!old) return old;
-//                     return {
-//                         ...old,
-//                         prints: old.prints.map((s) =>
-//                             s.id === updatedPrint.id ? updatedPrint : s
-//                         ),
-//                     };
-//                 }
-//             );
-//
-//             return { previousPrints };
-//         },
-//
-//         // If mutation fails, rollback
-//         onError: (_err, _updatedPrint, context) => {
-//             if (context?.previousPrints) {
-//                 queryClient.setQueryData(["prints"], context.previousPrints);
-//             }
-//         },
-//
-//         // Always refetch after error or success
-//         onSettled: () => {
-//             queryClient.invalidateQueries({ queryKey: ["prints"] });
-//         },
-//     });
-// }

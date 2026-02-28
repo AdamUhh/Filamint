@@ -119,6 +119,7 @@ func main() {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
+		EnableFileDrop:   true,
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",
 		Width:            1200,

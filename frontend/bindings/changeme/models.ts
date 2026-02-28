@@ -23,6 +23,11 @@ export class Print {
      */
     "spools"?: PrintSpool[];
 
+    /**
+     * join table
+     */
+    "models"?: PrintModel[];
+
     /** Creates a new Print instance. */
     constructor($$source: Partial<Print> = {}) {
         if (!("id" in $$source)) {
@@ -55,11 +60,56 @@ export class Print {
      */
     static createFrom($$source: any = {}): Print {
         const $$createField7_0 = $$createType1;
+        const $$createField8_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
             $$parsedSource["spools"] = $$createField7_0($$parsedSource["spools"]);
         }
+        if ("models" in $$parsedSource) {
+            $$parsedSource["models"] = $$createField8_0($$parsedSource["models"]);
+        }
         return new Print($$parsedSource as Partial<Print>);
+    }
+}
+
+export class PrintModel {
+    "id": number;
+    "name": string;
+    "ext": string;
+    "size": number;
+    "data": string;
+
+    /** Creates a new PrintModel instance. */
+    constructor($$source: Partial<PrintModel> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("ext" in $$source)) {
+            this["ext"] = "";
+        }
+        if (!("size" in $$source)) {
+            this["size"] = 0;
+        }
+        if (!("data" in $$source)) {
+            this["data"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PrintModel instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PrintModel {
+        const $$createField4_0 = $Create.ByteSlice;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField4_0($$parsedSource["data"]);
+        }
+        return new PrintModel($$parsedSource as Partial<PrintModel>);
     }
 }
 
@@ -120,7 +170,7 @@ export class PrintQueryResult {
      * Creates a new PrintQueryResult instance from a string or object.
      */
     static createFrom($$source: any = {}): PrintQueryResult {
-        const $$createField0_0 = $$createType3;
+        const $$createField0_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("prints" in $$parsedSource) {
             $$parsedSource["prints"] = $$createField0_0($$parsedSource["prints"]);
@@ -414,7 +464,7 @@ export class SpoolQueryResult {
      * Creates a new SpoolQueryResult instance from a string or object.
      */
     static createFrom($$source: any = {}): SpoolQueryResult {
-        const $$createField0_0 = $$createType5;
+        const $$createField0_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
             $$parsedSource["spools"] = $$createField0_0($$parsedSource["spools"]);
@@ -426,7 +476,9 @@ export class SpoolQueryResult {
 // Private type creation functions
 const $$createType0 = PrintSpool.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = Print.createFrom;
+const $$createType2 = PrintModel.createFrom;
 const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = Spool.createFrom;
+const $$createType4 = Print.createFrom;
 const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = Spool.createFrom;
+const $$createType7 = $Create.Array($$createType6);

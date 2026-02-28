@@ -17,9 +17,22 @@ export function DeletePrint(id: number, deletePrintSpools: boolean): $Cancellabl
     return $Call.ByID(1451455108, id, deletePrintSpools);
 }
 
-export function GetPrint(id: number): $CancellablePromise<$models.Print | null> {
-    return $Call.ByID(3750870029, id).then(($result: any) => {
+/**
+ * TODO: this is deleting the print model completely... first need to check if other fk print_models exist, then delete model
+ */
+export function DeletePrintModel(printID: number, modelID: number, modelExt: string): $CancellablePromise<void> {
+    return $Call.ByID(3103083793, printID, modelID, modelExt);
+}
+
+export function DuplicatePrintModel(printID: number, modelID: number): $CancellablePromise<$models.PrintModel | null> {
+    return $Call.ByID(1846966371, printID, modelID).then(($result: any) => {
         return $$createType1($result);
+    });
+}
+
+export function GetPrintModels(printID: number): $CancellablePromise<$models.PrintModel[]> {
+    return $Call.ByID(134154019, printID).then(($result: any) => {
+        return $$createType2($result);
     });
 }
 
@@ -28,7 +41,7 @@ export function GetPrint(id: number): $CancellablePromise<$models.Print | null> 
  */
 export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
     return $Call.ByID(3055920690, params).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
@@ -36,8 +49,15 @@ export function UpdatePrint(p: $models.Print): $CancellablePromise<void> {
     return $Call.ByID(141751710, p);
 }
 
+export function UploadPrintModel(printID: number, fileName: string, ext: string, size: number, data: string): $CancellablePromise<$models.PrintModel | null> {
+    return $Call.ByID(2005807887, printID, fileName, ext, size, data).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 // Private type creation functions
-const $$createType0 = $models.Print.createFrom;
+const $$createType0 = $models.PrintModel.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $models.PrintQueryResult.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
+const $$createType2 = $Create.Array($$createType0);
+const $$createType3 = $models.PrintQueryResult.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);

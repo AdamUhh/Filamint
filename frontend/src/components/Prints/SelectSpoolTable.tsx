@@ -86,16 +86,14 @@ export function SelectSpoolTable({
                             <TableRow
                                 key={spool.id}
                                 className={cn(
-                                    "capitalize",
-                                    value?.includes(spool.id) && "bg-blue-50"
+                                    "capitalize hover:cursor-pointer",
+                                    value?.includes(spool.id) && "bg-accent"
                                 )}
+                                onClick={() => handleCheckbox(spool.id, spool)}
                             >
                                 <TableCell>
                                     <Checkbox
                                         checked={value?.includes(spool.id)}
-                                        onClick={() =>
-                                            handleCheckbox(spool.id, spool)
-                                        }
                                     />
                                 </TableCell>
                                 <TableCell>
