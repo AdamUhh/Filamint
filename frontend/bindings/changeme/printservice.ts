@@ -33,9 +33,6 @@ export function GetPrintModels(printID: number): $CancellablePromise<$models.Pri
     });
 }
 
-/**
- * New query method with filtering, sorting, and pagination
- */
 export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
     return $Call.ByID(3055920690, params).then(($result: any) => {
         return $$createType4($result);

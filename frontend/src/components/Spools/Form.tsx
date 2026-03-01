@@ -59,42 +59,19 @@ export function SpoolFormDialog({
 
     useEffect(() => {
         if (editState.isOpen && editState.original) {
-            form.setFieldValue("vendor", editState.original.vendor, {
-                dontValidate: true,
-            });
-            form.setFieldValue("usedWeight", editState.original.usedWeight, {
-                dontValidate: true,
-            });
-            form.setFieldValue("cost", editState.original.cost, {
-                dontValidate: true,
-            });
-            form.setFieldValue(
-                "referenceLink",
-                editState.original.referenceLink,
-                { dontValidate: true }
-            );
-            form.setFieldValue("notes", editState.original.notes, {
-                dontValidate: true,
-            });
-            form.setFieldValue("totalWeight", editState.original.totalWeight, {
-                dontValidate: true,
-            });
-            form.setFieldValue("color", editState.original.color, {
-                dontValidate: true,
-            });
-            form.setFieldValue("colorHex", editState.original.colorHex, {
-                dontValidate: true,
-            });
-            form.setFieldValue("material", editState.original.material, {
-                dontValidate: true,
-            });
-            form.setFieldValue(
-                "materialType",
-                editState.original.materialType,
-                { dontValidate: true }
-            );
-            form.setFieldValue("isTemplate", editState.original.isTemplate, {
-                dontValidate: true,
+            form.reset({
+                vendor: editState.original.vendor,
+                usedWeight: editState.original.usedWeight,
+                cost: editState.original.cost,
+                referenceLink: editState.original.referenceLink,
+                notes: editState.original.notes,
+                totalWeight: editState.original.totalWeight,
+                color: editState.original.color,
+                colorHex: editState.original.colorHex,
+                material: editState.original.material,
+                materialType: editState.original.materialType,
+                isTemplate:
+                    editState.id === 0 ? false : editState.original.isTemplate,
             });
         }
     }, [editState, form]);
@@ -135,15 +112,22 @@ export function SpoolFormDialog({
                             Cancel
                         </Button>
 
-                        <Button
-                            type="submit"
-                            disabled={
-                                createMutation.isPending ||
-                                updateMutation.isPending
-                            }
+                        <form.Subscribe
+                            selector={(state) => state.isDefaultValue}
                         >
-                            {editState.id > 0 ? "Update" : "Create"}
-                        </Button>
+                            {(isDefaultValue) => (
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        createMutation.isPending ||
+                                        updateMutation.isPending ||
+                                        (editState.id > 0 && isDefaultValue)
+                                    }
+                                >
+                                    {editState.id > 0 ? "Update" : "Create"}
+                                </Button>
+                            )}
+                        </form.Subscribe>
                     </DialogFooter>
                 </form>
             </DialogContent>

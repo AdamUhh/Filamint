@@ -17,15 +17,7 @@ export class Print {
     "datePrinted": time$0.Time | null;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
-
-    /**
-     * join table
-     */
     "spools"?: PrintSpool[];
-
-    /**
-     * join table
-     */
     "models"?: PrintModel[];
 
     /** Creates a new Print instance. */

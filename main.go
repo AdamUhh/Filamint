@@ -2,11 +2,8 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"log"
-	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -27,41 +24,6 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
-func getAppDataDir() (string, error) {
-	var base string
-	switch runtime.GOOS {
-	case "windows":
-		// C:\Users\<user>\AppData\Roaming\filament-tracker/
-		base = os.Getenv("APPDATA")
-		if base == "" {
-			return "", fmt.Errorf("APPDATA env var not set")
-		}
-	case "darwin":
-		// /Users/<user>/Library/Application Support/filament-tracker/
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		base = filepath.Join(home, "Library", "Application Support")
-	default:
-		// /home/<user>/.config/filament-tracker/
-		base = os.Getenv("XDG_DATA_HOME")
-		if base == "" {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			base = filepath.Join(home, ".local", "share")
-		}
-	}
-
-	dir := filepath.Join(base, "filament-tracker")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create app data dir: %w", err)
-	}
-	return dir, nil
-}
-
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
@@ -72,7 +34,10 @@ func main() {
 		log.Fatalf("Failed to resolve app data path: %v", err)
 	}
 
-	db := NewDatabase(filepath.Join(appDataDir, "db.db"))
+	db, err := NewDatabase(filepath.Join(appDataDir, "db.db"))
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
 	shortcutService := NewShortcutService(db)
 
 	// Create a new Wails application by providing the necessary options.

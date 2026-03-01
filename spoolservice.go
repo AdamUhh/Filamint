@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -82,17 +81,6 @@ var validSortColumns = map[string]bool{
 	"updated_at":    true,
 }
 
-func NewSpoolService(database *Database) *SpoolService {
-	return &SpoolService{db: database.db}
-}
-
-func convertBoolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 func randomSuffix(length int) (string, error) {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	b := make([]byte, length)
@@ -135,6 +123,10 @@ func (s *SpoolService) generateSpoolCode(material, color string) (string, error)
 			return code, nil
 		}
 	}
+}
+
+func NewSpoolService(database *Database) *SpoolService {
+	return &SpoolService{db: database.db}
 }
 
 func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
@@ -275,47 +267,6 @@ func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
 	}
 
 	return prints, nil
-}
-
-// tokenize splits search input into tokens, respecting key:"quoted value" syntax.
-func tokenize(search string) []string {
-	re := regexp.MustCompile(`\w+:"[^"]*"|\S+`)
-	return re.FindAllString(strings.TrimSpace(search), -1)
-}
-
-func parseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
-	qualifiers = make(map[string]string)
-	var freeTextParts []string
-
-	for _, token := range tokenize(search) {
-		colonIdx := strings.Index(token, ":")
-		if colonIdx > 0 {
-			key := strings.ToLower(token[:colonIdx])
-			value := token[colonIdx+1:]
-			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-				value = value[1 : len(value)-1]
-			}
-			if value != "" {
-				qualifiers[key] = strings.ToLower(value)
-				continue
-			}
-		}
-		if token != "" {
-			freeTextParts = append(freeTextParts, token)
-		}
-	}
-
-	freeText = strings.Join(freeTextParts, " ")
-	return
-}
-
-// buildQualifierClause returns a WHERE fragment and arg for a single qualifier.
-// Wildcards (*) are converted to SQL LIKE patterns.
-func buildQualifierClause(column, val string) (clause string, arg any) {
-	if strings.Contains(val, "*") {
-		return fmt.Sprintf("LOWER(%s) LIKE ?", column), strings.ReplaceAll(val, "*", "%")
-	}
-	return fmt.Sprintf("LOWER(%s) = ?", column), val
 }
 
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {

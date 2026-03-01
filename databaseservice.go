@@ -13,60 +13,52 @@ import (
 
 type Database struct {
 	db     *sqlx.DB
-	dbPath string
 	cancel context.CancelFunc
 }
 
-func NewDatabase(dbPath string) *Database {
-	return &Database{dbPath: dbPath}
-}
-
-func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
-	absPath, err := filepath.Abs(d.dbPath)
+func NewDatabase(dbPath string) (*Database, error) {
+	absPath, err := filepath.Abs(dbPath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve database path: %w", err)
+		return nil, fmt.Errorf("failed to resolve database path: %w", err)
 	}
 
 	db, err := sqlx.Open("sqlite", absPath)
 	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// SQLite pragmas — set before anything else
 	pragmas := []string{
 		`PRAGMA journal_mode=WAL`,   // better concurrent reads
 		`PRAGMA foreign_keys=ON`,    // enforce FK constraints
 		`PRAGMA busy_timeout=5000`,  // wait up to 5s on locked DB
 		`PRAGMA synchronous=NORMAL`, // safe + faster than FULL with WAL
-		`PRAGMA cache_size=-8000`,   // 8MB page cache
+		`PRAGMA cache_size=4000`,    // 4MB page cache
 		`PRAGMA temp_store=MEMORY`,  // temp tables in memory
 	}
 	for _, p := range pragmas {
 		if _, err := db.Exec(p); err != nil {
-			return fmt.Errorf("failed to set pragma %q: %w", p, err)
+			return nil, fmt.Errorf("failed to set pragma %q: %w", p, err)
 		}
 	}
 
 	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	d.db = db
+	database := &Database{db: db}
 
-	if err := d.initSchema(); err != nil {
-		return fmt.Errorf("failed to initialize schema: %w", err)
+	if err := database.initSchema(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	if err := d.seedSpoolsIfEmpty(); err != nil {
-		return fmt.Errorf("failed to seed spools: %w", err)
+	// ---- SEEDING (comment to disable) ----
+	if err := database.seedSpoolsIfEmpty(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to seed spools: %w", err)
 	}
 
-	// Start background maintenance (WAL checkpoint + VACUUM)
-	ctx, cancel := context.WithCancel(ctx)
-	d.cancel = cancel
-	go d.periodicMaintenance(ctx)
-
-	return nil
+	return database, nil
 }
 
 func (d *Database) initSchema() error {
@@ -250,6 +242,15 @@ func (d *Database) seedSpoolsIfEmpty() error {
 	}
 
 	return tx.Commit()
+}
+
+func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+
+	ctx, cancel := context.WithCancel(ctx)
+	d.cancel = cancel
+	go d.periodicMaintenance(ctx)
+
+	return nil
 }
 
 func (d *Database) ServiceShutdown() error {
