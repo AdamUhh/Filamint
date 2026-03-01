@@ -2,11 +2,12 @@ package main
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Spool struct {
@@ -54,11 +55,35 @@ type SpoolPrint struct {
 }
 
 type SpoolService struct {
-	db *Database
+	db *sqlx.DB
 }
 
-func NewSpoolService(db *Database) *SpoolService {
-	return &SpoolService{db: db}
+// qualifierColumns maps search qualifier keys to their DB column names.
+// Defined at package level since it's constant.
+var qualifierColumns = map[string]string{
+	"spool":    "spool_code",
+	"material": "material",
+	"vendor":   "vendor",
+	"color":    "color",
+}
+
+// validSortColumns is the allowlist for ORDER BY to prevent SQL injection.
+var validSortColumns = map[string]bool{
+	"id":            true,
+	"spool_code":    true,
+	"vendor":        true,
+	"material":      true,
+	"material_type": true,
+	"color":         true,
+	"total_weight":  true,
+	"used_weight":   true,
+	"cost":          true,
+	"created_at":    true,
+	"updated_at":    true,
+}
+
+func NewSpoolService(database *Database) *SpoolService {
+	return &SpoolService{db: database.db}
 }
 
 func convertBoolToInt(b bool) int {
@@ -73,7 +98,7 @@ func randomSuffix(length int) (string, error) {
 	b := make([]byte, length)
 	_, err := rand.Read(b)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("generating random suffix: %w", err)
 	}
 
 	for i := range b {
@@ -103,7 +128,7 @@ func (s *SpoolService) generateSpoolCode(material, color string) (string, error)
 			code,
 		)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("checking spool code uniqueness: %w", err)
 		}
 
 		if !exists {
@@ -117,7 +142,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 
 	code, err := s.generateSpoolCode(spool.Material, spool.Color)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("generating spool code: %w", err)
 	}
 
 	query := `
@@ -158,15 +183,19 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		now,
 	)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("inserting spool: %w", err)
 	}
 
-	return result.LastInsertId()
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("getting spool id: %w", err)
+	}
+	return id, nil
 }
 
 func (s *SpoolService) UpdateSpool(spool Spool) error {
 	if spool.ID == 0 {
-		return errors.New("spool ID is required")
+		return fmt.Errorf("spool id is required")
 	}
 
 	query := `
@@ -207,34 +236,23 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		spool.ID,
 	)
 
+	if err != nil {
+		return fmt.Errorf("updating spool %d: %w", spool.ID, err)
+	}
+
 	return err
 }
 
 func (s *SpoolService) DeleteSpool(id int64) error {
 	if id == 0 {
-		return errors.New("invalid spool ID")
+		return fmt.Errorf("invalid spool id")
 	}
 
 	_, err := s.db.Exec(`DELETE FROM spools WHERE id = ?`, id)
-	return err
-}
-
-func (s *SpoolService) GetSpoolByCode(code string) (*Spool, error) {
-	var spool Spool
-	err := s.db.Get(&spool, `SELECT * FROM spools WHERE spool_code = ?`, code)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("deleting spool %d: %w", id, err)
 	}
-	return &spool, nil
-}
-
-func (s *SpoolService) GetSpool(id int64) (*Spool, error) {
-	var spool Spool
-	err := s.db.Get(&spool, `SELECT * FROM spools WHERE id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	return &spool, nil
+	return nil
 }
 
 func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
@@ -253,7 +271,7 @@ func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
 
 	err := s.db.Select(&prints, query, spoolID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("querying prints for spool %d: %w", spoolID, err)
 	}
 
 	return prints, nil
@@ -261,10 +279,6 @@ func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
 
 // tokenize splits search input into tokens, respecting key:"quoted value" syntax.
 func tokenize(search string) []string {
-	// Matches either:
-	//   key:"quoted value with spaces"
-	//   key:unquoted-value
-	//   bare-word
 	re := regexp.MustCompile(`\w+:"[^"]*"|\S+`)
 	return re.FindAllString(strings.TrimSpace(search), -1)
 }
@@ -278,7 +292,6 @@ func parseSearchQuery(search string) (qualifiers map[string]string, freeText str
 		if colonIdx > 0 {
 			key := strings.ToLower(token[:colonIdx])
 			value := token[colonIdx+1:]
-			// Strip surrounding quotes from value if present
 			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
 				value = value[1 : len(value)-1]
 			}
@@ -296,18 +309,17 @@ func parseSearchQuery(search string) (qualifiers map[string]string, freeText str
 	return
 }
 
-// buildQualifierClause returns a WHERE clause fragment and args for a qualifier.
-// It handles wildcard (*) and exact match cases.
-func buildQualifierClause(column, val string, argPosition int) (clause string, arg any) {
+// buildQualifierClause returns a WHERE fragment and arg for a single qualifier.
+// Wildcards (*) are converted to SQL LIKE patterns.
+func buildQualifierClause(column, val string) (clause string, arg any) {
 	if strings.Contains(val, "*") {
-		likeVal := strings.ReplaceAll(val, "*", "%")
-		return fmt.Sprintf("LOWER(%s) LIKE ?%d", column, argPosition), likeVal
+		return fmt.Sprintf("LOWER(%s) LIKE ?", column), strings.ReplaceAll(val, "*", "%")
 	}
-	return fmt.Sprintf("LOWER(%s) = ?%d", column, argPosition), val
+	return fmt.Sprintf("LOWER(%s) = ?", column), val
 }
 
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
-	// Set defaults
+	// Defaults
 	if params.SortBy == "" {
 		params.SortBy = "updated_at"
 	}
@@ -318,44 +330,30 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		params.Limit = 15
 	}
 
-	// Build WHERE clause
 	var whereClauses []string
 	var args []any
-	argPosition := 1
 
 	if params.Search != "" {
 		qualifiers, freeText := parseSearchQuery(params.Search)
 
-		qualifierColumns := map[string]string{
-			"spool":    "spool_code",
-			"material": "material",
-			"vendor":   "vendor",
-			"color":    "color",
-		}
 		for qualifier, column := range qualifierColumns {
 			if val, ok := qualifiers[qualifier]; ok {
-				clause, arg := buildQualifierClause(column, val, argPosition)
+				clause, arg := buildQualifierClause(column, val)
 				whereClauses = append(whereClauses, clause)
 				args = append(args, arg)
-				argPosition++
 			}
 		}
 
 		if freeText != "" {
 			searchPattern := "%" + strings.ToLower(freeText) + "%"
-			whereClauses = append(whereClauses, fmt.Sprintf(
-				"(LOWER(spool_code) LIKE ?%d OR LOWER(vendor) LIKE ?%d OR LOWER(material) LIKE ?%d OR LOWER(color) LIKE ?%d)",
-				argPosition, argPosition+1, argPosition+2, argPosition+3,
-			))
+			whereClauses = append(whereClauses, "(LOWER(spool_code) LIKE ? OR LOWER(vendor) LIKE ? OR LOWER(material) LIKE ? OR LOWER(color) LIKE ?)")
 			args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
-			argPosition += 4
 		}
 	}
 
 	if params.IsTemplate != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("is_template = ?%d", argPosition))
-		args = append(args, convertBoolToInt(*params.IsTemplate))
-		argPosition++
+		whereClauses = append(whereClauses, "is_template = ?")
+		args = append(args, *params.IsTemplate)
 	}
 
 	whereClause := ""
@@ -363,20 +361,6 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	// Validate and sanitize sort column
-	validSortColumns := map[string]bool{
-		"id":            true,
-		"spool_code":    true,
-		"vendor":        true,
-		"material":      true,
-		"material_type": true,
-		"color":         true,
-		"total_weight":  true,
-		"used_weight":   true,
-		"cost":          true,
-		"created_at":    true,
-		"updated_at":    true,
-	}
 	sortColumn := params.SortBy
 	if !validSortColumns[sortColumn] {
 		sortColumn = "updated_at"
@@ -386,28 +370,20 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		sortOrder = "DESC"
 	}
 
-	// Get total count
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM spools %s", whereClause)
 	var total int
-	err := s.db.Get(&total, countQuery, args...)
-	if err != nil {
+	if err := s.db.Get(&total, countQuery, args...); err != nil {
 		return nil, fmt.Errorf("failed to count spools: %w", err)
 	}
 
-	// Get paginated results
 	query := fmt.Sprintf(
-		"SELECT * FROM spools %s ORDER BY %s %s LIMIT ?%d OFFSET ?%d",
-		whereClause,
-		sortColumn,
-		sortOrder,
-		argPosition,
-		argPosition+1,
+		"SELECT * FROM spools %s ORDER BY %s %s LIMIT ? OFFSET ?",
+		whereClause, sortColumn, sortOrder,
 	)
 	args = append(args, params.Limit, params.Offset)
 
 	var spools []Spool
-	err = s.db.Select(&spools, query, args...)
-	if err != nil {
+	if err := s.db.Select(&spools, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to query spools: %w", err)
 	}
 
@@ -416,10 +392,3 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		Total:  total,
 	}, nil
 }
-
-// Legacy method - kept for backward compatibility
-// func (s *SpoolService) ListSpools() ([]Spool, error) {
-// 	var spools []Spool
-// 	err := s.db.Select(&spools, `SELECT * FROM spools ORDER BY updated_at DESC`)
-// 	return spools, err
-// }

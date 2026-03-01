@@ -1,46 +1,72 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	_ "modernc.org/sqlite"
 )
 
 type Database struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	dbPath string
+	cancel context.CancelFunc
 }
 
-func NewDatabase(dbPath string) (*Database, error) {
-	absPath, err := filepath.Abs(dbPath)
+func NewDatabase(dbPath string) *Database {
+	return &Database{dbPath: dbPath}
+}
+
+func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	absPath, err := filepath.Abs(d.dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve database path: %w", err)
+		return fmt.Errorf("failed to resolve database path: %w", err)
 	}
 
 	db, err := sqlx.Open("sqlite", absPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// SQLite pragmas — set before anything else
+	pragmas := []string{
+		`PRAGMA journal_mode=WAL`,   // better concurrent reads
+		`PRAGMA foreign_keys=ON`,    // enforce FK constraints
+		`PRAGMA busy_timeout=5000`,  // wait up to 5s on locked DB
+		`PRAGMA synchronous=NORMAL`, // safe + faster than FULL with WAL
+		`PRAGMA cache_size=-8000`,   // 8MB page cache
+		`PRAGMA temp_store=MEMORY`,  // temp tables in memory
+	}
+	for _, p := range pragmas {
+		if _, err := db.Exec(p); err != nil {
+			return fmt.Errorf("failed to set pragma %q: %w", p, err)
+		}
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	database := &Database{db: db}
+	d.db = db
 
-	if err := database.initSchema(); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to initialize schema: %w", err)
+	if err := d.initSchema(); err != nil {
+		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	// ---- SEEDING (comment out any line to disable) ----
-	if err := database.seedSpoolsIfEmpty(); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to seed spools: %w", err)
+	if err := d.seedSpoolsIfEmpty(); err != nil {
+		return fmt.Errorf("failed to seed spools: %w", err)
 	}
 
-	return database, nil
+	// Start background maintenance (WAL checkpoint + VACUUM)
+	ctx, cancel := context.WithCancel(ctx)
+	d.cancel = cancel
+	go d.periodicMaintenance(ctx)
+
+	return nil
 }
 
 func (d *Database) initSchema() error {
@@ -226,51 +252,46 @@ func (d *Database) seedSpoolsIfEmpty() error {
 	return tx.Commit()
 }
 
-// Generic query methods that can be used by any repository
-func (d *Database) Select(dest any, query string, args ...any) error {
-	return d.db.Select(dest, query, args...)
-}
-
-func (d *Database) Get(dest any, query string, args ...interface{}) error {
-	return d.db.Get(dest, query, args...)
-}
-
-func (d *Database) Exec(query string, args ...interface{}) (Result, error) {
-	result, err := d.db.Exec(query, args...)
-	if err != nil {
-		return Result{}, err
-	}
-	return Result{result: result}, nil
-}
-
-// Result wraps sql.Result for easier use
-type Result struct {
-	result interface {
-		LastInsertId() (int64, error)
-		RowsAffected() (int64, error)
-	}
-}
-
-func (r Result) LastInsertId() (int64, error) {
-	return r.result.LastInsertId()
-}
-
-func (r Result) RowsAffected() (int64, error) {
-	return r.result.RowsAffected()
-}
-
-func (d *Database) Close() error {
-	if d.db != nil {
-		return d.db.Close()
-	}
-	return nil
-}
-
 func (d *Database) ServiceShutdown() error {
-	// Close database
-	if err := d.Close(); err != nil {
-		return fmt.Errorf("failed to close database: %w", err)
+	if d.cancel != nil {
+		d.cancel()
+	}
+
+	if d.db != nil {
+		// Checkpoint WAL before closing so data is in the main DB file
+		if _, err := d.db.Exec(`PRAGMA wal_checkpoint(TRUNCATE)`); err != nil {
+			return fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
+		}
+		if err := d.db.Close(); err != nil {
+			return fmt.Errorf("failed to close database: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// periodicMaintenance runs a WAL checkpoint and incremental VACUUM every hour.
+// This keeps the DB file size in check and prevents WAL files from growing unbounded.
+func (d *Database) periodicMaintenance(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			d.runMaintenance()
+		}
+	}
+}
+
+func (d *Database) runMaintenance() {
+	if _, err := d.db.Exec(`PRAGMA wal_checkpoint(PASSIVE)`); err != nil {
+		// Non-fatal — log in a real app
+		_ = err
+	}
+	if _, err := d.db.Exec(`PRAGMA incremental_vacuum`); err != nil {
+		_ = err
+	}
 }

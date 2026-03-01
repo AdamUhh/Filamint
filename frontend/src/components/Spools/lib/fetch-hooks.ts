@@ -64,18 +64,6 @@ export function useSpools(params: Partial<SpoolQueryParams> = {}) {
     };
 }
 
-export function useSpool(id: number) {
-    return useQuery({
-        queryKey: ["spool", id],
-        queryFn: async () => {
-            if (!id) return null;
-            return await SpoolService.GetSpool(id);
-        },
-        enabled: id > 0,
-        staleTime: 5 * 60 * 1000,
-    });
-}
-
 export function useSpoolPrints(id: number) {
     return useQuery({
         queryKey: ["spool_prints", id],
@@ -176,56 +164,3 @@ export function useInvalidateSpools(cooldownMs = 5000) {
         isCoolingDown: secondsLeft > 0,
     };
 }
-
-// interface SpoolQueryResult {
-//     spools: Spool[];
-//     total: number;
-// }
-
-/**
- * Hook for optimistic updates (optional - use if you want instant UI updates)
- */
-// export function useOptimisticUpdateSpool() {
-//     const queryClient = useQueryClient();
-//
-//     return useMutation({
-//         mutationFn: (spool: Spool) => SpoolService.UpdateSpool(spool),
-//
-//         // Optimistically update the UI before the server responds
-//         onMutate: async (updatedSpool) => {
-//             // Cancel outgoing refetches
-//             await queryClient.cancelQueries({ queryKey: ["spools"] });
-//
-//             // Snapshot the previous value
-//             const previousSpools = queryClient.getQueryData(["spools"]);
-//
-//             // Optimistically update cache
-//             queryClient.setQueriesData(
-//                 { queryKey: ["spools"] },
-//                 (old: SpoolQueryResult | undefined) => {
-//                     if (!old) return old;
-//                     return {
-//                         ...old,
-//                         spools: old.spools.map((s) =>
-//                             s.id === updatedSpool.id ? updatedSpool : s
-//                         ),
-//                     };
-//                 }
-//             );
-//
-//             return { previousSpools };
-//         },
-//
-//         // If mutation fails, rollback
-//         onError: (_err, _updatedSpool, context) => {
-//             if (context?.previousSpools) {
-//                 queryClient.setQueryData(["spools"], context.previousSpools);
-//             }
-//         },
-//
-//         // Always refetch after error or success
-//         onSettled: () => {
-//             queryClient.invalidateQueries({ queryKey: ["spools"] });
-//         },
-//     });
-// }

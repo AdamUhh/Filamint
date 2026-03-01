@@ -72,12 +72,7 @@ func main() {
 		log.Fatalf("Failed to resolve app data path: %v", err)
 	}
 
-	db, err := NewDatabase(filepath.Join(appDataDir, "db.db"))
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer db.Close()
-
+	db := NewDatabase(filepath.Join(appDataDir, "db.db"))
 	shortcutService := NewShortcutService(db)
 
 	// Create a new Wails application by providing the necessary options.
@@ -89,6 +84,7 @@ func main() {
 		Name:        "filament-tracker",
 		Description: "A 3D printing filament manager to keep track of spools, usage, and prints",
 		Services: []application.Service{
+			application.NewService(db),
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
 			application.NewService(shortcutService),

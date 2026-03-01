@@ -17,9 +17,6 @@ export function DeletePrint(id: number, deletePrintSpools: boolean): $Cancellabl
     return $Call.ByID(1451455108, id, deletePrintSpools);
 }
 
-/**
- * TODO: this is deleting the print model completely... first need to check if other fk print_models exist, then delete model
- */
 export function DeletePrintModel(printID: number, modelID: number, modelExt: string): $CancellablePromise<void> {
     return $Call.ByID(3103083793, printID, modelID, modelExt);
 }

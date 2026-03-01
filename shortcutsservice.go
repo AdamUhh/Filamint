@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -22,7 +23,7 @@ type Shortcut struct {
 }
 
 type ShortcutService struct {
-	db               *Database
+	db               *sqlx.DB
 	cache            map[string]Shortcut
 	mu               sync.RWMutex
 	app              *application.App
@@ -99,9 +100,9 @@ func getDefaultShortcuts() []Shortcut {
 	}
 }
 
-func NewShortcutService(db *Database) *ShortcutService {
+func NewShortcutService(database *Database) *ShortcutService {
 	service := &ShortcutService{
-		db:               db,
+		db:               database.db,
 		cache:            make(map[string]Shortcut),
 		shortcutsEnabled: true,
 	}
@@ -126,7 +127,7 @@ func (s *ShortcutService) initialize() error {
 	if count == 0 {
 		defaults := getDefaultShortcuts()
 		for _, shortcut := range defaults {
-			_, err := s.db.db.NamedExec(`
+			_, err := s.db.NamedExec(`
 				INSERT INTO shortcuts (action, key_combo, description, category, dev_only)
 				VALUES (:action, :key_combo, :description, :category, :dev_only)
 			`, shortcut)

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type PrintSpool struct {
@@ -70,11 +72,11 @@ type PrintQueryResult struct {
 }
 
 type PrintService struct {
-	db *Database
+	db *sqlx.DB
 }
 
-func NewPrintService(db *Database) *PrintService {
-	return &PrintService{db: db}
+func NewPrintService(database *Database) *PrintService {
+	return &PrintService{db: database.db}
 }
 
 func computeSHA256(data []byte) string {
@@ -99,9 +101,9 @@ func getModelsDir() (string, error) {
 func (s *PrintService) CreatePrint(p Print) (int64, error) {
 	now := time.Now()
 
-	tx, err := s.db.db.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -117,12 +119,12 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 		) VALUES (?, ?, ?, ?, ?, ?)
 	`, p.Name, p.Status, p.Notes, p.DatePrinted, now, now)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("inserting print: %w", err)
 	}
 
 	printID, err := res.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting print id: %w", err)
 	}
 
 	for _, ps := range p.Spools {
@@ -136,7 +138,7 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 			now,
 		)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("inserting print_spool for spool %d: %w", ps.SpoolID, err)
 		}
 
 		_, err = tx.Exec(
@@ -153,12 +155,12 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 			ps.SpoolID,
 		)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("committing transaction: %w", err)
 	}
 
 	return printID, nil
@@ -390,7 +392,6 @@ func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext stri
 	return &PrintModel{ID: modelID, Name: fileName, Ext: ext, Size: size}, nil
 }
 
-// TODO: this is deleting the print model completely... first need to check if other fk print_models exist, then delete model
 func (s *PrintService) DeletePrintModel(printID int64, modelID int64, modelExt string) error {
 	// 1️⃣ Delete the link from print_models
 	_, err := s.db.Exec(`DELETE FROM print_models WHERE print_id = ? AND model_id = ?`, printID, modelID)
