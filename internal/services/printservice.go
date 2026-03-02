@@ -1,6 +1,7 @@
-package main
+package services
 
 import (
+	internal "changeme/internal"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -89,7 +90,7 @@ func computeSHA256(data []byte) string {
 }
 
 func getModelsDir() (string, error) {
-	base, err := getAppDataDir()
+	base, err := internal.GetAppDataDir()
 	if err != nil {
 		return "", err
 	}
@@ -400,15 +401,15 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 	var args []any
 
 	if params.Search != "" {
-		qualifiers, freeText := parseSearchQuery(params.Search)
+		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
 
 		if val, ok := qualifiers["name"]; ok {
-			clause, arg := buildQualifierClause("name", val)
+			clause, arg := internal.BuildQualifierClause("name", val)
 			whereClauses = append(whereClauses, clause)
 			args = append(args, arg)
 		}
 		if val, ok := qualifiers["status"]; ok {
-			clause, arg := buildQualifierClause("status", val)
+			clause, arg := internal.BuildQualifierClause("status", val)
 			whereClauses = append(whereClauses, clause)
 			args = append(args, arg)
 		}

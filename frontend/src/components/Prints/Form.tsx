@@ -21,7 +21,7 @@ import {
 import { useAppForm } from "@/components/Prints/lib/hooks";
 import { type TModelSchema, printSchema } from "@/components/Prints/lib/schema";
 
-import { type Print } from "@bindings";
+import type { Print } from "@bindings";
 
 import type { EditState } from "./lib/types";
 

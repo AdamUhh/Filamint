@@ -10,41 +10,41 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 export function CreatePrint(p: $models.Print): $CancellablePromise<number> {
-    return $Call.ByID(2366661757, p);
+    return $Call.ByID(31737063, p);
 }
 
 export function DeletePrint(id: number, deletePrintSpools: boolean): $CancellablePromise<void> {
-    return $Call.ByID(1451455108, id, deletePrintSpools);
+    return $Call.ByID(1247878790, id, deletePrintSpools);
 }
 
 export function DeletePrintModel(printID: number, modelID: number, modelExt: string): $CancellablePromise<void> {
-    return $Call.ByID(3103083793, printID, modelID, modelExt);
+    return $Call.ByID(75931923, printID, modelID, modelExt);
 }
 
 export function DuplicatePrintModel(printID: number, modelID: number): $CancellablePromise<$models.PrintModel | null> {
-    return $Call.ByID(1846966371, printID, modelID).then(($result: any) => {
+    return $Call.ByID(3796094437, printID, modelID).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
 export function GetPrintModels(printID: number): $CancellablePromise<$models.PrintModel[]> {
-    return $Call.ByID(134154019, printID).then(($result: any) => {
+    return $Call.ByID(4192761797, printID).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
-    return $Call.ByID(3055920690, params).then(($result: any) => {
+    return $Call.ByID(223780716, params).then(($result: any) => {
         return $$createType4($result);
     });
 }
 
 export function UpdatePrint(p: $models.Print): $CancellablePromise<void> {
-    return $Call.ByID(141751710, p);
+    return $Call.ByID(1874011736, p);
 }
 
 export function UploadPrintModel(printID: number, fileName: string, ext: string, size: number, data: string): $CancellablePromise<$models.PrintModel | null> {
-    return $Call.ByID(2005807887, printID, fileName, ext, size, data).then(($result: any) => {
+    return $Call.ByID(1986546053, printID, fileName, ext, size, data).then(($result: any) => {
         return $$createType1($result);
     });
 }

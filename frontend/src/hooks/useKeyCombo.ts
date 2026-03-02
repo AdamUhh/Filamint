@@ -1,7 +1,6 @@
+import { ShortcutService } from "@bindings/index.ts";
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo, useState } from "react";
-
-import { ShortcutService } from "@bindings";
 
 export function useKeyCombo(action: string) {
     const [combo, setCombo] = useState<string>("");

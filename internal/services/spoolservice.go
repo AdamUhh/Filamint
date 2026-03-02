@@ -1,6 +1,7 @@
-package main
+package services
 
 import (
+	internal "changeme/internal"
 	"crypto/rand"
 	"fmt"
 	"strings"
@@ -168,7 +169,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
-		convertBoolToInt(spool.IsTemplate),
+		internal.ConvertBoolToInt(spool.IsTemplate),
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		now,
@@ -221,7 +222,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		spool.Cost,
 		spool.ReferenceLink,
 		spool.Notes,
-		convertBoolToInt(spool.IsTemplate),
+		internal.ConvertBoolToInt(spool.IsTemplate),
 		spool.FirstUsedAt,
 		spool.LastUsedAt,
 		time.Now(),
@@ -285,11 +286,11 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 	var args []any
 
 	if params.Search != "" {
-		qualifiers, freeText := parseSearchQuery(params.Search)
+		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
 
 		for qualifier, column := range qualifierColumns {
 			if val, ok := qualifiers[qualifier]; ok {
-				clause, arg := buildQualifierClause(column, val)
+				clause, arg := internal.BuildQualifierClause(column, val)
 				whereClauses = append(whereClauses, clause)
 				args = append(args, arg)
 			}

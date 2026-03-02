@@ -1,6 +1,8 @@
 package main
 
 import (
+	internal "changeme/internal"
+	services "changeme/internal/services"
 	"embed"
 	"log"
 	"log/slog"
@@ -30,19 +32,19 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-	appDataDir, err := getAppDataDir()
+	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {
 		slog.Error("Failed to resolve app data path", "error", err)
 		os.Exit(1)
 	}
 
-	logger, err := NewLogger(appDataDir)
+	logger, err := internal.NewLogger(appDataDir)
 	if err != nil {
 		slog.Error("Failed to initialize logger", "error", err)
 		os.Exit(1)
 	}
 
-	db, err := NewDatabase(filepath.Join(appDataDir, "db.db"))
+	db, err := services.NewDatabase(filepath.Join(appDataDir, "db.db"))
 	if err != nil {
 		slog.Error("Failed to initialize database", "error", err)
 		os.Exit(1)
@@ -59,9 +61,9 @@ func main() {
 		Services: []application.Service{
 			application.NewService(logger),
 			application.NewService(db),
-			application.NewService(NewSpoolService(db)),
-			application.NewService(NewPrintService(db)),
-			application.NewService(NewShortcutService(db)),
+			application.NewService(services.NewSpoolService(db)),
+			application.NewService(services.NewPrintService(db)),
+			application.NewService(services.NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -72,7 +74,7 @@ func main() {
 	})
 
 	// Create managed window (state persistence handled automatically)
-	mw := NewManagedWindow(app, filepath.Join(appDataDir, "window-state.json"))
+	mw := internal.NewManagedWindow(app, filepath.Join(appDataDir, "window-state.json"))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

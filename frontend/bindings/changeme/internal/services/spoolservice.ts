@@ -10,27 +10,27 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 export function CreateSpool(spool: $models.Spool): $CancellablePromise<number> {
-    return $Call.ByID(3723822317, spool);
+    return $Call.ByID(1076495559, spool);
 }
 
 export function DeleteSpool(id: number): $CancellablePromise<void> {
-    return $Call.ByID(4240370512, id);
+    return $Call.ByID(547871858, id);
 }
 
 export function GetSpoolPrints(spoolID: number): $CancellablePromise<$models.SpoolPrint[]> {
-    return $Call.ByID(934640337, spoolID).then(($result: any) => {
+    return $Call.ByID(1917846263, spoolID).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
 export function QuerySpools(params: $models.SpoolQueryParams): $CancellablePromise<$models.SpoolQueryResult | null> {
-    return $Call.ByID(2723076002, params).then(($result: any) => {
+    return $Call.ByID(375956364, params).then(($result: any) => {
         return $$createType3($result);
     });
 }
 
 export function UpdateSpool(spool: $models.Spool): $CancellablePromise<void> {
-    return $Call.ByID(708113630, spool);
+    return $Call.ByID(2575966568, spool);
 }
 
 // Private type creation functions

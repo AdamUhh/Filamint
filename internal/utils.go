@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func getAppDataDir() (string, error) {
+func GetAppDataDir() (string, error) {
 	var base string
 	switch runtime.GOOS {
 	case "windows":
@@ -44,7 +44,7 @@ func getAppDataDir() (string, error) {
 	return dir, nil
 }
 
-func convertBoolToInt(b bool) int {
+func ConvertBoolToInt(b bool) int {
 	if b {
 		return 1
 	}
@@ -60,7 +60,7 @@ func tokenize(search string) []string {
 	return re.FindAllString(strings.TrimSpace(search), -1)
 }
 
-func parseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
+func ParseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
 	qualifiers = make(map[string]string)
 	var freeTextParts []string
 
@@ -86,9 +86,9 @@ func parseSearchQuery(search string) (qualifiers map[string]string, freeText str
 	return
 }
 
-// buildQualifierClause returns a WHERE fragment and arg for a single qualifier.
+// BuildQualifierClause returns a WHERE fragment and arg for a single qualifier.
 // Wildcards (*) are converted to SQL LIKE patterns.
-func buildQualifierClause(column, val string) (clause string, arg any) {
+func BuildQualifierClause(column, val string) (clause string, arg any) {
 	if strings.Contains(val, "*") {
 		return fmt.Sprintf("LOWER(%s) LIKE ?", column), strings.ReplaceAll(val, "*", "%")
 	}

@@ -16,8 +16,12 @@ export default defineConfig({
             "@/data-access": path.resolve(__dirname, "src/data-access"),
             "@/use-cases": path.resolve(__dirname, "src/use-cases"),
             "@/constants": path.resolve(__dirname, "src/constants"),
+            "@/hooks": path.resolve(__dirname, "src/hooks"),
             "@": path.resolve(__dirname, "src"),
-            "@bindings": path.resolve(__dirname, "bindings/changeme"),
+            "@bindings": path.resolve(
+                __dirname,
+                "bindings/changeme/internal/services"
+            ),
         },
     },
     // Memory Leak Issue hotfix: https://github.com/wailsapp/wails/issues/3903

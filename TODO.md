@@ -17,7 +17,6 @@
 
 > QoL
 - [ ] Cleanup all func and sql
-- - [  ] databaseservice.go has many funcs that try to cleanup sqlx func; I thought it was a good idea at the time, but not anymore, clean it up and redo all funcs
 - - [  ] After you clean up, you need to figure out how to optimize the code, there are too many db calls
 - [ ] Add updater
 - [ ] Need to add proper title/description for build

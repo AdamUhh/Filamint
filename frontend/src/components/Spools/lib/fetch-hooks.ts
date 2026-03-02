@@ -7,8 +7,7 @@ import {
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { Spool, SpoolQueryParams } from "@bindings";
-import { SpoolService } from "@bindings";
+import { type Spool, type SpoolQueryParams, SpoolService } from "@bindings";
 
 import { PAGE_SIZE } from "./defaults";
 

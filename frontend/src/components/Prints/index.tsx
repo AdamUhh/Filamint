@@ -21,7 +21,7 @@ import {
 } from "@/components/Prints/lib/fetch-hooks";
 import { AppSearch } from "@/components/Search";
 
-import { PrintQueryParams } from "@bindings";
+import type { PrintQueryParams } from "@bindings";
 
 import type { EditState } from "./lib/types";
 

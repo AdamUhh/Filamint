@@ -7,8 +7,7 @@ import {
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { Print, PrintQueryParams } from "@bindings";
-import { PrintService } from "@bindings";
+import { type Print, type PrintQueryParams, PrintService } from "@bindings";
 
 import { PAGE_SIZE } from "./defaults";
 import type { TModelSchema } from "./schema";
