@@ -126,7 +126,9 @@ func (s *ShortcutService) ServiceStartup(ctx context.Context, options applicatio
 func (s *ShortcutService) seedDefaultsIfEmpty() error {
 	var count int
 	if err := s.db.Get(&count, `SELECT COUNT(1) FROM shortcuts`); err != nil {
-		return fmt.Errorf("failed to count shortcuts: %w", err)
+		err = fmt.Errorf("failed to count shortcuts: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 	if count > 0 {
 		return nil
@@ -134,7 +136,9 @@ func (s *ShortcutService) seedDefaultsIfEmpty() error {
 
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		err = fmt.Errorf("failed to begin transaction: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
 	for _, shortcut := range getDefaultShortcuts() {
@@ -144,26 +148,32 @@ func (s *ShortcutService) seedDefaultsIfEmpty() error {
 		`, shortcut)
 		if err != nil {
 			_ = tx.Rollback()
-			return fmt.Errorf("failed to insert default shortcut '%s': %w", shortcut.Action, err)
+			err = fmt.Errorf("failed to insert default shortcut '%s': %w", shortcut.Action, err)
+			slog.Error(err.Error())
+			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit default shortcuts: %w", err)
+		err = fmt.Errorf("failed to commit default shortcuts: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
+
 	return nil
 }
 
 // populates the in-memory cache (once)
 func (s *ShortcutService) loadCache() error {
 	var shortcuts []Shortcut
-	err := s.db.Select(&shortcuts, `
+	if err := s.db.Select(&shortcuts, `
 		SELECT id, action, key_combo, description, category, dev_only, created_at, updated_at
 		FROM shortcuts
 		ORDER BY category, action
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to fetch shortcuts: %w", err)
+	`); err != nil {
+		err = fmt.Errorf("failed to fetch shortcuts: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
 	s.mu.Lock()
@@ -173,6 +183,7 @@ func (s *ShortcutService) loadCache() error {
 	for _, sc := range shortcuts {
 		s.cache[sc.Action] = sc
 	}
+
 	return nil
 }
 
@@ -355,7 +366,9 @@ func (s *ShortcutService) categoriesConflict(a, b string) bool {
 func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) error {
 	newKeyCombo = strings.TrimSpace(newKeyCombo)
 	if newKeyCombo == "" {
-		return fmt.Errorf("key combo cannot be empty")
+		err := fmt.Errorf("key combo cannot be empty")
+		slog.Error(err.Error())
+		return err
 	}
 
 	s.mu.RLock()
@@ -363,10 +376,13 @@ func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) erro
 	s.mu.RUnlock()
 
 	if !exists {
-		return fmt.Errorf("shortcut with action '%s' not found", action)
+		err := fmt.Errorf("shortcut with action '%s' not found", action)
+		slog.Error(err.Error())
+		return err
 	}
 
 	if err := s.checkDuplicateInCache(newKeyCombo, action, currentShortcut.Category); err != nil {
+		slog.Error(err.Error())
 		return err
 	}
 
@@ -378,14 +394,22 @@ func (s *ShortcutService) UpdateShortcut(action string, newKeyCombo string) erro
 	s.mu.Unlock()
 
 	if err := s.syncCacheToDatabase(currentShortcut); err != nil {
+		err = fmt.Errorf("failed to sync to database: %w", err)
+		slog.Error(err.Error())
+
 		// Rollback cache on DB failure
 		s.mu.Lock()
 		s.cache[action] = original
 		s.mu.Unlock()
-		return fmt.Errorf("failed to sync to database: %w", err)
+		return err
 	}
 
-	return s.reloadShortcuts()
+	if err := s.reloadShortcuts(); err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (s *ShortcutService) ResetShortcut(action string) error {
@@ -400,7 +424,9 @@ func (s *ShortcutService) ResetShortcut(action string) error {
 	}
 
 	if defaultShortcut == nil {
-		return fmt.Errorf("no default shortcut found for action '%s'", action)
+		err := fmt.Errorf("no default shortcut found for action '%s'", action)
+		slog.Error(err.Error())
+		return err
 	}
 
 	s.mu.RLock()
@@ -408,7 +434,9 @@ func (s *ShortcutService) ResetShortcut(action string) error {
 	s.mu.RUnlock()
 
 	if !exists {
-		return fmt.Errorf("shortcut with action '%s' not found", action)
+		err := fmt.Errorf("shortcut with action '%s' not found", action)
+		slog.Error(err.Error())
+		return err
 	}
 
 	s.mu.Lock()
@@ -418,16 +446,21 @@ func (s *ShortcutService) ResetShortcut(action string) error {
 	s.mu.Unlock()
 
 	if err := s.syncCacheToDatabase(currentShortcut); err != nil {
-		return fmt.Errorf("failed to sync to database: %w", err)
+		err = fmt.Errorf("failed to sync to database: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
-	return s.reloadShortcuts()
+	if err := s.reloadShortcuts(); err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (s *ShortcutService) ResetAllShortcuts() error {
 	defaults := getDefaultShortcuts()
-
-	// Capture updated values under the write lock
 	updated := make([]Shortcut, 0, len(defaults))
 
 	s.mu.Lock()
@@ -443,11 +476,18 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 
 	for _, shortcut := range updated {
 		if err := s.syncCacheToDatabase(shortcut); err != nil {
-			return fmt.Errorf("failed to sync shortcut '%s' to database: %w", shortcut.Action, err)
+			err = fmt.Errorf("failed to sync shortcut '%s' to database: %w", shortcut.Action, err)
+			slog.Error(err.Error())
+			return err
 		}
 	}
 
-	return s.reloadShortcuts()
+	if err := s.reloadShortcuts(); err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (s *ShortcutService) ServiceShutdown() error {

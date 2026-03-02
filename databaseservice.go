@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"time"
 
@@ -254,29 +255,36 @@ func (d *Database) seedSpoolsIfEmpty() error {
 }
 
 func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	slog.Info("Database service starting")
 
 	ctx, cancel := context.WithCancel(ctx)
 	d.cancel = cancel
 	go d.periodicMaintenance(ctx)
 
+	slog.Info("Database service started")
 	return nil
 }
 
 func (d *Database) ServiceShutdown() error {
+	slog.Info("Database service shutting down")
+
 	if d.cancel != nil {
 		d.cancel()
 	}
 
 	if d.db != nil {
-		// Checkpoint WAL before closing so data is in the main DB file
 		if _, err := d.db.Exec(`PRAGMA wal_checkpoint(TRUNCATE)`); err != nil {
+			slog.Error("Database shutdown failed", "error", err)
 			return fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
 		}
+
 		if err := d.db.Close(); err != nil {
+			slog.Error("Database shutdown failed", "error", err)
 			return fmt.Errorf("failed to close database: %w", err)
 		}
 	}
 
+	slog.Info("Database service shut down cleanly")
 	return nil
 }
 
@@ -289,19 +297,27 @@ func (d *Database) periodicMaintenance(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			slog.Info("Stopping periodic maintenance")
 			return
 		case <-ticker.C:
+			slog.Info("Running database maintenance")
 			d.runMaintenance()
 		}
 	}
 }
 
+// Cleans up the database periodically to prevent WAL files from growing too large and to reclaim space
 func (d *Database) runMaintenance() {
 	if _, err := d.db.Exec(`PRAGMA wal_checkpoint(PASSIVE)`); err != nil {
-		// Non-fatal — log in a real app
-		_ = err
+		slog.Error("WAL checkpoint failed", "error", err)
+	} else {
+		slog.Info("WAL checkpoint succeeded")
 	}
+
+	// Incremental VACUUM
 	if _, err := d.db.Exec(`PRAGMA incremental_vacuum`); err != nil {
-		_ = err
+		slog.Error("Incremental VACUUM failed", "error", err)
+	} else {
+		slog.Info("Incremental VACUUM succeeded")
 	}
 }

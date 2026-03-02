@@ -3,6 +3,8 @@ package main
 import (
 	"embed"
 	"log"
+	"log/slog"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -28,15 +30,22 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-
 	appDataDir, err := getAppDataDir()
 	if err != nil {
-		log.Fatalf("Failed to resolve app data path: %v", err)
+		slog.Error("Failed to resolve app data path", "error", err)
+		os.Exit(1)
+	}
+
+	logger, err := NewLogger(appDataDir)
+	if err != nil {
+		slog.Error("Failed to initialize logger", "error", err)
+		os.Exit(1)
 	}
 
 	db, err := NewDatabase(filepath.Join(appDataDir, "db.db"))
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		slog.Error("Failed to initialize database", "error", err)
+		os.Exit(1)
 	}
 
 	// Create a new Wails application by providing the necessary options.
@@ -48,6 +57,7 @@ func main() {
 		Name:        "filament-tracker",
 		Description: "A 3D printing filament manager to keep track of spools, usage, and prints",
 		Services: []application.Service{
+			application.NewService(logger),
 			application.NewService(db),
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
@@ -59,7 +69,6 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
-		// Logger: application.DefaultLogger(slog.LevelDebug),
 	})
 
 	// Create managed window (state persistence handled automatically)

@@ -19,19 +19,12 @@ export function GetShortcutCombo(action: string): $CancellablePromise<string> {
     return $Call.ByID(2640683523, action);
 }
 
-/**
- * FIX 7: Removed the error return since this function never errors.
- */
 export function GetShortcutCombos(actions: string[]): $CancellablePromise<string[]> {
     return $Call.ByID(922662480, actions).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
-/**
- * FIX 3 (race): Capture the updated shortcuts under the lock, then sync using
- * that snapshot — never re-read s.cache outside the lock.
- */
 export function ResetAllShortcuts(): $CancellablePromise<void> {
     return $Call.ByID(4167460956);
 }
