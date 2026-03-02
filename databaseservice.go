@@ -171,7 +171,7 @@ func (d *Database) initSchema() error {
 func (d *Database) seedSpoolsIfEmpty() error {
 	var count int
 	if err := d.db.Get(&count, `SELECT COUNT(1) FROM spools`); err != nil {
-		return err
+		return fmt.Errorf("failed to count spools: %w", err)
 	}
 
 	if count > 0 {
@@ -180,7 +180,7 @@ func (d *Database) seedSpoolsIfEmpty() error {
 
 	tx, err := d.db.Beginx()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin spool seed transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -235,13 +235,22 @@ func (d *Database) seedSpoolsIfEmpty() error {
 		)
 	`
 
-	for _, s := range seeds {
-		if _, err := tx.NamedExec(q, s); err != nil {
-			return err
+	for i, s := range seeds {
+		if _, err = tx.NamedExec(q, s); err != nil {
+			return fmt.Errorf(
+				"failed to insert seed spool (index=%d, spool_code=%s): %w",
+				i,
+				s.SpoolCode,
+				err,
+			)
 		}
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit spool seed transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {

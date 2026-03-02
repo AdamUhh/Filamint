@@ -38,7 +38,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	shortcutService := NewShortcutService(db)
 
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
@@ -52,7 +51,7 @@ func main() {
 			application.NewService(db),
 			application.NewService(NewSpoolService(db)),
 			application.NewService(NewPrintService(db)),
-			application.NewService(shortcutService),
+			application.NewService(NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -60,10 +59,8 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		// Logger: application.DefaultLogger(slog.LevelDebug),
 	})
-
-	shortcutService.setApp(app)
-	shortcutService.registerShortcuts()
 
 	// Create managed window (state persistence handled automatically)
 	mw := NewManagedWindow(app, filepath.Join(appDataDir, "window-state.json"))
