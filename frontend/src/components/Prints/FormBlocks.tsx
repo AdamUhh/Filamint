@@ -139,6 +139,8 @@ export function PrintGramsUsedFormField() {
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
             </InputGroup>
+
+            {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );
 }
@@ -227,7 +229,8 @@ export function PrintSpoolContainerFormField({
                                 </span>
                                 <span className="text-muted-foreground">
                                     {" "}
-                                    · {s.vendor} · {s.material} · {s.color}
+                                    · {s.vendor} · {s.material} · {s.color} ·{" "}
+                                    {s.totalWeight - s.usedWeight}g
                                 </span>
                             </span>
                         </div>
@@ -305,7 +308,7 @@ export function PrintStatusFormField({
                 onValueChange={(e) => field.handleChange(e)}
                 value={field.state.value}
             >
-                <SelectTrigger className="text-xs capitalize">
+                <SelectTrigger className="text-xs font-medium capitalize">
                     <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent position="item-aligned">

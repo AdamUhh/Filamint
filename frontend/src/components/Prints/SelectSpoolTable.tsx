@@ -56,6 +56,8 @@ export function SelectSpoolTable({
                 spoolId: spool.id,
                 gramsUsed: 0,
 
+                totalWeight: spool.totalWeight,
+                usedWeight: spool.usedWeight,
                 createdAt: spool.createdAt,
                 updatedAt: spool.updatedAt,
 

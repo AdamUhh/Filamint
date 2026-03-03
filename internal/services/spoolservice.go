@@ -112,7 +112,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		return 0, err
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
 
 	const maxAttempts = 5
 
@@ -263,7 +263,6 @@ func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
 }
 
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
-	// Defaults
 	if params.SortBy == "" {
 		params.SortBy = "updated_at"
 	}
@@ -336,3 +335,5 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 		Total:  total,
 	}, nil
 }
+
+func (s *SpoolService) ServiceShutdown() error { return nil }

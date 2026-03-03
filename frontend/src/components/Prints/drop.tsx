@@ -1,4 +1,4 @@
-import { FileIcon, UploadIcon, XIcon } from "lucide-react";
+import { UploadIcon, XIcon } from "lucide-react";
 import React, { useState } from "react";
 import {
     type DropzoneProps as _DropzoneProps,
@@ -149,7 +149,6 @@ export function Dropzone({
                                             </div>
                                             <div className="flex h-6 w-full items-center justify-between">
                                                 <div className="flex items-center gap-1.5">
-                                                    <FileIcon className="size-3.5" />
                                                     <Badge
                                                         variant="secondary"
                                                         className="uppercase"

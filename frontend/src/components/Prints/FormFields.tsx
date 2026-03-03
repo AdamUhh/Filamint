@@ -138,7 +138,10 @@ export const PrintForm = withForm({
                                                             {" "}
                                                             · {s.vendor} ·{" "}
                                                             {s.material} ·{" "}
-                                                            {s.color}
+                                                            {s.color} ·{" "}
+                                                            {s.totalWeight -
+                                                                s.usedWeight}
+                                                            g
                                                         </span>
                                                     </span>
                                                 </div>

@@ -45,6 +45,20 @@ func GetAppDataDir() (string, error) {
 	return dir, nil
 }
 
+func GetModelsDir() (string, error) {
+	base, err := GetAppDataDir()
+	if err != nil {
+		return "", err
+	}
+
+	dir := filepath.Join(base, "models")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	return dir, nil
+}
+
 func ConvertBoolToInt(b bool) int {
 	if b {
 		return 1
@@ -56,9 +70,10 @@ func ConvertBoolToInt(b bool) int {
 // Query
 // ----------
 // tokenize splits search input into tokens, respecting key:"quoted value" syntax.
+var tokenizeRe = regexp.MustCompile(`\w+:"[^"]*"|\S+`)
+
 func tokenize(search string) []string {
-	re := regexp.MustCompile(`\w+:"[^"]*"|\S+`)
-	return re.FindAllString(strings.TrimSpace(search), -1)
+	return tokenizeRe.FindAllString(strings.TrimSpace(search), -1)
 }
 
 func ParseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
@@ -71,7 +86,7 @@ func ParseSearchQuery(search string) (qualifiers map[string]string, freeText str
 			key := strings.ToLower(token[:colonIdx])
 			value := token[colonIdx+1:]
 			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-				value = value[1 : len(value)-1]
+				strings.Trim(value, `"`)
 			}
 			if value != "" {
 				qualifiers[key] = strings.ToLower(value)

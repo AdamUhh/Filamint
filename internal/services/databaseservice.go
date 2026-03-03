@@ -135,8 +135,8 @@ func (d *Database) initSchema() error {
 	    id INTEGER PRIMARY KEY AUTOINCREMENT,
 	    name TEXT NOT NULL,
 	    size INTEGER NOT NULL DEFAULT 0,
-	    file_type TEXT NOT NULL,
-	    file_hash TEXT UNIQUE, 
+	    ext TEXT NOT NULL,
+	    hash TEXT UNIQUE, 
 	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
@@ -287,8 +287,7 @@ func (d *Database) ServiceShutdown() error {
 	return nil
 }
 
-// periodicMaintenance runs a WAL checkpoint and incremental VACUUM every hour.
-// This keeps the DB file size in check and prevents WAL files from growing unbounded.
+// Runs a WAL checkpoint and incremental VACUUM every hour
 func (d *Database) periodicMaintenance(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()

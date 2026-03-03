@@ -29,13 +29,28 @@ export const printSchema = z.object({
                 colorHex: z.string(),
                 vendor: z.string(),
                 material: z.string(),
+                totalWeight: z.number(),
+                usedWeight: z.number(),
                 gramsUsed: z
                     .number()
                     .min(1, "How many grams did this print use?")
                     .max(10000),
             })
         )
-        .min(1, "At least one spool is required"),
+        .min(1, "At least one spool is required")
+        .superRefine((spools, ctx) => {
+            spools.forEach((spool, index) => {
+                const remaining = spool.totalWeight - spool.usedWeight;
+
+                if (spool.gramsUsed > remaining) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [index, "gramsUsed"],
+                        message: `Grams used (${spool.gramsUsed}) exceeds remaining weight (${remaining}).`,
+                    });
+                }
+            });
+        }),
 });
 
 export type TPrintSchema = z.infer<typeof printSchema>;

@@ -81,6 +81,8 @@ export function PrintFormDialog({
                     spoolId: s.spoolId,
                     gramsUsed: s.gramsUsed,
                     id: editState.id, // placeholder
+                    totalWeight: 0, // placeholder
+                    usedWeight: 0, // placeholder
                     spoolCode: "NaN", // placeholder
                     material: "NaN", // placeholder
                     vendor: "NaN", // placeholder
@@ -188,6 +190,8 @@ export function PrintFormDialog({
                         );
                     }
                     return {
+                        totalWeight: ps.totalWeight,
+                        usedWeight: ps.usedWeight,
                         gramsUsed: ps.gramsUsed,
                         spoolId: ps.spoolId,
                         spoolCode: ps.spoolCode,
