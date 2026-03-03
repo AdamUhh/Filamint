@@ -164,8 +164,12 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_shortcuts_action ON shortcuts(action);
 	CREATE INDEX IF NOT EXISTS idx_shortcuts_key_combo ON shortcuts(key_combo);
 	`
-	_, err := d.db.Exec(schema)
-	return err
+	if _, err := d.db.Exec(schema); err != nil {
+		return fmt.Errorf("init schema: %w", err)
+	}
+
+	return nil
+
 }
 
 func (d *Database) seedSpoolsIfEmpty() error {

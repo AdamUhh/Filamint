@@ -4,6 +4,7 @@ import (
 	internal "changeme/internal"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -103,10 +104,10 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 	}
 	defer tx.Rollback()
 
-	res, err := tx.Exec(`
-		INSERT INTO prints (name, status, notes, date_printed, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, p.Name, p.Status, p.Notes, p.DatePrinted, now, now)
+	res, err := tx.Exec(
+		`INSERT INTO prints (name, status, notes, date_printed, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		p.Name, p.Status, p.Notes, p.DatePrinted, now, now)
 	if err != nil {
 		return 0, fmt.Errorf("inserting print: %w", err)
 	}
@@ -117,16 +118,15 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 	}
 
 	for _, ps := range p.Spools {
-		_, err := tx.Exec(
+		if _, err := tx.Exec(
 			`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?)`,
 			printID, ps.SpoolID, ps.GramsUsed, now, now,
-		)
-		if err != nil {
+		); err != nil {
 			return 0, fmt.Errorf("inserting print_spool for spool %d: %w", ps.SpoolID, err)
 		}
 
-		_, err = tx.Exec(
+		if _, err = tx.Exec(
 			`UPDATE spools
 			 SET used_weight = used_weight + ?,
 			     last_used_at = ?,
@@ -134,8 +134,7 @@ func (s *PrintService) CreatePrint(p Print) (int64, error) {
 			     updated_at = ?
 			 WHERE id = ?`,
 			ps.GramsUsed, now, now, now, ps.SpoolID,
-		)
-		if err != nil {
+		); err != nil {
 			return 0, fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 		}
 	}
@@ -161,14 +160,18 @@ func (s *PrintService) UpdatePrint(p Print) error {
 	defer tx.Rollback()
 
 	if _, err := tx.Exec(
-		`UPDATE prints SET name = ?, status = ?, notes = ?, date_printed = ?, updated_at = ? WHERE id = ?`, p.Name, p.Status, p.Notes, p.DatePrinted, now, p.ID,
+		`UPDATE prints
+		SET name = ?, status = ?, notes = ?, date_printed = ?, updated_at = ? WHERE id = ?`,
+		p.Name, p.Status, p.Notes, p.DatePrinted, now, p.ID,
 	); err != nil {
 		return fmt.Errorf("updating print %d: %w", p.ID, err)
 	}
 
 	var existingSpools []PrintSpool
 	if err := tx.Select(&existingSpools,
-		`SELECT spool_id, grams_used FROM print_spools WHERE print_id = ?`, p.ID,
+		`SELECT spool_id, grams_used FROM print_spools 
+		WHERE print_id = ?`,
+		p.ID,
 	); err != nil {
 		return fmt.Errorf("loading existing spools for print %d: %w", p.ID, err)
 	}
@@ -321,94 +324,14 @@ func (s *PrintService) GetPrintModels(printID int64) ([]PrintModel, error) {
 		SELECT m.id, m.name, m.size, m.ext
 		FROM models m
 		INNER JOIN print_models pm ON pm.model_id = m.id
-		WHERE pm.print_id = ?
-	`, printID)
+		WHERE pm.print_id = ?`, printID)
 	if err != nil {
 		return nil, fmt.Errorf("querying models for print %d: %w", printID, err)
 	}
 	return models, nil
 }
 
-func (s *PrintService) DuplicatePrintModel(printID int64, modelID int64) (*PrintModel, error) {
-	tx, err := s.db.Beginx()
-	if err != nil {
-		return nil, fmt.Errorf("beginning transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	var orig PrintModel
-	if err := tx.Get(&orig,
-		`SELECT id, name, ext, size FROM models WHERE id = ?`, modelID,
-	); err != nil {
-		return nil, fmt.Errorf("loading model %d: %w", modelID, err)
-	}
-
-	if _, err := tx.Exec(
-		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
-	); err != nil {
-		return nil, fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("committing duplicate model transaction: %w", err)
-	}
-
-	return &PrintModel{ID: orig.ID, Name: orig.Name, Ext: orig.Ext, Size: orig.Size}, nil
-}
-
-func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext string, size int64, data []byte) (*PrintModel, error) {
-	hash := computeSHA256(data)
-
-	tx, err := s.db.Beginx()
-	if err != nil {
-		return nil, fmt.Errorf("beginning transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	var existingID int64
-	if err := tx.Get(&existingID, `SELECT id FROM models WHERE hash = ?`, hash); err == nil && existingID > 0 {
-		if _, err := tx.Exec(
-			`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, existingID,
-		); err != nil {
-			return nil, fmt.Errorf("linking existing model %d to print %d: %w", existingID, printID, err)
-		}
-		return &PrintModel{ID: existingID, Name: fileName, Ext: ext, Size: size}, tx.Commit()
-	}
-
-	res, err := tx.Exec(
-		`INSERT INTO models(name, size, ext, hash, created_at) VALUES (?, ?, ?, ?, ?)`,
-		fileName, size, ext, hash, time.Now(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("inserting model record: %w", err)
-	}
-
-	modelID, err := res.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("getting model id: %w", err)
-	}
-
-	absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
-	if err := os.WriteFile(absPath, data, 0644); err != nil {
-		return nil, fmt.Errorf("writing model file: %w", err)
-	}
-
-	if _, err := tx.Exec(
-		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
-	); err != nil {
-		os.Remove(absPath)
-		return nil, fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		os.Remove(absPath)
-		return nil, fmt.Errorf("committing upload transaction: %w", err)
-	}
-
-	return &PrintModel{ID: modelID, Name: fileName, Ext: ext, Size: size}, nil
-}
-
-func (s *PrintService) DeletePrintModel(printID int64, modelID int64, modelExt string) error {
+func (s *PrintService) DuplicatePrintModel(printID int64, modelID int64) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
@@ -416,25 +339,98 @@ func (s *PrintService) DeletePrintModel(printID int64, modelID int64, modelExt s
 	defer tx.Rollback()
 
 	if _, err := tx.Exec(
-		`DELETE FROM print_models WHERE print_id = ? AND model_id = ?`, printID, modelID,
+		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
+	); err != nil {
+		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing duplicate model transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext string, size int64, data []byte) error {
+	hash := computeSHA256(data)
+
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// check if model exists via hash
+	var existingModelID int64
+	if err := tx.Get(&existingModelID, `SELECT id FROM models WHERE hash = ?`, hash); err == nil && existingModelID > 0 {
+		if _, err := tx.Exec(
+			`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, existingModelID,
+		); err != nil {
+			return fmt.Errorf("linking existing model %d to print %d: %w", existingModelID, printID, err)
+		}
+		return tx.Commit()
+	}
+
+	// Upload new model to filesystem and model db
+	res, err := tx.Exec(
+		`INSERT INTO models(name, size, ext, hash, created_at) VALUES (?, ?, ?, ?, ?)`,
+		fileName, size, ext, hash, time.Now(),
+	)
+	if err != nil {
+		return fmt.Errorf("inserting model record: %w", err)
+	}
+
+	modelID, err := res.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("getting model id: %w", err)
+	}
+
+	absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
+	if _, err := tx.Exec(
+		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
+	); err != nil {
+		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
+	}
+
+	if err := os.WriteFile(absPath, data, 0644); err != nil {
+		return fmt.Errorf("writing model file: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		os.Remove(absPath)
+		return fmt.Errorf("committing upload transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PrintService) DeletePrintModel(printID int64, modelID int64) error {
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Unlink
+	if _, err := tx.Exec(
+		`DELETE FROM print_models WHERE print_id = ? AND model_id = ?`,
+		printID, modelID,
 	); err != nil {
 		return fmt.Errorf("unlinking model %d from print %d: %w", modelID, printID, err)
 	}
 
-	var count int
-	if err := tx.Get(&count,
-		`SELECT COUNT(*) FROM print_models WHERE model_id = ?`, modelID,
-	); err != nil {
-		return fmt.Errorf("checking model %d references: %w", modelID, err)
-	}
-
-	if count > 0 {
-		// Still referenced by other prints - leave file and record intact
-		return tx.Commit()
-	}
-
-	if _, err := tx.Exec(`DELETE FROM models WHERE id = ?`, modelID); err != nil {
-		return fmt.Errorf("deleting model record %d: %w", modelID, err)
+	// Delete only if no more references
+	var modelExt string
+	err = tx.Get(&modelExt, `
+		DELETE FROM models
+		WHERE id = ?
+		AND NOT EXISTS (
+			SELECT 1 FROM print_models WHERE model_id = ?
+		)
+		RETURNING ext
+	`, modelID, modelID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("cannot find model %d: %w", modelID, err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -442,7 +438,10 @@ func (s *PrintService) DeletePrintModel(printID int64, modelID int64, modelExt s
 	}
 
 	if modelExt != "" {
-		os.Remove(filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, modelExt)))
+		absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, modelExt))
+		if err := os.Remove(absPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("failed to remove model file modelID=%d path=%s err=%v\n", modelID, absPath, err)
+		}
 	}
 
 	return nil
