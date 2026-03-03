@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -25,12 +26,13 @@ type Shortcut struct {
 }
 
 type ShortcutService struct {
-	db               *sqlx.DB
-	cache            map[string]Shortcut
-	mu               sync.RWMutex
-	app              *application.App
-	shortcutsEnabled bool
-	registrarMu      sync.RWMutex
+	db    *sqlx.DB
+	cache map[string]Shortcut
+	mu    sync.RWMutex
+
+	app *application.App
+
+	shortcutsEnabled atomic.Bool
 }
 
 func getModifierKey() string {
@@ -102,12 +104,38 @@ func getDefaultShortcuts() []Shortcut {
 	}
 }
 
-func NewShortcutService(database *Database) *ShortcutService {
-	return &ShortcutService{
-		db:               database.db,
-		cache:            make(map[string]Shortcut),
-		shortcutsEnabled: true,
+func executeShortcutAction(window application.Window, action string) {
+	switch action {
+	case "window:fullscreen":
+		window.ToggleFullscreen()
+	case "window:devtools":
+		window.OpenDevTools()
+	case "window:reload":
+		window.Reload()
+	case "spool:toggle_template":
+		window.EmitEvent("spool:toggle_template", nil)
+	case "spool:create":
+		window.EmitEvent("spool:create", nil)
+	case "spool:redirect":
+		window.EmitEvent("spool:redirect", nil)
+	case "print:redirect":
+		window.EmitEvent("print:redirect", nil)
+	case "print:create":
+		window.EmitEvent("print:create", nil)
+	default:
+		slog.Warn("unknown shortcut action", "action", action)
 	}
+}
+
+func NewShortcutService(database *Database) *ShortcutService {
+	s := &ShortcutService{
+		db:    database.db,
+		cache: make(map[string]Shortcut),
+	}
+
+	s.shortcutsEnabled.Store(true)
+
+	return s
 }
 
 func (s *ShortcutService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
@@ -190,9 +218,7 @@ func (s *ShortcutService) loadCache() error {
 func (s *ShortcutService) registerShortcuts() error {
 	s.app.Event.On("shortcuts:set_enabled", func(e *application.CustomEvent) {
 		if enabled, ok := e.Data.(bool); ok {
-			s.registrarMu.Lock()
-			s.shortcutsEnabled = enabled
-			s.registrarMu.Unlock()
+			s.shortcutsEnabled.Store(enabled)
 		}
 	})
 
@@ -200,9 +226,7 @@ func (s *ShortcutService) registerShortcuts() error {
 }
 
 func (s *ShortcutService) areShortcutsEnabled() bool {
-	s.registrarMu.RLock()
-	defer s.registrarMu.RUnlock()
-	return s.shortcutsEnabled
+	return s.shortcutsEnabled.Load()
 }
 
 func (s *ShortcutService) reloadShortcuts() error {
@@ -251,29 +275,6 @@ func (s *ShortcutService) registerShortcutsInternal() error {
 	}
 
 	return nil
-}
-
-func executeShortcutAction(window application.Window, action string) {
-	switch action {
-	case "window:fullscreen":
-		window.ToggleFullscreen()
-	case "window:devtools":
-		window.OpenDevTools()
-	case "window:reload":
-		window.Reload()
-	case "spool:toggle_template":
-		window.EmitEvent("spool:toggle_template", nil)
-	case "spool:create":
-		window.EmitEvent("spool:create", nil)
-	case "spool:redirect":
-		window.EmitEvent("spool:redirect", nil)
-	case "print:redirect":
-		window.EmitEvent("print:redirect", nil)
-	case "print:create":
-		window.EmitEvent("print:create", nil)
-	default:
-		slog.Warn("unknown shortcut action", "action", action)
-	}
 }
 
 // ----------

@@ -2,7 +2,6 @@ package services
 
 import (
 	internal "changeme/internal"
-	"crypto/rand"
 	"fmt"
 	"strings"
 	"time"
@@ -82,48 +81,26 @@ var validSortColumns = map[string]bool{
 	"updated_at":    true,
 }
 
-func randomSuffix(length int) (string, error) {
-	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-	b := make([]byte, length)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", fmt.Errorf("generating random suffix: %w", err)
+func validateSpool(spool Spool) error {
+	if strings.TrimSpace(spool.Material) == "" {
+		return fmt.Errorf("material is required")
 	}
-
-	for i := range b {
-		b[i] = chars[b[i]%byte(len(chars))]
+	if strings.TrimSpace(spool.Color) == "" {
+		return fmt.Errorf("color is required")
 	}
-	return string(b), nil
-}
-
-func (s *SpoolService) generateSpoolCode(material, color string) (string, error) {
-	base := fmt.Sprintf(
-		"%s-%s",
-		strings.ToUpper(material[:3]),
-		strings.ToUpper(color[:2]),
-	)
-
-	for {
-		suffix, err := randomSuffix(5)
-		if err != nil {
-			return "", err
-		}
-
-		code := fmt.Sprintf("%s-%s", base, suffix)
-
-		var exists bool
-		err = s.db.Get(&exists,
-			`SELECT EXISTS(SELECT 1 FROM spools WHERE spool_code = ?)`,
-			code,
-		)
-		if err != nil {
-			return "", fmt.Errorf("checking spool code uniqueness: %w", err)
-		}
-
-		if !exists {
-			return code, nil
-		}
+	if spool.TotalWeight <= 0 {
+		return fmt.Errorf("total_weight must be > 0")
 	}
+	if spool.UsedWeight < 0 {
+		return fmt.Errorf("used_weight cannot be negative")
+	}
+	if spool.UsedWeight > spool.TotalWeight {
+		return fmt.Errorf("used_weight cannot exceed total_weight")
+	}
+	if spool.Cost < 0 {
+		return fmt.Errorf("cost cannot be negative")
+	}
+	return nil
 }
 
 func NewSpoolService(database *Database) *SpoolService {
@@ -131,64 +108,79 @@ func NewSpoolService(database *Database) *SpoolService {
 }
 
 func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
-	now := time.Now()
-
-	code, err := s.generateSpoolCode(spool.Material, spool.Color)
-	if err != nil {
-		return 0, fmt.Errorf("generating spool code: %w", err)
+	if err := validateSpool(spool); err != nil {
+		return 0, err
 	}
 
-	query := `
-	INSERT INTO spools (
-		spool_code,
-		vendor, material, material_type, color, color_hex,
-		total_weight, used_weight,
-		cost, reference_link, notes, is_template,
-		first_used_at, last_used_at,
-		created_at, updated_at
-	) VALUES (
-		?,
-		?, ?, ?, ?, ?,
-		?, ?,
-		?, ?, ?, ?,
-		?, ?,
-		?, ?
-	)
-	`
+	now := time.Now().UTC()
 
-	result, err := s.db.Exec(
-		query,
-		code,
-		spool.Vendor,
-		spool.Material,
-		spool.MaterialType,
-		spool.Color,
-		spool.ColorHex,
-		spool.TotalWeight,
-		spool.UsedWeight,
-		spool.Cost,
-		spool.ReferenceLink,
-		spool.Notes,
-		internal.ConvertBoolToInt(spool.IsTemplate),
-		spool.FirstUsedAt,
-		spool.LastUsedAt,
-		now,
-		now,
-	)
-	if err != nil {
-		return 0, fmt.Errorf("inserting spool: %w", err)
+	const maxAttempts = 5
+
+	for range maxAttempts {
+		code, err := internal.GenerateSpoolCodeBase(spool.Material, spool.Color)
+		if err != nil {
+			return 0, fmt.Errorf("generating spool code: %w", err)
+		}
+
+		result, err := s.db.Exec(`
+			INSERT INTO spools (
+				spool_code,
+				vendor, material, material_type, color, color_hex,
+				total_weight, used_weight,
+				cost, reference_link, notes, is_template,
+				first_used_at, last_used_at,
+				created_at, updated_at
+			) VALUES (
+				?, ?, ?, ?, ?, ?,
+				?, ?,
+				?, ?, ?, ?,
+				?, ?,
+				?, ?
+			)
+		`,
+			code,
+			spool.Vendor,
+			spool.Material,
+			spool.MaterialType,
+			spool.Color,
+			spool.ColorHex,
+			spool.TotalWeight,
+			spool.UsedWeight,
+			spool.Cost,
+			spool.ReferenceLink,
+			spool.Notes,
+			internal.ConvertBoolToInt(spool.IsTemplate),
+			spool.FirstUsedAt,
+			spool.LastUsedAt,
+			now,
+			now,
+		)
+
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				// spool code is taken
+				continue // retry with new code
+			}
+			return 0, fmt.Errorf("inserting spool: %w", err)
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			return 0, fmt.Errorf("getting spool id: %w", err)
+		}
+
+		return id, nil
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("getting spool id: %w", err)
-	}
-	return id, nil
+	return 0, fmt.Errorf("failed to generate unique spool code after retries")
 }
 
 func (s *SpoolService) UpdateSpool(spool Spool) error {
 	if spool.ID == 0 {
 		return fmt.Errorf("spool id is required")
+	}
+	if err := validateSpool(spool); err != nil {
+		return err
 	}
 
 	query := `
@@ -233,7 +225,7 @@ func (s *SpoolService) UpdateSpool(spool Spool) error {
 		return fmt.Errorf("updating spool %d: %w", spool.ID, err)
 	}
 
-	return err
+	return nil
 }
 
 func (s *SpoolService) DeleteSpool(id int64) error {
@@ -305,7 +297,7 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 
 	if params.IsTemplate != nil {
 		whereClauses = append(whereClauses, "is_template = ?")
-		args = append(args, *params.IsTemplate)
+		args = append(args, internal.ConvertBoolToInt(*params.IsTemplate))
 	}
 
 	whereClause := ""

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -93,4 +94,45 @@ func BuildQualifierClause(column, val string) (clause string, arg any) {
 		return fmt.Sprintf("LOWER(%s) LIKE ?", column), strings.ReplaceAll(val, "*", "%")
 	}
 	return fmt.Sprintf("LOWER(%s) = ?", column), val
+}
+
+// ----------
+// Spool
+// ----------
+
+func Truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) < n {
+		n = len(r)
+	}
+	return string(r[:n])
+}
+
+func randomSuffix(length int) (string, error) {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("generating random suffix: %w", err)
+	}
+
+	for i := range b {
+		b[i] = chars[b[i]%byte(len(chars))]
+	}
+	return string(b), nil
+}
+
+func GenerateSpoolCodeBase(material, color string) (string, error) {
+	base := fmt.Sprintf(
+		"%s-%s",
+		strings.ToUpper(Truncate(material, 3)),
+		strings.ToUpper(Truncate(color, 2)),
+	)
+
+	suffix, err := randomSuffix(5)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s-%s", base, suffix), nil
 }

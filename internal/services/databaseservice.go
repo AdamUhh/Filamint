@@ -74,8 +74,8 @@ func (d *Database) initSchema() error {
 		color TEXT NOT NULL,
 		color_hex TEXT NOT NULL,
 
-		total_weight INTEGER NOT NULL,
-		used_weight INTEGER NOT NULL DEFAULT 0,
+		used_weight INTEGER NOT NULL DEFAULT 0 CHECK(used_weight >= 0),
+		total_weight INTEGER NOT NULL CHECK(total_weight > 0),
 
 		cost INTEGER NOT NULL DEFAULT 0,
 		reference_link TEXT,
@@ -91,7 +91,6 @@ func (d *Database) initSchema() error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_spools_is_template ON spools(is_template);
-	CREATE INDEX IF NOT EXISTS idx_spools_spool_code ON spools(spool_code);
 
 
 	CREATE TABLE IF NOT EXISTS prints (
