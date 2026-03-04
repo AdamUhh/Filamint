@@ -8,12 +8,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -72,7 +72,7 @@ type PrintQueryResult struct {
 }
 
 type PrintService struct {
-	db        *sqlx.DB
+	repo      *PrintRepository
 	modelsDir string
 }
 
@@ -87,7 +87,7 @@ var validPrintSortColumns = map[string]bool{
 }
 
 func NewPrintService(database *Database) *PrintService {
-	return &PrintService{db: database.db}
+	return &PrintService{repo: NewPrintRepository(database.db)}
 }
 
 func computeSHA256(data []byte) string {
@@ -98,51 +98,36 @@ func computeSHA256(data []byte) string {
 func (s *PrintService) CreatePrint(p Print) (int64, error) {
 	now := time.Now()
 
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "error", err)
 		return 0, fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	res, err := tx.Exec(
-		`INSERT INTO prints (name, status, notes, date_printed, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		p.Name, p.Status, p.Notes, p.DatePrinted, now, now)
+	printID, err := s.repo.InsertPrint(tx, p, now)
 	if err != nil {
+		slog.Error("failed to insert print", "error", err)
 		return 0, fmt.Errorf("inserting print: %w", err)
 	}
 
-	printID, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("getting print id: %w", err)
-	}
-
 	for _, ps := range p.Spools {
-		if _, err := tx.Exec(
-			`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
-			 VALUES (?, ?, ?, ?, ?)`,
-			printID, ps.SpoolID, ps.GramsUsed, now, now,
-		); err != nil {
+		if err := s.repo.InsertPrintSpool(tx, printID, ps, now); err != nil {
+			slog.Error("failed to insert print_spool", "spoolId", ps.SpoolID, "error", err)
 			return 0, fmt.Errorf("inserting print_spool for spool %d: %w", ps.SpoolID, err)
 		}
-
-		if _, err = tx.Exec(
-			`UPDATE spools
-			 SET used_weight = used_weight + ?,
-			     last_used_at = ?,
-			     first_used_at = COALESCE(first_used_at, ?),
-			     updated_at = ?
-			 WHERE id = ?`,
-			ps.GramsUsed, now, now, now, ps.SpoolID,
-		); err != nil {
+		if err := s.repo.AddSpoolUsedWeight(tx, ps.SpoolID, ps.GramsUsed, now); err != nil {
+			slog.Error("failed to update spool weight", "spoolId", ps.SpoolID, "error", err)
 			return 0, fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit create print transaction", "error", err)
 		return 0, fmt.Errorf("committing transaction: %w", err)
 	}
 
+	slog.Info("print created", "id", printID, "name", p.Name)
 	return printID, nil
 }
 
@@ -153,26 +138,21 @@ func (s *PrintService) UpdatePrint(p Print) error {
 
 	now := time.Now()
 
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "id", p.ID, "error", err)
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(
-		`UPDATE prints
-		SET name = ?, status = ?, notes = ?, date_printed = ?, updated_at = ? WHERE id = ?`,
-		p.Name, p.Status, p.Notes, p.DatePrinted, now, p.ID,
-	); err != nil {
+	if err := s.repo.UpdatePrintFields(tx, p, now); err != nil {
+		slog.Error("failed to update print fields", "id", p.ID, "error", err)
 		return fmt.Errorf("updating print %d: %w", p.ID, err)
 	}
 
-	var existingSpools []PrintSpool
-	if err := tx.Select(&existingSpools,
-		`SELECT spool_id, grams_used FROM print_spools 
-		WHERE print_id = ?`,
-		p.ID,
-	); err != nil {
+	existingSpools, err := s.repo.GetPrintSpools(tx, p.ID)
+	if err != nil {
+		slog.Error("failed to load existing spools", "id", p.ID, "error", err)
 		return fmt.Errorf("loading existing spools for print %d: %w", p.ID, err)
 	}
 
@@ -189,15 +169,12 @@ func (s *PrintService) UpdatePrint(p Print) error {
 	// Revert weight and remove row for any spools no longer in the update
 	for _, es := range existingSpools {
 		if !incomingMap[es.SpoolID] {
-			if _, err := tx.Exec(
-				`UPDATE spools SET used_weight = used_weight - ?, updated_at = ? WHERE id = ?`,
-				es.GramsUsed, now, es.SpoolID,
-			); err != nil {
+			if err := s.repo.SubtractSpoolUsedWeight(tx, es.SpoolID, es.GramsUsed, now); err != nil {
+				slog.Error("failed to revert spool weight", "spoolId", es.SpoolID, "error", err)
 				return fmt.Errorf("reverting spool weight for removed spool %d: %w", es.SpoolID, err)
 			}
-			if _, err := tx.Exec(
-				`DELETE FROM print_spools WHERE print_id = ? AND spool_id = ?`, p.ID, es.SpoolID,
-			); err != nil {
+			if err := s.repo.DeletePrintSpool(tx, p.ID, es.SpoolID); err != nil {
+				slog.Error("failed to remove print_spool", "spoolId", es.SpoolID, "error", err)
 				return fmt.Errorf("removing print_spool for spool %d: %w", es.SpoolID, err)
 			}
 		}
@@ -207,40 +184,34 @@ func (s *PrintService) UpdatePrint(p Print) error {
 	for _, ps := range p.Spools {
 		if oldGrams, exists := existingMap[ps.SpoolID]; exists {
 			delta := ps.GramsUsed - oldGrams
-			if _, err := tx.Exec(
-				`UPDATE print_spools SET grams_used = ?, updated_at = ? WHERE print_id = ? AND spool_id = ?`,
-				ps.GramsUsed, now, p.ID, ps.SpoolID,
-			); err != nil {
+			if err := s.repo.UpsertPrintSpool(tx, p.ID, ps, oldGrams, now); err != nil {
+				slog.Error("failed to update print_spool", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("updating print_spool for spool %d: %w", ps.SpoolID, err)
 			}
 			if delta != 0 {
-				if _, err := tx.Exec(
-					`UPDATE spools SET used_weight = used_weight + ?, updated_at = ? WHERE id = ?`,
-					delta, now, ps.SpoolID,
-				); err != nil {
+				if err := s.repo.AddSpoolUsedWeight(tx, ps.SpoolID, delta, now); err != nil {
+					slog.Error("failed to update spool weight delta", "spoolId", ps.SpoolID, "error", err)
 					return fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 				}
 			}
 		} else {
-			if _, err := tx.Exec(
-				`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-				p.ID, ps.SpoolID, ps.GramsUsed, now, now,
-			); err != nil {
+			if err := s.repo.InsertPrintSpool(tx, p.ID, ps, now); err != nil {
+				slog.Error("failed to insert new print_spool", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("inserting print_spool for spool %d: %w", ps.SpoolID, err)
 			}
-			if _, err := tx.Exec(
-				`UPDATE spools SET used_weight = used_weight + ?, updated_at = ? WHERE id = ?`,
-				ps.GramsUsed, now, ps.SpoolID,
-			); err != nil {
+			if err := s.repo.AddSpoolUsedWeight(tx, ps.SpoolID, ps.GramsUsed, now); err != nil {
+				slog.Error("failed to update spool weight", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 			}
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit update print transaction", "id", p.ID, "error", err)
 		return fmt.Errorf("committing print update transaction: %w", err)
 	}
 
+	slog.Info("print updated", "id", p.ID, "name", p.Name)
 	return nil
 }
 
@@ -251,199 +222,188 @@ func (s *PrintService) DeletePrint(id int64, restoreSpoolGrams bool) error {
 
 	now := time.Now()
 
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "id", id, "error", err)
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
 	if restoreSpoolGrams {
-		var printSpools []PrintSpool
-		if err := tx.Select(&printSpools,
-			`SELECT spool_id, grams_used FROM print_spools WHERE print_id = ?`, id,
-		); err != nil {
+		printSpools, err := s.repo.GetPrintSpools(tx, id)
+		if err != nil {
+			slog.Error("failed to load print spools", "id", id, "error", err)
 			return fmt.Errorf("loading print spools for print %d: %w", id, err)
 		}
-
 		for _, ps := range printSpools {
-			if _, err := tx.Exec(
-				`UPDATE spools SET used_weight = used_weight - ?, updated_at = ? WHERE id = ?`,
-				ps.GramsUsed, now, ps.SpoolID,
-			); err != nil {
+			if err := s.repo.SubtractSpoolUsedWeight(tx, ps.SpoolID, ps.GramsUsed, now); err != nil {
+				slog.Error("failed to revert spool weight", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("reverting spool weight for spool %d: %w", ps.SpoolID, err)
 			}
 		}
 	}
 
-	var modelIDs []int64
-	if err := tx.Select(&modelIDs,
-		`SELECT model_id FROM print_models WHERE print_id = ?`, id,
-	); err != nil {
+	modelIDs, err := s.repo.GetModelIDsForPrint(tx, id)
+	if err != nil {
+		slog.Error("failed to load model ids", "id", id, "error", err)
 		return fmt.Errorf("loading model ids for print %d: %w", id, err)
 	}
 
-	if _, err := tx.Exec(`DELETE FROM print_models WHERE print_id = ?`, id); err != nil {
+	if err := s.repo.DeletePrintModels(tx, id); err != nil {
+		slog.Error("failed to delete print_models", "id", id, "error", err)
 		return fmt.Errorf("deleting print_models for print %d: %w", id, err)
 	}
 
 	if len(modelIDs) > 0 {
-		orphanQuery, orphanArgs, err := sqlx.In(
-			`SELECT id, file_type AS ext FROM models WHERE id IN (?) AND id NOT IN (SELECT model_id FROM print_models)`,
-			modelIDs,
-		)
+		orphaned, err := s.repo.FindOrphanedModels(tx, modelIDs)
 		if err != nil {
-			return fmt.Errorf("building orphan query: %w", err)
-		}
-
-		var orphanedModels []PrintModel
-		if err := tx.Select(&orphanedModels, s.db.Rebind(orphanQuery), orphanArgs...); err != nil {
+			slog.Error("failed to find orphaned models", "id", id, "error", err)
 			return fmt.Errorf("finding orphaned models: %w", err)
 		}
-
-		for _, m := range orphanedModels {
+		for _, m := range orphaned {
 			filePath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", m.ID, m.Ext))
 			if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+				slog.Error("failed to delete model file", "modelId", m.ID, "path", filePath, "error", err)
 				return fmt.Errorf("deleting model file %s: %w", filePath, err)
 			}
-			if _, err := tx.Exec(`DELETE FROM models WHERE id = ?`, m.ID); err != nil {
+			if err := s.repo.DeleteModelByID(tx, m.ID); err != nil {
+				slog.Error("failed to delete orphaned model", "modelId", m.ID, "error", err)
 				return fmt.Errorf("deleting orphaned model %d: %w", m.ID, err)
 			}
 		}
 	}
 
-	if _, err := tx.Exec(`DELETE FROM prints WHERE id = ?`, id); err != nil {
+	if err := s.repo.DeletePrint(tx, id); err != nil {
+		slog.Error("failed to delete print record", "id", id, "error", err)
 		return fmt.Errorf("deleting print %d: %w", id, err)
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit delete print transaction", "id", id, "error", err)
+		return err
+	}
+
+	slog.Info("print deleted", "id", id, "restoreSpoolGrams", restoreSpoolGrams)
+	return nil
 }
 
 func (s *PrintService) GetPrintModels(printID int64) ([]PrintModel, error) {
-	var models []PrintModel
-	err := s.db.Select(&models, `
-		SELECT m.id, m.name, m.size, m.ext
-		FROM models m
-		INNER JOIN print_models pm ON pm.model_id = m.id
-		WHERE pm.print_id = ?`, printID)
+	models, err := s.repo.GetModelsForPrint(printID)
 	if err != nil {
+		slog.Error("failed to get print models", "printId", printID, "error", err)
 		return nil, fmt.Errorf("querying models for print %d: %w", printID, err)
 	}
 	return models, nil
 }
 
 func (s *PrintService) DuplicatePrintModel(printID int64, modelID int64) error {
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(
-		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
-	); err != nil {
+	if err := s.repo.LinkModelToPrint(tx, printID, modelID); err != nil {
+		slog.Error("failed to link model to print", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
 	}
 
 	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit duplicate model transaction", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("committing duplicate model transaction: %w", err)
 	}
 
+	slog.Info("model duplicated to print", "printId", printID, "modelId", modelID)
 	return nil
 }
 
 func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext string, size int64, data []byte) error {
 	hash := computeSHA256(data)
+	now := time.Now()
 
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "printId", printID, "error", err)
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// check if model exists via hash
-	var existingModelID int64
-	if err := tx.Get(&existingModelID, `SELECT id FROM models WHERE hash = ?`, hash); err == nil && existingModelID > 0 {
-		if _, err := tx.Exec(
-			`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, existingModelID,
-		); err != nil {
-			return fmt.Errorf("linking existing model %d to print %d: %w", existingModelID, printID, err)
+	// Reuse existing model if hash matches
+	existingID, err := s.repo.FindModelByHash(tx, hash)
+	if err == nil && existingID > 0 {
+		if err := s.repo.LinkModelToPrint(tx, printID, existingID); err != nil {
+			slog.Error("failed to link existing model to print", "printId", printID, "modelId", existingID, "error", err)
+			return fmt.Errorf("linking existing model %d to print %d: %w", existingID, printID, err)
 		}
-		return tx.Commit()
+		if err := tx.Commit(); err != nil {
+			slog.Error("failed to commit upload transaction", "printId", printID, "error", err)
+			return fmt.Errorf("committing upload transaction: %w", err)
+		}
+		slog.Info("existing model linked to print", "printId", printID, "modelId", existingID)
+		return nil
 	}
 
-	// Upload new model to filesystem and model db
-	res, err := tx.Exec(
-		`INSERT INTO models(name, size, ext, hash, created_at) VALUES (?, ?, ?, ?, ?)`,
-		fileName, size, ext, hash, time.Now(),
-	)
+	modelID, err := s.repo.InsertModel(tx, fileName, ext, hash, size, now)
 	if err != nil {
+		slog.Error("failed to insert model record", "printId", printID, "error", err)
 		return fmt.Errorf("inserting model record: %w", err)
 	}
 
-	modelID, err := res.LastInsertId()
-	if err != nil {
-		return fmt.Errorf("getting model id: %w", err)
-	}
-
 	absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
-	if _, err := tx.Exec(
-		`INSERT INTO print_models(print_id, model_id) VALUES (?, ?)`, printID, modelID,
-	); err != nil {
+
+	if err := s.repo.LinkModelToPrint(tx, printID, modelID); err != nil {
+		slog.Error("failed to link model to print", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
 	}
 
 	if err := os.WriteFile(absPath, data, 0644); err != nil {
+		slog.Error("failed to write model file", "modelId", modelID, "path", absPath, "error", err)
 		return fmt.Errorf("writing model file: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
 		os.Remove(absPath)
+		slog.Error("failed to commit upload transaction", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("committing upload transaction: %w", err)
 	}
 
+	slog.Info("model uploaded", "printId", printID, "modelId", modelID, "name", fileName)
 	return nil
 }
 
 func (s *PrintService) DeletePrintModel(printID int64, modelID int64) error {
-	tx, err := s.db.Beginx()
+	tx, err := s.repo.Begin()
 	if err != nil {
+		slog.Error("failed to begin transaction", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Unlink
-	if _, err := tx.Exec(
-		`DELETE FROM print_models WHERE print_id = ? AND model_id = ?`,
-		printID, modelID,
-	); err != nil {
+	if err := s.repo.UnlinkModelFromPrint(tx, printID, modelID); err != nil {
+		slog.Error("failed to unlink model from print", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("unlinking model %d from print %d: %w", modelID, printID, err)
 	}
 
-	// Delete only if no more references
-	var modelExt string
-	err = tx.Get(&modelExt, `
-		DELETE FROM models
-		WHERE id = ?
-		AND NOT EXISTS (
-			SELECT 1 FROM print_models WHERE model_id = ?
-		)
-		RETURNING ext
-	`, modelID, modelID)
+	modelExt, err := s.repo.DeleteModelIfOrphaned(tx, modelID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		slog.Error("failed to delete orphaned model", "modelId", modelID, "error", err)
 		return fmt.Errorf("cannot find model %d: %w", modelID, err)
 	}
 
 	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit delete model transaction", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("committing delete transaction: %w", err)
 	}
 
 	if modelExt != "" {
 		absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, modelExt))
 		if err := os.Remove(absPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-			fmt.Printf("failed to remove model file modelID=%d path=%s err=%v\n", modelID, absPath, err)
+			slog.Error("failed to remove model file", "modelId", modelID, "path", absPath, "error", err)
 		}
 	}
 
+	slog.Info("model unlinked from print", "printId", printID, "modelId", modelID)
 	return nil
 }
 
@@ -458,116 +418,31 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		params.Limit = 15
 	}
 
-	var whereClauses []string
-	var args []any
-
-	if params.Search != "" {
-		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
-
-		if val, ok := qualifiers["name"]; ok {
-			clause, arg := internal.BuildQualifierClause("name", val)
-			whereClauses = append(whereClauses, clause)
-			args = append(args, arg)
-		}
-		if val, ok := qualifiers["status"]; ok {
-			clause, arg := internal.BuildQualifierClause("status", val)
-			whereClauses = append(whereClauses, clause)
-			args = append(args, arg)
-		}
-
-		if val, ok := qualifiers["spool"]; ok {
-			subquery := `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?))`
-			arg := any(val)
-			if strings.Contains(val, "*") {
-				subquery = `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) LIKE ?))`
-				arg = strings.ReplaceAll(val, "*", "%")
-			}
-			whereClauses = append(whereClauses, subquery)
-			args = append(args, arg)
-		}
-
-		if freeText != "" {
-			searchPattern := "%" + strings.ToLower(freeText) + "%"
-			whereClauses = append(whereClauses, "(LOWER(name) LIKE ? OR LOWER(notes) LIKE ?)")
-			args = append(args, searchPattern, searchPattern)
-		}
+	// Validate sort inputs here — this is business logic, not data access.
+	if !validPrintSortColumns[params.SortBy] {
+		params.SortBy = "created_at"
+	}
+	params.SortOrder = strings.ToUpper(params.SortOrder)
+	if params.SortOrder != "ASC" && params.SortOrder != "DESC" {
+		params.SortOrder = "DESC"
 	}
 
-	whereClause := ""
-	if len(whereClauses) > 0 {
-		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
-	}
-
-	sortColumn := params.SortBy
-	if !validPrintSortColumns[sortColumn] {
-		sortColumn = "created_at"
-	}
-	sortOrder := strings.ToUpper(params.SortOrder)
-	if sortOrder != "ASC" && sortOrder != "DESC" {
-		sortOrder = "DESC"
-	}
-
-	var total int
-	if err := s.db.Get(&total,
-		fmt.Sprintf("SELECT COUNT(*) FROM prints %s", whereClause), args...); err != nil {
-		return nil, fmt.Errorf("failed to count prints: %w", err)
-	}
-
-	query := fmt.Sprintf(
-		"SELECT * FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?",
-		whereClause, sortColumn, sortOrder,
-	)
-	args = append(args, params.Limit, params.Offset)
-
-	var prints []Print
-	if err := s.db.Select(&prints, query, args...); err != nil {
-		return nil, fmt.Errorf("failed to query prints: %w", err)
-	}
-
-	if len(prints) == 0 {
-		return &PrintQueryResult{Prints: prints, Total: total}, nil
-	}
-
-	ids := make([]int64, len(prints))
-	for i, p := range prints {
-		ids[i] = p.ID
-	}
-
-	spoolQuery, spoolArgs, err := sqlx.In(`
-		SELECT
-			ps.id, ps.print_id, ps.spool_id, ps.grams_used, ps.created_at, ps.updated_at,
-			s.color, s.color_hex, s.vendor, s.material, s.spool_code, s.total_weight, s.used_weight
-		FROM print_spools ps
-		JOIN spools s ON s.id = ps.spool_id
-		WHERE ps.print_id IN (?)
-	`, ids)
+	result, err := s.repo.QueryPrints(params)
 	if err != nil {
-		return nil, fmt.Errorf("building spool query: %w", err)
+		slog.Error("failed to query prints", "error", err)
+		return nil, err
 	}
-
-	var allSpools []PrintSpool
-	if err := s.db.Select(&allSpools, s.db.Rebind(spoolQuery), spoolArgs...); err != nil {
-		return nil, fmt.Errorf("loading spools for prints: %w", err)
-	}
-
-	spoolMap := make(map[int64][]PrintSpool, len(prints))
-	for _, sp := range allSpools {
-		spoolMap[sp.PrintID] = append(spoolMap[sp.PrintID], sp)
-	}
-	for i := range prints {
-		prints[i].Spools = spoolMap[prints[i].ID]
-	}
-
-	return &PrintQueryResult{Prints: prints, Total: total}, nil
+	return result, nil
 }
 
 func (s *PrintService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	dir, err := internal.GetModelsDir()
 	if err != nil {
+		slog.Error("failed to resolve models dir", "error", err)
 		return fmt.Errorf("resolving models dir: %w", err)
 	}
-
 	s.modelsDir = dir
+	slog.Info("print service started", "modelsDir", dir)
 	return nil
 }
 
