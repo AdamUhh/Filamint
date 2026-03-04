@@ -110,7 +110,6 @@ export function PrintFormDialog({
                         await deleteModelMutation.mutateAsync({
                             printId: editState.id,
                             modelId: removed.id,
-                            modelExt: removed.ext,
                         });
                     }
                 } else {

@@ -1,6 +1,6 @@
 import type { TSpoolSchema } from "@/components/Spools/lib/schema";
 
-export const PAGE_SIZE = 15;
+export const PAGE_SIZE = 1;
 
 export const defaultSpoolValues: TSpoolSchema = {
     vendor: "",

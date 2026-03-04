@@ -152,16 +152,8 @@ export function useDeletePrintModel() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (args: {
-            printId: number;
-            modelId: number;
-            modelExt: string;
-        }) =>
-            PrintService.DeletePrintModel(
-                args.printId,
-                args.modelId,
-                args.modelExt
-            ),
+        mutationFn: async (args: { printId: number; modelId: number }) =>
+            PrintService.DeletePrintModel(args.printId, args.modelId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["print_models"] });
         },
