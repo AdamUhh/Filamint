@@ -104,11 +104,11 @@ export function PrintsPage() {
         <div className="space-y-6 p-6">
             <PrintHeader onCreate={handleCreate} />
 
-            <div className="flex items-center justify-between">
-                <div className="flex w-full gap-2">
+            <div className="flex items-start justify-between">
+                <div className="relative flex w-fit min-w-100 gap-2">
                     <AppSearch
                         onSearch={handleSearch}
-                        placeholder="Search prints by name or status"
+                        placeholder="Search Prints..."
                         qualifierKeys={["name", "spool", "status"]}
                         tooltipContent={
                             <div className="space-y-1 tracking-wide">
@@ -146,7 +146,7 @@ export function PrintsPage() {
                             </div>
                         }
                     />
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="absolute -top-4.5 right-6 text-xs text-muted-foreground/80">
                         {isFetching
                             ? "Loading prints..."
                             : `Showing ${prints.size} of ${total} prints${
@@ -156,13 +156,13 @@ export function PrintsPage() {
                               }`}
                     </div>
                 </div>
-            </div>
 
-            <AppPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-            />
+                <AppPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                />
+            </div>
 
             <PrintTable
                 isLoading={isFetching}

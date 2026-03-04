@@ -114,13 +114,13 @@ export function SpoolsPage() {
                 onViewTemplate={handleViewTemplate}
                 onCreate={handleCreate}
             />
-            <div className="flex items-center justify-between">
-                <div className="flex w-full gap-2">
+            <div className="flex items-start justify-between">
+                <div className="relative flex w-fit min-w-100 gap-2">
                     <AppSearch
                         onSearch={handleSearch}
                         qualifierKeys={["vendor", "spool", "material", "color"]}
                     />
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="absolute -top-4.5 right-6 text-xs text-muted-foreground/80">
                         {isFetching
                             ? "Loading spools..."
                             : `Showing ${spools.size} of ${total} spools${

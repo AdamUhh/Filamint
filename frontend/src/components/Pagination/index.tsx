@@ -20,7 +20,7 @@ export function AppPagination({
     onPageChange,
 }: AppPaginationProps) {
     // Don't show pagination if only 1 page or no pages
-    if (totalPages <= 1) return null;
+    // if (totalPages <= 1) return null;
 
     const canGoPrevious = currentPage > 1;
     const canGoNext = currentPage < totalPages;

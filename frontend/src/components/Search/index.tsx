@@ -111,7 +111,7 @@ export function AppSearch({
     };
 
     return (
-        <div className="flex w-full max-w-md shrink-0 flex-col gap-2">
+        <div className="flex w-full max-w-md shrink-0 flex-col gap-1">
             <div className="flex items-center gap-2">
                 <InputGroup>
                     <InputGroupAddon align="inline-start">
