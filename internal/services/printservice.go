@@ -455,9 +455,8 @@ func (s *PrintService) ViewPrintModel(printId int64) error {
 		return err
 	}
 
-	app := application.Get()
-
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
+	wm := internal.GetWindowManager()
+	wm.NewTransientWindow(application.WebviewWindowOptions{
 		Title:  fmt.Sprintf("Viewer - %d", model.ID),
 		URL:    fmt.Sprintf("/viewer?modelId=%d", model.ID),
 		Width:  900,

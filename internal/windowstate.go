@@ -5,10 +5,15 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
+
+var instance *WindowManager
 
 type WindowState struct {
 	X          int  `json:"x"`
@@ -20,27 +25,71 @@ type WindowState struct {
 }
 
 type ManagedWindow struct {
-	app    *application.App
 	window *application.WebviewWindow
 	state  WindowState
 	dirty  bool
 	file   string
 }
 
-func NewManagedWindow(app *application.App, stateFile string) *ManagedWindow {
-	return &ManagedWindow{
-		app:  app,
-		file: stateFile,
+type WindowManager struct {
+	app      *application.App
+	stateDir string
+	mu       sync.Mutex
+	windows  map[string]*ManagedWindow
+	counter  atomic.Int64
+}
+
+func NewWindowManager(app *application.App, stateDir string) *WindowManager {
+	instance = &WindowManager{
+		app:      app,
+		stateDir: stateDir,
+		windows:  make(map[string]*ManagedWindow),
 	}
+	return instance
 }
 
-func (mw *ManagedWindow) Create(options application.WebviewWindowOptions) {
-	mw.window = mw.app.Window.NewWithOptions(options)
-	mw.LoadState()
-	mw.setupHandlers()
+func GetWindowManager() *WindowManager {
+	return instance
 }
 
-func (mw *ManagedWindow) setupHandlers() {
+// Creates a persistent, state-tracked window under the given key
+func (wm *WindowManager) NewWindow(key string, options application.WebviewWindowOptions) *application.WebviewWindow {
+	mw := &ManagedWindow{
+		file: filepath.Join(wm.stateDir, fmt.Sprintf("window-%s.json", key)),
+	}
+	mw.window = wm.app.Window.NewWithOptions(options)
+	mw.loadState()
+	mw.setupHandlers(wm, key)
+
+	wm.mu.Lock()
+	wm.windows[key] = mw
+	wm.mu.Unlock()
+
+	return mw.window
+}
+
+// Creates a window with no state persistence (e.g. viewer windows)
+func (wm *WindowManager) NewTransientWindow(options application.WebviewWindowOptions) *application.WebviewWindow {
+	id := fmt.Sprintf("transient-%d", wm.counter.Add(1))
+
+	mw := &ManagedWindow{
+		window: wm.app.Window.NewWithOptions(options),
+	}
+
+	mw.window.OnWindowEvent(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		wm.mu.Lock()
+		delete(wm.windows, id)
+		wm.mu.Unlock()
+	})
+
+	wm.mu.Lock()
+	wm.windows[id] = mw
+	wm.mu.Unlock()
+
+	return mw.window
+}
+
+func (mw *ManagedWindow) setupHandlers(wm *WindowManager, key string) {
 	mw.window.OnWindowEvent(events.Common.WindowDidMove, func(e *application.WindowEvent) {
 		if mw.state.Maximised || mw.state.Fullscreen {
 			return
@@ -55,9 +104,9 @@ func (mw *ManagedWindow) setupHandlers() {
 		if mw.state.Maximised || mw.state.Fullscreen {
 			return
 		}
-		width, height := mw.window.Size()
-		mw.state.Width = width
-		mw.state.Height = height
+		w, h := mw.window.Size()
+		mw.state.Width = w
+		mw.state.Height = h
 		mw.dirty = true
 	})
 
@@ -83,52 +132,55 @@ func (mw *ManagedWindow) setupHandlers() {
 
 	mw.window.OnWindowEvent(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		if mw.dirty {
-			mw.SaveState()
+			mw.saveState()
 		}
+		wm.mu.Lock()
+		delete(wm.windows, key)
+		wm.mu.Unlock()
 	})
 }
 
-func (mw *ManagedWindow) LoadState() {
+func (mw *ManagedWindow) loadState() {
 	data, err := os.ReadFile(mw.file)
 	if err != nil {
-		err = fmt.Errorf("Failed to read window state file: %w", err)
-		slog.Error(err.Error())
-
+		slog.Warn("No window state found, centering window", "file", mw.file)
 		mw.window.Center()
 		return
 	}
-
 	if err := json.Unmarshal(data, &mw.state); err != nil {
-		err = fmt.Errorf("failed to unmarshal window state: %w", err)
-		slog.Error(err.Error())
-
+		slog.Error("Failed to parse window state", "error", err)
 		mw.window.Center()
 		return
 	}
-
-	// fmt.Println("Loading window state:", mw.state)
 	mw.window.SetRelativePosition(mw.state.X, mw.state.Y)
 	mw.window.SetSize(mw.state.Width, mw.state.Height)
-
 	if mw.state.Maximised {
 		mw.window.Maximise()
 	}
-
 	if mw.state.Fullscreen {
 		mw.window.Fullscreen()
 	}
 }
 
-func (mw *ManagedWindow) SaveState() {
-	// fmt.Println("Saving window state:", mw.state)
-
+func (mw *ManagedWindow) saveState() {
 	data, err := json.MarshalIndent(mw.state, "", "  ")
 	if err != nil {
-		err = fmt.Errorf("failed to save window state: %w", err)
-		slog.Error(err.Error())
+		slog.Error("Failed to marshal window state", "error", err)
 		return
 	}
-
-	_ = os.WriteFile(mw.file, data, 0644)
+	if err := os.WriteFile(mw.file, data, 0644); err != nil {
+		slog.Error("Failed to write window state", "error", err)
+		return
+	}
 	mw.dirty = false
 }
+
+// func (wm *WindowManager) SaveAll() {
+// 	wm.mu.Lock()
+// 	defer wm.mu.Unlock()
+// 	for _, mw := range wm.windows {
+// 		if mw.dirty {
+// 			mw.saveState()
+// 		}
+// 	}
+// }

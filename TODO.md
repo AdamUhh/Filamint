@@ -20,4 +20,5 @@
 - [ ] Cleanup all func and sql
 - - [  ] After you clean up, you need to figure out how to optimize the code, there are too many db calls
 - [ ] Add updater
-- [ ] Need to add proper title/description for build
+- [ ] Single Instance: https://v3alpha.wails.io/guides/single-instance/
+

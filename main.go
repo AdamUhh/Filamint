@@ -55,7 +55,7 @@ func combinedHandler(assets fs.FS, modelsDir string) http.Handler {
 			w.Write(data)
 			return
 		}
-		// Everything else → embedded frontend assets
+		// Everything else
 		assetServer.ServeHTTP(w, r)
 	})
 }
@@ -88,17 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// modelsDir, err := internal.GetModelsDir()
-	// if err != nil {
-	// 	slog.Error("failed to resolve models dir", "error", err)
-	// 	os.Exit(1)
-	// }
-
-	// fileServer := application.AssetFileServerFS(assets)
-	// mux := http.NewServeMux()
-	// mux.Handle("/", fileServer)
-	// mux.Handle("/api/models/", ModelFileHandler(db, modelsDir))
-
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
@@ -115,7 +104,6 @@ func main() {
 			application.NewService(services.NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
-			// Handler:    application.AssetFileServerFS(assets),
 			Handler: combinedHandler(assets, modelsDir),
 		},
 		Mac: application.MacOptions{
@@ -123,15 +111,9 @@ func main() {
 		},
 	})
 
-	// Create managed window (state persistence handled automatically)
-	mw := internal.NewManagedWindow(app, filepath.Join(appDataDir, "window-state.json"))
+	wm := internal.NewWindowManager(app, appDataDir)
 
-	// Create a new window with the necessary options.
-	// 'Title' is the title of the window.
-	// 'Mac' options tailor the window when running on macOS.
-	// 'BackgroundColour' is the background colour of the window.
-	// 'URL' is the URL that will be loaded into the webview.
-	mw.Create(application.WebviewWindowOptions{
+	wm.NewWindow("main", application.WebviewWindowOptions{
 		Title: "Filament Tracker",
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
@@ -147,16 +129,6 @@ func main() {
 		X:                0,
 		Y:                0,
 	})
-
-	// Create a goroutine that emits an event containing the current time every second.
-	// The frontend can listen to this event and update the UI accordingly.
-	// go func() {
-	// 	for {
-	// 		now := time.Now().Format(time.RFC1123)
-	// 		app.Event.Emit("time", now)
-	// 		time.Sleep(time.Second)
-	// 	}
-	// }()
 
 	// Run the application. This blocks until the application has been exited.
 	err = app.Run()
