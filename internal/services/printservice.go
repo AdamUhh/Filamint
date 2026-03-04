@@ -2,6 +2,7 @@ package services
 
 import (
 	internal "changeme/internal"
+
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -447,3 +448,21 @@ func (s *PrintService) ServiceStartup(ctx context.Context, _ application.Service
 }
 
 func (s *PrintService) ServiceShutdown() error { return nil }
+
+func (s *PrintService) ViewPrintModel(printId int64) error {
+	model, err := s.repo.GetPrintModelById(printId)
+	if err != nil {
+		return err
+	}
+
+	app := application.Get()
+
+	app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Title:  fmt.Sprintf("Viewer - %d", model.ID),
+		URL:    fmt.Sprintf("/viewer?modelId=%d", model.ID),
+		Width:  900,
+		Height: 700,
+	})
+
+	return nil
+}

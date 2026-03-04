@@ -1,6 +1,6 @@
 import { AppProvider } from "@/context/appContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { StrictMode } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import {
     Link,
@@ -22,6 +22,8 @@ import { SpoolsPage } from "@/components/Spools";
 import { getThemeScript } from "@/lib/util-theme";
 
 import "./index.css";
+
+const ViewerPage = lazy(() => import("./components/Viewer"));
 
 // === Pre-hydration theme injection ===
 if (typeof document !== "undefined") {
@@ -60,13 +62,6 @@ const router = createBrowserRouter([
             </>
         ),
         errorElement: <RouteError />,
-
-        // children: [
-        //     {
-        //         path: "/",
-        //         element: <div />,
-        //     },
-        // ],
         children: [
             {
                 path: "/",
@@ -74,6 +69,14 @@ const router = createBrowserRouter([
             },
             { path: "/spools", element: <SpoolsPage /> },
             { path: "/prints", element: <PrintsPage /> },
+            {
+                path: "/viewer",
+                element: (
+                    <Suspense fallback={<div>Loading…</div>}>
+                        <ViewerPage />
+                    </Suspense>
+                ),
+            },
         ],
     },
 ]);

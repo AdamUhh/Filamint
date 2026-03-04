@@ -45,6 +45,10 @@ export function UploadPrintModel(printID: number, fileName: string, ext: string,
     return $Call.ByID(1986546053, printID, fileName, ext, size, data);
 }
 
+export function ViewPrintModel(printId: number): $CancellablePromise<void> {
+    return $Call.ByID(4185747245, printId);
+}
+
 // Private type creation functions
 const $$createType0 = $models.PrintModel.createFrom;
 const $$createType1 = $Create.Array($$createType0);

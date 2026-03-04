@@ -8,6 +8,7 @@ import {
     PencilIcon,
     RotateCwIcon,
     TrashIcon,
+    ViewIcon,
 } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
@@ -40,6 +41,7 @@ import {
 } from "@/shadcn/table";
 
 import type { Print } from "@bindings";
+import { PrintService } from "@bindings";
 
 import { CopyOnClick } from "../CopyToClipboard";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
@@ -64,6 +66,10 @@ export function PrintTable({
     onSort?: (column: string) => void;
 }) {
     const printArray = Array.from(prints.values());
+
+    const handleOnView = (print: Print) => {
+        PrintService.ViewPrintModel(print.id);
+    };
 
     return (
         <div className="rounded-lg border">
@@ -163,6 +169,19 @@ export function PrintTable({
                                                             <CopyPlusIcon className="mb-0.5" />
                                                             <span>
                                                                 Duplicate Print
+                                                            </span>
+                                                        </DropdownMenuItem>
+
+                                                        <DropdownMenuItem
+                                                            onSelect={() =>
+                                                                handleOnView(
+                                                                    print
+                                                                )
+                                                            }
+                                                        >
+                                                            <ViewIcon className="mb-0.5" />
+                                                            <span>
+                                                                View Print
                                                             </span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuGroup>

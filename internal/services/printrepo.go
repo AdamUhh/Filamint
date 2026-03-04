@@ -307,3 +307,17 @@ func (r *PrintRepository) GetSpoolsForPrints(printIDs []int64) ([]PrintSpool, er
 func (r *PrintRepository) Begin() (*sqlx.Tx, error) {
 	return r.db.Beginx()
 }
+
+func (r *PrintRepository) GetPrintModelById(printID int64) (PrintModel, error) {
+	var model PrintModel
+
+	err := r.db.Get(&model, `
+		SELECT m.id, m.name, m.size, m.ext
+		FROM models m
+		INNER JOIN print_models pm ON pm.model_id = m.id
+		WHERE pm.print_id = ?
+		LIMIT 1
+	`, printID)
+
+	return model, err
+}

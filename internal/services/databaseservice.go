@@ -17,6 +17,10 @@ type Database struct {
 	cancel context.CancelFunc
 }
 
+func (d *Database) DB() *sqlx.DB {
+	return d.db
+}
+
 func NewDatabase(dbPath string) (*Database, error) {
 	absPath, err := filepath.Abs(dbPath)
 	if err != nil {
