@@ -3,9 +3,11 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"os"
 )
 
 type WindowState struct {
@@ -89,13 +91,17 @@ func (mw *ManagedWindow) setupHandlers() {
 func (mw *ManagedWindow) LoadState() {
 	data, err := os.ReadFile(mw.file)
 	if err != nil {
-		fmt.Println("Failed to read window state file:", err)
+		err = fmt.Errorf("Failed to read window state file: %w", err)
+		slog.Error(err.Error())
+
 		mw.window.Center()
 		return
 	}
 
 	if err := json.Unmarshal(data, &mw.state); err != nil {
-		fmt.Println("Failed to unmarshal window state:", err)
+		err = fmt.Errorf("failed to unmarshal window state: %w", err)
+		slog.Error(err.Error())
+
 		mw.window.Center()
 		return
 	}
@@ -118,7 +124,8 @@ func (mw *ManagedWindow) SaveState() {
 
 	data, err := json.MarshalIndent(mw.state, "", "  ")
 	if err != nil {
-		fmt.Println("Failed to save window state:", err)
+		err = fmt.Errorf("failed to save window state: %w", err)
+		slog.Error(err.Error())
 		return
 	}
 

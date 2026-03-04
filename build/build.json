@@ -1,0 +1,18 @@
+{
+  "name": "Filament Tracker",
+  "version": "1.0.0",
+  "author": "AdamUhh",
+  "description": "A 3D printing filament manager to keep track of spools, usage, and prints",
+  "icon": "build/appicon.png",
+  "outputFilename": "filament-tracker",
+  "platforms": ["windows/amd64", "darwin/amd64", "linux/amd64"],
+  "frontend": {
+    "dir": "./frontend",
+    "install": "npm install",
+    "build": "npm run build",
+    "dev": "npm run dev"
+  },
+  "go": {
+    "ldflags": "-s -w -X main.version={{.Version}}"
+  }
+}

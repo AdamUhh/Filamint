@@ -24,6 +24,22 @@ export default defineConfig({
             ),
         },
     },
+    build: {
+        minify: "terser",
+        terserOptions: {
+            compress: {
+                drop_console: true, // Remove console.log
+                drop_debugger: true,
+            },
+        },
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ["react", "react-dom"], // Separate vendor bundle
+                },
+            },
+        },
+    },
     // Memory Leak Issue hotfix: https://github.com/wailsapp/wails/issues/3903
     // server: {
     //     watch: {

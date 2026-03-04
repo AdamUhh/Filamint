@@ -3,10 +3,9 @@ package services
 import (
 	internal "changeme/internal"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Spool struct {
@@ -54,32 +53,118 @@ type SpoolPrint struct {
 }
 
 type SpoolService struct {
-	db *sqlx.DB
+	repo *SpoolRepository
 }
 
-// qualifierColumns maps search qualifier keys to their DB column names.
-// Defined at package level since it's constant.
-var qualifierColumns = map[string]string{
-	"spool":    "spool_code",
-	"material": "material",
-	"vendor":   "vendor",
-	"color":    "color",
+func NewSpoolService(database *Database) *SpoolService {
+	return &SpoolService{
+		repo: NewSpoolRepository(database.db),
+	}
 }
 
-// validSortColumns is the allowlist for ORDER BY to prevent SQL injection.
-var validSortColumns = map[string]bool{
-	"id":            true,
-	"spool_code":    true,
-	"vendor":        true,
-	"material":      true,
-	"material_type": true,
-	"color":         true,
-	"total_weight":  true,
-	"used_weight":   true,
-	"cost":          true,
-	"created_at":    true,
-	"updated_at":    true,
+func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
+	if err := validateSpool(spool); err != nil {
+		slog.Error("spool validation failed", "error", err)
+		return 0, err
+	}
+
+	now := time.Now()
+	spool.CreatedAt = now
+	spool.UpdatedAt = now
+
+	const maxAttempts = 5
+	for range maxAttempts {
+		code, err := internal.GenerateSpoolCodeBase(spool.Material, spool.Color)
+		if err != nil {
+			slog.Error("failed to generate spool code", "error", err)
+			return 0, fmt.Errorf("generating spool code: %w", err)
+		}
+
+		id, err := s.repo.Insert(spool, code)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				continue // retry with a new code
+			}
+			slog.Error("failed to insert spool", "error", err)
+			return 0, err
+		}
+
+		slog.Info("spool created", "id", id, "code", code)
+		return id, nil
+	}
+
+	err := fmt.Errorf("failed to generate unique spool code after %d retries", maxAttempts)
+	slog.Error(err.Error())
+	return 0, err
 }
+
+func (s *SpoolService) UpdateSpool(spool Spool) error {
+	if spool.ID == 0 {
+		err := fmt.Errorf("spool id is required")
+		slog.Error(err.Error())
+		return err
+	}
+	if err := validateSpool(spool); err != nil {
+		slog.Error("spool validation failed", "id", spool.ID, "error", err)
+		return err
+	}
+
+	spool.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(spool); err != nil {
+		slog.Error("failed to update spool", "id", spool.ID, "error", err)
+		return err
+	}
+
+	slog.Info("spool updated", "id", spool.ID)
+	return nil
+}
+
+func (s *SpoolService) DeleteSpool(id int64) error {
+	if id == 0 {
+		err := fmt.Errorf("invalid spool id")
+		slog.Error(err.Error())
+		return err
+	}
+
+	if err := s.repo.Delete(id); err != nil {
+		slog.Error("failed to delete spool", "id", id, "error", err)
+		return err
+	}
+
+	slog.Info("spool deleted", "id", id)
+	return nil
+}
+
+func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
+	prints, err := s.repo.GetPrints(spoolID)
+	if err != nil {
+		slog.Error("failed to get prints for spool", "spoolID", spoolID, "error", err)
+		return nil, err
+	}
+	return prints, nil
+}
+
+func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
+	if params.SortBy == "" {
+		params.SortBy = "updated_at"
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "DESC"
+	}
+	if params.Limit <= 0 {
+		params.Limit = 15
+	}
+
+	result, err := s.repo.Query(params)
+	if err != nil {
+		slog.Error("failed to query spools", "error", err)
+		return nil, err
+	}
+	return result, nil
+}
+
+func (s *SpoolService) ServiceShutdown() error { return nil }
 
 func validateSpool(spool Spool) error {
 	if strings.TrimSpace(spool.Material) == "" {
@@ -102,238 +187,3 @@ func validateSpool(spool Spool) error {
 	}
 	return nil
 }
-
-func NewSpoolService(database *Database) *SpoolService {
-	return &SpoolService{db: database.db}
-}
-
-func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
-	if err := validateSpool(spool); err != nil {
-		return 0, err
-	}
-
-	now := time.Now()
-
-	const maxAttempts = 5
-
-	for range maxAttempts {
-		code, err := internal.GenerateSpoolCodeBase(spool.Material, spool.Color)
-		if err != nil {
-			return 0, fmt.Errorf("generating spool code: %w", err)
-		}
-
-		result, err := s.db.Exec(`
-			INSERT INTO spools (
-				spool_code,
-				vendor, material, material_type, color, color_hex,
-				total_weight, used_weight,
-				cost, reference_link, notes, is_template,
-				first_used_at, last_used_at,
-				created_at, updated_at
-			) VALUES (
-				?, ?, ?, ?, ?, ?,
-				?, ?,
-				?, ?, ?, ?,
-				?, ?,
-				?, ?
-			)
-		`,
-			code,
-			spool.Vendor,
-			spool.Material,
-			spool.MaterialType,
-			spool.Color,
-			spool.ColorHex,
-			spool.TotalWeight,
-			spool.UsedWeight,
-			spool.Cost,
-			spool.ReferenceLink,
-			spool.Notes,
-			internal.ConvertBoolToInt(spool.IsTemplate),
-			spool.FirstUsedAt,
-			spool.LastUsedAt,
-			now,
-			now,
-		)
-
-		if err != nil {
-			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-				// spool code is taken
-				continue // retry with new code
-			}
-			return 0, fmt.Errorf("inserting spool: %w", err)
-		}
-
-		id, err := result.LastInsertId()
-		if err != nil {
-			return 0, fmt.Errorf("getting spool id: %w", err)
-		}
-
-		return id, nil
-	}
-
-	return 0, fmt.Errorf("failed to generate unique spool code after retries")
-}
-
-func (s *SpoolService) UpdateSpool(spool Spool) error {
-	if spool.ID == 0 {
-		return fmt.Errorf("spool id is required")
-	}
-	if err := validateSpool(spool); err != nil {
-		return err
-	}
-
-	query := `
-	UPDATE spools SET
-		vendor = ?,
-		material = ?,
-		material_type = ?,
-		color = ?,
-		color_hex = ?,
-		total_weight = ?,
-		used_weight = ?,
-		cost = ?,
-		reference_link = ?,
-		notes = ?,
-		is_template = ?,
-		first_used_at = ?,
-		last_used_at = ?,
-		updated_at = ?
-	WHERE id = ?
-	`
-
-	_, err := s.db.Exec(
-		query,
-		spool.Vendor,
-		spool.Material,
-		spool.MaterialType,
-		spool.Color,
-		spool.ColorHex,
-		spool.TotalWeight,
-		spool.UsedWeight,
-		spool.Cost,
-		spool.ReferenceLink,
-		spool.Notes,
-		internal.ConvertBoolToInt(spool.IsTemplate),
-		spool.FirstUsedAt,
-		spool.LastUsedAt,
-		time.Now(),
-		spool.ID,
-	)
-
-	if err != nil {
-		return fmt.Errorf("updating spool %d: %w", spool.ID, err)
-	}
-
-	return nil
-}
-
-func (s *SpoolService) DeleteSpool(id int64) error {
-	if id == 0 {
-		return fmt.Errorf("invalid spool id")
-	}
-
-	_, err := s.db.Exec(`DELETE FROM spools WHERE id = ?`, id)
-	if err != nil {
-		return fmt.Errorf("deleting spool %d: %w", id, err)
-	}
-	return nil
-}
-
-func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
-	var prints []SpoolPrint
-
-	query := `
-		SELECT
-		    p.id AS print_id,
-		    p.name AS print_name,
-		    ps.grams_used
-		FROM print_spools ps
-		JOIN prints p ON p.id = ps.print_id
-		WHERE ps.spool_id = ?
-		ORDER BY p.date_printed DESC
-	`
-
-	err := s.db.Select(&prints, query, spoolID)
-	if err != nil {
-		return nil, fmt.Errorf("querying prints for spool %d: %w", spoolID, err)
-	}
-
-	return prints, nil
-}
-
-func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
-	if params.SortBy == "" {
-		params.SortBy = "updated_at"
-	}
-	if params.SortOrder == "" {
-		params.SortOrder = "DESC"
-	}
-	if params.Limit <= 0 {
-		params.Limit = 15
-	}
-
-	var whereClauses []string
-	var args []any
-
-	if params.Search != "" {
-		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
-
-		for qualifier, column := range qualifierColumns {
-			if val, ok := qualifiers[qualifier]; ok {
-				clause, arg := internal.BuildQualifierClause(column, val)
-				whereClauses = append(whereClauses, clause)
-				args = append(args, arg)
-			}
-		}
-
-		if freeText != "" {
-			searchPattern := "%" + strings.ToLower(freeText) + "%"
-			whereClauses = append(whereClauses, "(LOWER(spool_code) LIKE ? OR LOWER(vendor) LIKE ? OR LOWER(material) LIKE ? OR LOWER(color) LIKE ?)")
-			args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
-		}
-	}
-
-	if params.IsTemplate != nil {
-		whereClauses = append(whereClauses, "is_template = ?")
-		args = append(args, internal.ConvertBoolToInt(*params.IsTemplate))
-	}
-
-	whereClause := ""
-	if len(whereClauses) > 0 {
-		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
-	}
-
-	sortColumn := params.SortBy
-	if !validSortColumns[sortColumn] {
-		sortColumn = "updated_at"
-	}
-	sortOrder := strings.ToUpper(params.SortOrder)
-	if sortOrder != "ASC" && sortOrder != "DESC" {
-		sortOrder = "DESC"
-	}
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM spools %s", whereClause)
-	var total int
-	if err := s.db.Get(&total, countQuery, args...); err != nil {
-		return nil, fmt.Errorf("failed to count spools: %w", err)
-	}
-
-	query := fmt.Sprintf(
-		"SELECT * FROM spools %s ORDER BY %s %s LIMIT ? OFFSET ?",
-		whereClause, sortColumn, sortOrder,
-	)
-	args = append(args, params.Limit, params.Offset)
-
-	var spools []Spool
-	if err := s.db.Select(&spools, query, args...); err != nil {
-		return nil, fmt.Errorf("failed to query spools: %w", err)
-	}
-
-	return &SpoolQueryResult{
-		Spools: spools,
-		Total:  total,
-	}, nil
-}
-
-func (s *SpoolService) ServiceShutdown() error { return nil }

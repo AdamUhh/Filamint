@@ -20,12 +20,16 @@ type Database struct {
 func NewDatabase(dbPath string) (*Database, error) {
 	absPath, err := filepath.Abs(dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve database path: %w", err)
+		err = fmt.Errorf("failed to resolve database path: %w", err)
+		slog.Error(err.Error())
+		return nil, err
 	}
 
 	db, err := sqlx.Open("sqlite", absPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		err = fmt.Errorf("failed to open database: %w", err)
+		slog.Error(err.Error())
+		return nil, err
 	}
 
 	pragmas := []string{
@@ -38,25 +42,33 @@ func NewDatabase(dbPath string) (*Database, error) {
 	}
 	for _, p := range pragmas {
 		if _, err := db.Exec(p); err != nil {
-			return nil, fmt.Errorf("failed to set pragma %q: %w", p, err)
+			err = fmt.Errorf("failed to set pragma %q: %w", p, err)
+			slog.Error(err.Error())
+			return nil, err
 		}
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		err = fmt.Errorf("failed to ping database: %w", err)
+		slog.Error(err.Error())
+		return nil, err
 	}
 
 	database := &Database{db: db}
 
 	if err := database.initSchema(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("failed to initialize schema: %w", err)
+		err = fmt.Errorf("failed to initialize schema: %w", err)
+		slog.Error(err.Error())
+		return nil, err
 	}
 
 	// ---- SEEDING (comment to disable) ----
 	if err := database.seedSpoolsIfEmpty(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("failed to seed spools: %w", err)
+		err = fmt.Errorf("failed to seed spools: %w", err)
+		slog.Error(err.Error())
+		return nil, err
 	}
 
 	return database, nil
@@ -165,7 +177,9 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_shortcuts_key_combo ON shortcuts(key_combo);
 	`
 	if _, err := d.db.Exec(schema); err != nil {
-		return fmt.Errorf("init schema: %w", err)
+		err = fmt.Errorf("init schema: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
 	return nil
@@ -175,7 +189,9 @@ func (d *Database) initSchema() error {
 func (d *Database) seedSpoolsIfEmpty() error {
 	var count int
 	if err := d.db.Get(&count, `SELECT COUNT(1) FROM spools`); err != nil {
-		return fmt.Errorf("failed to count spools: %w", err)
+		err = fmt.Errorf("failed to count spools: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
 	if count > 0 {
@@ -184,7 +200,9 @@ func (d *Database) seedSpoolsIfEmpty() error {
 
 	tx, err := d.db.Beginx()
 	if err != nil {
-		return fmt.Errorf("failed to begin spool seed transaction: %w", err)
+		err = fmt.Errorf("failed to begin spool seed transaction: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 	defer tx.Rollback()
 
@@ -241,17 +259,16 @@ func (d *Database) seedSpoolsIfEmpty() error {
 
 	for i, s := range seeds {
 		if _, err = tx.NamedExec(q, s); err != nil {
-			return fmt.Errorf(
-				"failed to insert seed spool (index=%d, spool_code=%s): %w",
-				i,
-				s.SpoolCode,
-				err,
-			)
+			err = fmt.Errorf("failed to insert seed spool (index=%d, spool_code=%s): %w", i, s.SpoolCode, err)
+			slog.Error(err.Error())
+			return err
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit spool seed transaction: %w", err)
+		err = fmt.Errorf("failed to commit spool seed transaction: %w", err)
+		slog.Error(err.Error())
+		return err
 	}
 
 	return nil
@@ -277,13 +294,15 @@ func (d *Database) ServiceShutdown() error {
 
 	if d.db != nil {
 		if _, err := d.db.Exec(`PRAGMA wal_checkpoint(TRUNCATE)`); err != nil {
-			slog.Error("Database shutdown failed", "error", err)
-			return fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
+			err = fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
+			slog.Error(err.Error())
+			return err
 		}
 
 		if err := d.db.Close(); err != nil {
-			slog.Error("Database shutdown failed", "error", err)
-			return fmt.Errorf("failed to close database: %w", err)
+			err = fmt.Errorf("failed to close database: %w", err)
+			slog.Error(err.Error())
+			return err
 		}
 	}
 
