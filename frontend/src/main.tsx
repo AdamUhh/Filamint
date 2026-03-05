@@ -65,7 +65,8 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                element: <Navigate to="/prints" replace />,
+                // element: <Navigate to="/prints" replace />,
+                element: <Navigate to="/viewer?modelPath=6.3mf" replace />,
             },
             { path: "/spools", element: <SpoolsPage /> },
             { path: "/prints", element: <PrintsPage /> },

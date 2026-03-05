@@ -5,6 +5,8 @@ import { useSearchParams } from "react-router";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
+import { ThreeMFScene } from "./ThreeMFScene";
+
 type ModelBuffer = { buffer: ArrayBuffer; ext: "stl" | "3mf" };
 
 const PLATE_SIZE = 256;
@@ -56,8 +58,6 @@ function useModelBuffer(): { data: ModelBuffer | null; error: string | null } {
 
     return { data, error };
 }
-
-function ThreeMFScene({ buffer }: { buffer: ArrayBuffer }) {}
 
 function StlMesh({ buffer }: { buffer: ArrayBuffer }) {
     const geometry = useMemo(() => {
