@@ -3,12 +3,12 @@ import {
     ArrowDownIcon,
     ArrowUpDownIcon,
     ArrowUpIcon,
+    BoxIcon,
     CopyPlusIcon,
     EllipsisIcon,
     PencilIcon,
     RotateCwIcon,
     TrashIcon,
-    ViewIcon,
 } from "lucide-react";
 
 import { Button } from "@/shadcn/button";
@@ -161,6 +161,18 @@ export function PrintTable({
 
                                                         <DropdownMenuItem
                                                             onSelect={() =>
+                                                                handleOnView(
+                                                                    print
+                                                                )
+                                                            }
+                                                        >
+                                                            <BoxIcon className="mb-0.5" />
+                                                            <span>
+                                                                View Print
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onSelect={() =>
                                                                 onDuplicate(
                                                                     print
                                                                 )
@@ -169,19 +181,6 @@ export function PrintTable({
                                                             <CopyPlusIcon className="mb-0.5" />
                                                             <span>
                                                                 Duplicate Print
-                                                            </span>
-                                                        </DropdownMenuItem>
-
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                handleOnView(
-                                                                    print
-                                                                )
-                                                            }
-                                                        >
-                                                            <ViewIcon className="mb-0.5" />
-                                                            <span>
-                                                                View Print
                                                             </span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuGroup>
@@ -228,6 +227,12 @@ export function PrintTable({
                                             Actions
                                         </ContextMenuLabel>
 
+                                        <ContextMenuItem
+                                            onSelect={() => handleOnView(print)}
+                                        >
+                                            <BoxIcon className="mb-0.5" />
+                                            <span>View Print</span>
+                                        </ContextMenuItem>
                                         <ContextMenuItem
                                             onSelect={() => onDuplicate(print)}
                                         >

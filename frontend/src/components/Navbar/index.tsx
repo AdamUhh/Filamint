@@ -3,6 +3,7 @@ import { Events } from "@wailsio/runtime";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router";
+import { useLocation } from "react-router";
 
 import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
@@ -25,11 +26,17 @@ const iconItem =
 
 export function Navbar() {
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const location = useLocation();
 
     const handleDialogChange = (open: boolean) => {
         setSettingsOpen(open);
         Events.Emit("shortcuts:set_enabled", !open);
     };
+
+    // Hide navbar on /viewer routes
+    if (location.pathname.startsWith("/viewer")) {
+        return null;
+    }
 
     return (
         <>
