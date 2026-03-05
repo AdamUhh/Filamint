@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { ThreeMFLoader } from "three/examples/jsm/loaders/3MFLoader.js";
 
+import { BuildPlate } from "./BuildPlate";
+
 const PLATE_SIZE = 256;
 const PLATE_GAP = 80;
 
@@ -162,15 +164,7 @@ export function ThreeMFScene({ buffer }: { buffer: ArrayBuffer }) {
 
                 return (
                     <group key={id} position={[offsetX, 0, 0]}>
-                        <mesh position={[0, -1, 0]} receiveShadow>
-                            <boxGeometry args={[PLATE_SIZE, 2, PLATE_SIZE]} />
-                            <meshStandardMaterial
-                                color="#333333"
-                                roughness={0.9}
-                                metalness={0}
-                            />
-                        </mesh>
-
+                        <BuildPlate />
                         <primitive
                             object={group}
                             position={[-centre.x, -box.min.y, -centre.z]}
