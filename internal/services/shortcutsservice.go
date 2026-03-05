@@ -139,6 +139,7 @@ func NewShortcutService(database *Database) *ShortcutService {
 }
 
 func (s *ShortcutService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+	slog.Info("Shortcut service started")
 	s.app = application.Get()
 
 	if err := s.seedDefaultsIfEmpty(); err != nil {
@@ -490,5 +491,6 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 }
 
 func (s *ShortcutService) ServiceShutdown() error {
+	slog.Info("Shortcut service shutting down")
 	return nil
 }

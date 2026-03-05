@@ -1,8 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useState } from "react";
 
-const PLATE_SIZE = 256;
-const PLATE_Y = -1;
+import { PLATE_SIZE, PLATE_Y } from "@/lib/constant-three";
 
 export function BuildPlate() {
     const [visible, setVisible] = useState(true);

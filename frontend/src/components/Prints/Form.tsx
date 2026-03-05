@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useEffect } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -32,6 +32,8 @@ export function PrintFormDialog({
     editState: EditState;
     setEditState: Dispatch<SetStateAction<EditState>>;
 }) {
+    const [isSaving, setIsSaving] = useState(false);
+
     const createMutation = useCreatePrint();
     const updateMutation = useUpdatePrint();
     const uploadModelMutation = useUploadPrintModel();
@@ -92,7 +94,7 @@ export function PrintFormDialog({
                     updatedAt: null, // placeholder
                 })),
             };
-
+            setIsSaving(true);
             try {
                 if (editState.id > 0) {
                     await updateMutation.mutateAsync(printToSave);
@@ -135,6 +137,8 @@ export function PrintFormDialog({
                 form.reset();
             } catch (err) {
                 console.error("Failed to save print:", err);
+            } finally {
+                setIsSaving(false);
             }
         },
     });
@@ -257,8 +261,7 @@ export function PrintFormDialog({
                                 updateMutation.isPending
                             }
                         >
-                            {createMutation.isPending ||
-                            updateMutation.isPending
+                            {isSaving
                                 ? "Saving..."
                                 : editState.id > 0
                                   ? "Update"

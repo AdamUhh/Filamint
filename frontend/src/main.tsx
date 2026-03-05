@@ -1,5 +1,6 @@
 import { AppProvider } from "@/context/appContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Loader2Icon } from "lucide-react";
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -65,15 +66,24 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                // element: <Navigate to="/prints" replace />,
-                element: <Navigate to="/viewer?modelPath=6.3mf" replace />,
+                element: <Navigate to="/prints" replace />,
+                // element: <Navigate to="/viewer?modelPath=1.3mf" replace />,
             },
             { path: "/spools", element: <SpoolsPage /> },
             { path: "/prints", element: <PrintsPage /> },
             {
                 path: "/viewer",
                 element: (
-                    <Suspense fallback={<div>Loading…</div>}>
+                    <Suspense
+                        fallback={
+                            <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-[#333]">
+                                <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+                                <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">
+                                    Loading...
+                                </p>
+                            </div>
+                        }
+                    >
                         <ViewerPage />
                     </Suspense>
                 ),

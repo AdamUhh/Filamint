@@ -6,8 +6,8 @@
 - [ ] Unsure: Allow create and update to change spoolcode
 
 > Prints
-- [x] Add ability to upload 3MF/STL files
-- [ ] View 3MF/STL in a new window
+- [ ] Preview prints do not work in build
+- [ ] There is a leak somewhere I think?
 - [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: Add another way to view prints
 - - [  ] Whenever you add a file, it should also take a screenshot of the print
@@ -17,6 +17,7 @@
 - [ ] Unsure: Should have Duplicate and Duplicate Clean. Duplicate will have sql col 'duplicate of <printId> (dId)', that way, you can easily track the first instance?
 
 > QoL
+- [ ] Need to update shortcuts to not work on transcient windows (only work on main)
 - [ ] Add updater (as of 5/Mar/2026, still not implemented by wails)
 - [ ] Cleanup all func and sql
 - - [  ] After you clean up, you need to figure out how to optimize the code, there are too many db calls
