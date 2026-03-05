@@ -17,7 +17,7 @@
 - [ ] Unsure: Should have Duplicate and Duplicate Clean. Duplicate will have sql col 'duplicate of <printId> (dId)', that way, you can easily track the first instance?
 
 > QoL
-- [ ] Add updater (as of 5/Mar/2026, still not implemented)
+- [ ] Add updater (as of 5/Mar/2026, still not implemented by wails)
 - [ ] Cleanup all func and sql
 - - [  ] After you clean up, you need to figure out how to optimize the code, there are too many db calls
 
