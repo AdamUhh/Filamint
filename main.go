@@ -109,6 +109,15 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "com.myapp.unique-id",
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				wm := internal.GetWindowManager()
+				if wm != nil {
+					wm.RestoreAndFocus("main")
+				}
+			},
+		},
 	})
 
 	wm := internal.NewWindowManager(app, appDataDir)

@@ -175,6 +175,28 @@ func (mw *ManagedWindow) saveState() {
 	mw.dirty = false
 }
 
+func (wm *WindowManager) RestoreAndFocus(key string) {
+	wm.mu.Lock()
+	defer wm.mu.Unlock()
+
+	if key != "" {
+		if mw, ok := wm.windows[key]; ok && mw.window != nil {
+			mw.window.Restore()
+			mw.window.Focus()
+			return
+		}
+	}
+
+	// Fallback: restore the first window in the map
+	for _, mw := range wm.windows {
+		if mw.window != nil {
+			mw.window.Restore()
+			mw.window.Focus()
+			break
+		}
+	}
+}
+
 // func (wm *WindowManager) SaveAll() {
 // 	wm.mu.Lock()
 // 	defer wm.mu.Unlock()
