@@ -14,12 +14,12 @@ const PLATE_SIZE = 256;
 const PLATE_GAP = 80;
 
 interface PlateJson {
-    bbox_all: [number, number, number, number]; // [minX, minY, maxX, maxY] in slicer coords
+    bbox_all: [number, number, number, number];
     bbox_objects: { id: number; name: string }[];
 }
 
 interface PlateData {
-    plateIdx: number; // 0-based
+    plateIdx: number;
     objectIds: Set<number>;
     bboxAll: [number, number, number, number];
 }
@@ -230,25 +230,23 @@ function ThreeMFScene({ buffer }: { buffer: ArrayBuffer }) {
 
                     return (
                         <group key={plate.plateIdx}>
+                            {/* Place the BuildPlate at worldX, 0, worldZ (Z = slicer Y) */}
                             <BuildPlate
-                                position={[worldX, 0, 0]}
+                                position={[
+                                    slicerCenterY - worldX - 256 * 2,
+                                    0,
+                                    slicerCenterY - 128,
+                                ]}
                                 size={gridSize}
                             />
-                            {/*
-                             * Slicer coords: X right, Y forward, Z up
-                             * Three.js coords: X right, Y up, Z toward camera
-                             * Rotation -90° around X: slicer_Y → -world_Z, slicer_Z → world_Y
-                             *
-                             * After rotation, to center slicer bbox on world (worldX, 0, 0):
-                             *   world_X = slicer_X  → position.x = worldX - slicerCenterX
-                             *   world_Z = slicer_Y  → position.z = slicerCenterY
-                             */}
+
+                            {/* Rotate objects to match slicer coordinate system */}
                             <group
                                 rotation={[-Math.PI / 2, 0, 0]}
                                 position={[
                                     worldX - slicerCenterX,
                                     0,
-                                    slicerCenterY,
+                                    slicerCenterY - 20,
                                 ]}
                             >
                                 {children.map((child, ci) => (
