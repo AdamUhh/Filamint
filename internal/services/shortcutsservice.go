@@ -38,12 +38,12 @@ type ShortcutService struct {
 	windowCategoriesMu sync.RWMutex
 }
 
-var modifierKey = func() string {
+func getModifierKey() string {
 	if runtime.GOOS == "darwin" {
 		return "Cmd+"
 	}
 	return "Ctrl+"
-}()
+}
 
 var routeCategoryMap = map[string][]string{
 	"/":       {"window"},
@@ -61,7 +61,7 @@ func isCategoryAllowed(category string, allowed []string) bool {
 }
 
 func getDefaultShortcuts() []Shortcut {
-	Ctrl := modifierKey
+	Ctrl := getModifierKey()
 
 	return []Shortcut{
 		// Window shortcuts

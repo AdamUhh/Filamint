@@ -43,7 +43,7 @@ type PrintModel struct {
 	Name string `db:"name" json:"name"`
 	Ext  string `db:"ext" json:"ext"`
 	Size int64  `db:"size" json:"size"`
-	Data []byte `db:"data" json:"data"`
+	Data []byte `json:"data"`
 }
 
 type Print struct {
@@ -89,11 +89,6 @@ var validPrintSortColumns = map[string]bool{
 
 func NewPrintService(database *Database) *PrintService {
 	return &PrintService{repo: NewPrintRepository(database.db)}
-}
-
-func computeSHA256(data []byte) string {
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:])
 }
 
 func (s *PrintService) CreatePrint(p Print) (int64, error) {
@@ -162,30 +157,12 @@ func (s *PrintService) UpdatePrint(p Print) error {
 		existingMap[es.SpoolID] = es.GramsUsed
 	}
 
-	incomingMap := make(map[int64]bool, len(p.Spools))
-	for _, ps := range p.Spools {
-		incomingMap[ps.SpoolID] = true
-	}
-
-	// Revert weight and remove row for any spools no longer in the update
-	for _, es := range existingSpools {
-		if !incomingMap[es.SpoolID] {
-			if err := s.repo.SubtractSpoolUsedWeight(tx, es.SpoolID, es.GramsUsed, now); err != nil {
-				slog.Error("failed to revert spool weight", "spoolId", es.SpoolID, "error", err)
-				return fmt.Errorf("reverting spool weight for removed spool %d: %w", es.SpoolID, err)
-			}
-			if err := s.repo.DeletePrintSpool(tx, p.ID, es.SpoolID); err != nil {
-				slog.Error("failed to remove print_spool", "spoolId", es.SpoolID, "error", err)
-				return fmt.Errorf("removing print_spool for spool %d: %w", es.SpoolID, err)
-			}
-		}
-	}
-
-	// Upsert incoming spools
+	// Single pass over incoming: upsert or insert
 	for _, ps := range p.Spools {
 		if oldGrams, exists := existingMap[ps.SpoolID]; exists {
+			delete(existingMap, ps.SpoolID) // mark as seen
 			delta := ps.GramsUsed - oldGrams
-			if err := s.repo.UpsertPrintSpool(tx, p.ID, ps, oldGrams, now); err != nil {
+			if err := s.repo.UpsertPrintSpool(tx, p.ID, ps, now); err != nil {
 				slog.Error("failed to update print_spool", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("updating print_spool for spool %d: %w", ps.SpoolID, err)
 			}
@@ -204,6 +181,18 @@ func (s *PrintService) UpdatePrint(p Print) error {
 				slog.Error("failed to update spool weight", "spoolId", ps.SpoolID, "error", err)
 				return fmt.Errorf("updating spool weight for spool %d: %w", ps.SpoolID, err)
 			}
+		}
+	}
+
+	// Whatever's left in existingMap was removed
+	for spoolID, oldGrams := range existingMap {
+		if err := s.repo.SubtractSpoolUsedWeight(tx, spoolID, oldGrams, now); err != nil {
+			slog.Error("failed to revert spool weight", "spoolId", spoolID, "error", err)
+			return fmt.Errorf("reverting spool weight for removed spool %d: %w", spoolID, err)
+		}
+		if err := s.repo.DeletePrintSpool(tx, p.ID, spoolID); err != nil {
+			slog.Error("failed to remove print_spool", "spoolId", spoolID, "error", err)
+			return fmt.Errorf("removing print_spool for spool %d: %w", spoolID, err)
 		}
 	}
 
@@ -255,18 +244,14 @@ func (s *PrintService) DeletePrint(id int64, restoreSpoolGrams bool) error {
 		return fmt.Errorf("deleting print_models for print %d: %w", id, err)
 	}
 
+	var orphaned []PrintModel
 	if len(modelIDs) > 0 {
-		orphaned, err := s.repo.FindOrphanedModels(tx, modelIDs)
+		orphaned, err = s.repo.FindOrphanedModels(tx, modelIDs)
 		if err != nil {
 			slog.Error("failed to find orphaned models", "id", id, "error", err)
 			return fmt.Errorf("finding orphaned models: %w", err)
 		}
 		for _, m := range orphaned {
-			filePath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", m.ID, m.Ext))
-			if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
-				slog.Error("failed to delete model file", "modelId", m.ID, "path", filePath, "error", err)
-				return fmt.Errorf("deleting model file %s: %w", filePath, err)
-			}
 			if err := s.repo.DeleteModelByID(tx, m.ID); err != nil {
 				slog.Error("failed to delete orphaned model", "modelId", m.ID, "error", err)
 				return fmt.Errorf("deleting orphaned model %d: %w", m.ID, err)
@@ -282,6 +267,13 @@ func (s *PrintService) DeletePrint(id int64, restoreSpoolGrams bool) error {
 	if err := tx.Commit(); err != nil {
 		slog.Error("failed to commit delete print transaction", "id", id, "error", err)
 		return err
+	}
+
+	for _, m := range orphaned {
+		filePath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", m.ID, m.Ext))
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			slog.Error("failed to delete model file", "modelId", m.ID, "path", filePath, "error", err)
+		}
 	}
 
 	slog.Info("print deleted", "id", id, "restoreSpoolGrams", restoreSpoolGrams)
@@ -317,6 +309,11 @@ func (s *PrintService) DuplicatePrintModel(printID int64, modelID int64) error {
 
 	slog.Info("model duplicated to print", "printId", printID, "modelId", modelID)
 	return nil
+}
+
+func computeSHA256(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
 
 func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext string, size int64, data []byte) error {
@@ -358,6 +355,8 @@ func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext stri
 		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
 	}
 
+	// The file is written before the transaction commits intentionally -
+	// This means if the commit fails, we attempt to clean up the file below
 	if err := os.WriteFile(absPath, data, 0644); err != nil {
 		slog.Error("failed to write model file", "modelId", modelID, "path", absPath, "error", err)
 		return fmt.Errorf("writing model file: %w", err)
@@ -389,7 +388,7 @@ func (s *PrintService) DeletePrintModel(printID int64, modelID int64) error {
 	modelExt, err := s.repo.DeleteModelIfOrphaned(tx, modelID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		slog.Error("failed to delete orphaned model", "modelId", modelID, "error", err)
-		return fmt.Errorf("cannot find model %d: %w", modelID, err)
+		return fmt.Errorf("failed to delete orphaned model %d: %w", modelID, err)
 	}
 
 	if err := tx.Commit(); err != nil {

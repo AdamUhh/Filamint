@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -86,7 +84,7 @@ func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, gr
 	return err
 }
 
-func (r *PrintRepository) UpsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, oldGrams int, now interface{}) error {
+func (r *PrintRepository) UpsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, now interface{}) error {
 	_, err := tx.Exec(
 		`UPDATE print_spools SET grams_used = ?, updated_at = ? WHERE print_id = ? AND spool_id = ?`,
 		ps.GramsUsed, now, printID, ps.SpoolID,
@@ -112,7 +110,7 @@ func (r *PrintRepository) DeletePrint(tx *sqlx.Tx, printID int64) error {
 
 func (r *PrintRepository) FindOrphanedModels(tx *sqlx.Tx, modelIDs []int64) ([]PrintModel, error) {
 	query, args, err := sqlx.In(
-		`SELECT id, file_type AS ext FROM models WHERE id IN (?) AND id NOT IN (SELECT model_id FROM print_models)`,
+		`SELECT id, ext FROM models WHERE id IN (?) AND id NOT IN (SELECT model_id FROM print_models)`,
 		modelIDs,
 	)
 	if err != nil {
@@ -125,15 +123,6 @@ func (r *PrintRepository) FindOrphanedModels(tx *sqlx.Tx, modelIDs []int64) ([]P
 
 func (r *PrintRepository) DeleteModelByID(tx *sqlx.Tx, modelID int64) error {
 	_, err := tx.Exec(`DELETE FROM models WHERE id = ?`, modelID)
-	return err
-}
-
-func (r *PrintRepository) RemoveModelFile(modelsDir string, modelID int64, ext string) error {
-	path := filepath.Join(modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
-	err := os.Remove(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
 	return err
 }
 
@@ -198,13 +187,6 @@ func (r *PrintRepository) DeleteModelIfOrphaned(tx *sqlx.Tx, modelID int64) (str
 	return ext, err
 }
 
-func (r *PrintRepository) CountPrints(whereClause string, args []any) (int, error) {
-	var total int
-	err := r.db.Get(&total,
-		fmt.Sprintf("SELECT COUNT(*) FROM prints %s", whereClause), args...)
-	return total, err
-}
-
 func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResult, error) {
 	var whereClauses []string
 	var args []any
@@ -243,13 +225,8 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	total, err := r.CountPrints(whereClause, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count prints: %w", err)
-	}
-
 	query := fmt.Sprintf(
-		"SELECT * FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?",
+		"SELECT *, COUNT(*) OVER() AS total_count FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?",
 		whereClause, params.SortBy, params.SortOrder,
 	)
 
@@ -257,9 +234,21 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 	copy(pageArgs, args)
 	pageArgs = append(pageArgs, params.Limit, params.Offset)
 
-	var prints []Print
-	if err := r.db.Select(&prints, query, pageArgs...); err != nil {
+	var rows []struct {
+		Print
+		TotalCount int `db:"total_count"`
+	}
+	if err := r.db.Select(&rows, query, pageArgs...); err != nil {
 		return nil, fmt.Errorf("failed to query prints: %w", err)
+	}
+
+	prints := make([]Print, len(rows))
+	total := 0
+	if len(rows) > 0 {
+		total = rows[0].TotalCount
+	}
+	for i, r := range rows {
+		prints[i] = r.Print
 	}
 
 	if len(prints) == 0 {
