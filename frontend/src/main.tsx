@@ -14,7 +14,7 @@ import { RouterProvider } from "react-router/dom";
 
 import { Toaster } from "@/shadcn/sonner";
 
-import { AppEventHandler } from "@/components/AppEventHandler";
+import { AppEventHandler, RouteTracker } from "@/components/AppEventHandler";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { Navbar } from "@/components/Navbar";
 import { PrintsPage } from "@/components/Prints";
@@ -52,6 +52,7 @@ const router = createHashRouter([
         element: (
             <>
                 <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
+                <RouteTracker />
                 <AppEventHandler />
                 <Toaster />
                 <QueryClientProvider client={queryClient}>

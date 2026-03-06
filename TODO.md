@@ -6,7 +6,6 @@
 - [ ] Unsure: Allow create and update to change spoolcode
 
 > Prints
-- [ ] Preview prints do not work in build
 - [ ] There is a leak somewhere I think?
 - [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: Add another way to view prints

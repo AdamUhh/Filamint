@@ -25,10 +25,10 @@ type WindowState struct {
 }
 
 type ManagedWindow struct {
-	window *application.WebviewWindow
-	state  WindowState
-	dirty  bool
-	file   string
+	window   *application.WebviewWindow
+	state    WindowState
+	dirty    bool
+	filePath string
 }
 
 type WindowManager struct {
@@ -55,7 +55,7 @@ func GetWindowManager() *WindowManager {
 // Creates a persistent, state-tracked window under the given key
 func (wm *WindowManager) NewWindow(key string, options application.WebviewWindowOptions) *application.WebviewWindow {
 	mw := &ManagedWindow{
-		file: filepath.Join(wm.stateDir, fmt.Sprintf("window-%s.json", key)),
+		filePath: filepath.Join(wm.stateDir, fmt.Sprintf("window-%s.json", key)),
 	}
 	mw.window = wm.app.Window.NewWithOptions(options)
 	mw.loadState()
@@ -68,7 +68,7 @@ func (wm *WindowManager) NewWindow(key string, options application.WebviewWindow
 	return mw.window
 }
 
-// Creates a window with no state persistence (e.g. viewer windows)
+// Creates a window with no state persistence (e.g. temp windows)
 func (wm *WindowManager) NewTransientWindow(options application.WebviewWindowOptions) *application.WebviewWindow {
 	id := fmt.Sprintf("transient-%d", wm.counter.Add(1))
 
@@ -141,9 +141,9 @@ func (mw *ManagedWindow) setupHandlers(wm *WindowManager, key string) {
 }
 
 func (mw *ManagedWindow) loadState() {
-	data, err := os.ReadFile(mw.file)
+	data, err := os.ReadFile(mw.filePath)
 	if err != nil {
-		slog.Warn("No window state found, centering window", "file", mw.file)
+		slog.Warn("No window state found, centering window", "file", mw.filePath)
 		mw.window.Center()
 		return
 	}
@@ -168,7 +168,7 @@ func (mw *ManagedWindow) saveState() {
 		slog.Error("Failed to marshal window state", "error", err)
 		return
 	}
-	if err := os.WriteFile(mw.file, data, 0644); err != nil {
+	if err := os.WriteFile(mw.filePath, data, 0644); err != nil {
 		slog.Error("Failed to write window state", "error", err)
 		return
 	}

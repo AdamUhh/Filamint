@@ -24,57 +24,61 @@ func (d *Database) DB() *sqlx.DB {
 func NewDatabase(dbPath string) (*Database, error) {
 	absPath, err := filepath.Abs(dbPath)
 	if err != nil {
-		err = fmt.Errorf("failed to resolve database path: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		slog.Error("failed to resolve database path", "error", err)
+		return nil, fmt.Errorf("failed to resolve database path: %w", err)
 	}
 
 	db, err := sqlx.Open("sqlite", absPath)
 	if err != nil {
-		err = fmt.Errorf("failed to open database: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		slog.Error("failed to open database", "error", err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Ensure db is closed on any early exit
+	closeDB := func() {
+		if db != nil {
+			_ = db.Close()
+		}
 	}
 
 	pragmas := []string{
-		`PRAGMA journal_mode=WAL`,   // better concurrent reads
-		`PRAGMA foreign_keys=ON`,    // enforce FK constraints
-		`PRAGMA busy_timeout=5000`,  // wait up to 5s on locked DB
-		`PRAGMA synchronous=NORMAL`, // safe + faster than FULL with WAL
-		`PRAGMA cache_size=4000`,    // 4MB page cache
-		`PRAGMA temp_store=MEMORY`,  // temp tables in memory
+		`PRAGMA journal_mode=WAL`,
+		`PRAGMA foreign_keys=ON`,
+		`PRAGMA busy_timeout=5000`,
+		`PRAGMA synchronous=NORMAL`,
+		`PRAGMA cache_size=4000`,
+		`PRAGMA temp_store=MEMORY`,
 	}
+
 	for _, p := range pragmas {
 		if _, err := db.Exec(p); err != nil {
-			err = fmt.Errorf("failed to set pragma %q: %w", p, err)
-			slog.Error(err.Error())
-			return nil, err
+			closeDB()
+			slog.Error("failed to set pragma", "pragma", p, "error", err)
+			return nil, fmt.Errorf("failed to set pragma %q: %w", p, err)
 		}
 	}
 
 	if err := db.Ping(); err != nil {
-		err = fmt.Errorf("failed to ping database: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		closeDB()
+		slog.Error("failed to ping database", "error", err)
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	database := &Database{db: db}
 
 	if err := database.initSchema(); err != nil {
-		db.Close()
-		err = fmt.Errorf("failed to initialize schema: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		closeDB()
+		slog.Error("failed to initialize schema", "error", err)
+		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	// ---- SEEDING (comment to disable) ----
 	if err := database.seedSpoolsIfEmpty(); err != nil {
-		db.Close()
-		err = fmt.Errorf("failed to seed spools: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		closeDB()
+		slog.Error("failed to seed spools", "error", err)
+		return nil, fmt.Errorf("failed to seed spools: %w", err)
 	}
 
+	slog.Info("Database service started", "path", absPath)
 	return database, nil
 }
 
@@ -181,9 +185,8 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_shortcuts_key_combo ON shortcuts(key_combo);
 	`
 	if _, err := d.db.Exec(schema); err != nil {
-		err = fmt.Errorf("init schema: %w", err)
-		slog.Error(err.Error())
-		return err
+		slog.Error("failed to init schema", "error", err)
+		return fmt.Errorf("failed to init schema: %w", err)
 	}
 
 	return nil
@@ -193,9 +196,8 @@ func (d *Database) initSchema() error {
 func (d *Database) seedSpoolsIfEmpty() error {
 	var count int
 	if err := d.db.Get(&count, `SELECT COUNT(1) FROM spools`); err != nil {
-		err = fmt.Errorf("failed to count spools: %w", err)
-		slog.Error(err.Error())
-		return err
+		slog.Error("failed to count spools", "error", err)
+		return fmt.Errorf("failed to count spools: %w", err)
 	}
 
 	if count > 0 {
@@ -204,9 +206,8 @@ func (d *Database) seedSpoolsIfEmpty() error {
 
 	tx, err := d.db.Beginx()
 	if err != nil {
-		err = fmt.Errorf("failed to begin spool seed transaction: %w", err)
-		slog.Error(err.Error())
-		return err
+		slog.Error("failed to begin spool seed transaction", "error", err)
+		return fmt.Errorf("failed to begin spool seed transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -263,29 +264,25 @@ func (d *Database) seedSpoolsIfEmpty() error {
 
 	for i, s := range seeds {
 		if _, err = tx.NamedExec(q, s); err != nil {
-			err = fmt.Errorf("failed to insert seed spool (index=%d, spool_code=%s): %w", i, s.SpoolCode, err)
-			slog.Error(err.Error())
-			return err
+			slog.Error("failed to insert seed spool", "index", i, "spool_code", s.SpoolCode, "error", err)
+			return fmt.Errorf("failed to insert seed spool (index=%d, spool_code=%s): %w", i, s.SpoolCode, err)
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		err = fmt.Errorf("failed to commit spool seed transaction: %w", err)
-		slog.Error(err.Error())
-		return err
+		slog.Error("failed to commit spool seed transaction", "error", err)
+		return fmt.Errorf("failed to commit spool seed transaction: %w", err)
 	}
 
+	slog.Info("seeded spools successfully", "count", len(seeds))
 	return nil
 }
 
 func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
-	slog.Info("Database service starting")
-
 	ctx, cancel := context.WithCancel(ctx)
 	d.cancel = cancel
 	go d.periodicMaintenance(ctx)
 
-	slog.Info("Database service started")
 	return nil
 }
 
@@ -298,15 +295,14 @@ func (d *Database) ServiceShutdown() error {
 
 	if d.db != nil {
 		if _, err := d.db.Exec(`PRAGMA wal_checkpoint(TRUNCATE)`); err != nil {
-			err = fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
-			slog.Error(err.Error())
-			return err
+			slog.Error("failed to checkpoint WAL on shutdown", "error", err)
+			return fmt.Errorf("failed to checkpoint WAL on shutdown: %w", err)
+
 		}
 
 		if err := d.db.Close(); err != nil {
-			err = fmt.Errorf("failed to close database: %w", err)
-			slog.Error(err.Error())
-			return err
+			slog.Error("failed to close database", "error", err)
+			return fmt.Errorf("failed to close database: %w", err)
 		}
 	}
 

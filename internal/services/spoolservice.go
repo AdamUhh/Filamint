@@ -73,19 +73,19 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 	spool.UpdatedAt = now
 
 	const maxAttempts = 5
-	for range maxAttempts {
+	for i := 0; i < maxAttempts; i++ {
 		code, err := internal.GenerateSpoolCodeBase(spool.Material, spool.Color)
 		if err != nil {
-			slog.Error("failed to generate spool code", "error", err)
+			slog.Error("failed to generate spool code", "error", err, "attempt", i+1)
 			return 0, fmt.Errorf("generating spool code: %w", err)
 		}
 
 		id, err := s.repo.Insert(spool, code)
 		if err != nil {
 			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-				continue // retry with a new code
+				continue
 			}
-			slog.Error("failed to insert spool", "error", err)
+			slog.Error("failed to insert spool", "error", err, "attempt", i+1)
 			return 0, err
 		}
 
@@ -93,9 +93,8 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 		return id, nil
 	}
 
-	err := fmt.Errorf("failed to generate unique spool code after %d retries", maxAttempts)
-	slog.Error(err.Error())
-	return 0, err
+	slog.Error("failed to generate unique spool code", "maxAttempts", maxAttempts)
+	return 0, fmt.Errorf("failed to generate unique spool code after %d retries", maxAttempts)
 }
 
 func (s *SpoolService) UpdateSpool(spool Spool) error {
