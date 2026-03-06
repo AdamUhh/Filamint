@@ -25,6 +25,12 @@ export function DuplicatePrintModel(printID: number, modelID: number): $Cancella
     return $Call.ByID(3796094437, printID, modelID);
 }
 
+export function GetModelData(modelPath: string): $CancellablePromise<string> {
+    return $Call.ByID(1095773213, modelPath).then(($result: any) => {
+        return $Create.ByteSlice($result);
+    });
+}
+
 export function GetPrintModels(printID: number): $CancellablePromise<$models.PrintModel[]> {
     return $Call.ByID(4192761797, printID).then(($result: any) => {
         return $$createType1($result);

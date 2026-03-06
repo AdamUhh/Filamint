@@ -458,10 +458,21 @@ func (s *PrintService) ViewPrintModel(printId int64) error {
 	wm := internal.GetWindowManager()
 	wm.NewTransientWindow(application.WebviewWindowOptions{
 		Title:  fmt.Sprintf("Preview - %s.%s", model.Name, model.Ext),
-		URL:    fmt.Sprintf("/viewer?modelPath=%d.%s", model.ID, model.Ext),
+		URL:    fmt.Sprintf("/#/viewer?modelPath=%d.%s", model.ID, model.Ext),
 		Width:  900,
 		Height: 700,
 	})
 
 	return nil
+}
+
+func (s *PrintService) GetModelData(modelPath string) ([]byte, error) {
+
+	data, err := os.ReadFile(filepath.Join(s.modelsDir, modelPath))
+	if err != nil {
+		slog.Error("failed to resolve models dir", "error", err)
+		return nil, fmt.Errorf("resolving models dir: %w", err)
+	}
+
+	return data, nil
 }

@@ -6,6 +6,8 @@ import { useSearchParams } from "react-router";
 
 import { PLATE_GAP, PLATE_SIZE } from "@/lib/constant-three";
 
+import { PrintService } from "@bindings";
+
 import { STLScene } from "./STLMesh";
 import { ThreeMFScene } from "./ThreeMFScene";
 
@@ -25,22 +27,34 @@ function useModelBuffer(): { data: ModelBuffer | null; error: string | null } {
             return;
         }
 
+        const ext = modelPath.split(".").pop() as ModelBuffer["ext"];
+        if (!ext) {
+            setError("Unknown model extension");
+            setData(null);
+            return;
+        }
+
         let cancelled = false;
 
         async function load() {
             try {
-                const res = await fetch(`/models/${modelPath}`);
-                if (!res.ok) {
+                const base64 = await PrintService.GetModelData(
+                    modelPath as string
+                );
+
+                if (!base64) {
                     if (!cancelled)
                         setError(`Model not found: /models/${modelPath}`);
                     return;
                 }
-                const ext = modelPath!.split(".").pop() as ModelBuffer["ext"];
-                if (!ext) {
-                    if (!cancelled) setError("Unknown model extension");
-                    return;
+
+                const binary = atob(base64);
+                const buffer = new ArrayBuffer(binary.length);
+                const view = new Uint8Array(buffer);
+                for (let i = 0; i < binary.length; i++) {
+                    view[i] = binary.charCodeAt(i);
                 }
-                const buffer = await res.arrayBuffer();
+
                 if (!cancelled) setData({ buffer, ext });
             } catch {
                 if (!cancelled)

@@ -7,7 +7,7 @@ import {
     Link,
     Navigate,
     Outlet,
-    createBrowserRouter,
+    createHashRouter,
     useRouteError,
 } from "react-router";
 import { RouterProvider } from "react-router/dom";
@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
     },
 });
 
-const router = createBrowserRouter([
+const router = createHashRouter([
     {
         element: (
             <>

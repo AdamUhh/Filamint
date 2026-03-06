@@ -3,10 +3,6 @@ package main
 import (
 	internal "changeme/internal"
 	services "changeme/internal/services"
-	"io/fs"
-	"net/http"
-	"regexp"
-	"strings"
 
 	"embed"
 	"log"
@@ -32,34 +28,6 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
-func combinedHandler(assets fs.FS, modelsDir string) http.Handler {
-	assetServer := application.AssetFileServerFS(assets)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/models/") {
-			filename := filepath.Base(r.URL.Path)
-			if matched, _ := regexp.MatchString(`^\d+\.(stl|3mf)$`, filename); !matched {
-				http.NotFound(w, r)
-				return
-			}
-			data, err := os.ReadFile(filepath.Join(modelsDir, filename))
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			if strings.HasSuffix(filename, ".stl") {
-				w.Header().Set("Content-Type", "application/octet-stream")
-			} else {
-				w.Header().Set("Content-Type", "model/3mf")
-			}
-			w.Write(data)
-			return
-		}
-		// Everything else
-		assetServer.ServeHTTP(w, r)
-	})
-}
-
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
@@ -67,12 +35,6 @@ func main() {
 	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {
 		slog.Error("Failed to resolve app data path", "error", err)
-		os.Exit(1)
-	}
-
-	modelsDir, err := internal.GetModelsDir()
-	if err != nil {
-		slog.Error("Failed to resolve models path", "error", err)
 		os.Exit(1)
 	}
 
@@ -104,13 +66,13 @@ func main() {
 			application.NewService(services.NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
-			Handler: combinedHandler(assets, modelsDir),
+			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "com.myapp.unique-id",
+			UniqueID: "com.filament-tracker.13372026",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				wm := internal.GetWindowManager()
 				if wm != nil {
@@ -131,7 +93,7 @@ func main() {
 		},
 		EnableFileDrop:   true,
 		BackgroundColour: application.NewRGB(27, 38, 54),
-		URL:              "/",
+		URL:              "/#/",
 		Width:            1200,
 		Height:           700,
 		InitialPosition:  application.WindowXY,
