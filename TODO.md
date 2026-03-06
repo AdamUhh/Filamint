@@ -8,6 +8,7 @@
 > Prints
 - [ ] Need to be able to multicheck prints to view.
 - [ ] There is a leak somewhere I think?
+- [ ] form submit: dont iterate, send it all together; lessen load on bridge
 - [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: Add another way to view prints
 - - [  ] Whenever you add a file, it should also take a screenshot of the print

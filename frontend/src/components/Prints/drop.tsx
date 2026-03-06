@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { formatBytesToMB } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
 import type { TModelSchema } from "./lib/schema";
@@ -25,9 +26,6 @@ export interface DropzoneProps extends Omit<_DropzoneProps, "children"> {
     onAdd: (file: File) => void;
     onDelete: (index: number) => void;
 }
-
-const formatBytesToMB = (bytes: number): string =>
-    (bytes / (1024 * 1024)).toFixed(2);
 
 const formatErrorMessage = (message: string) =>
     message.replace(/(\d+) bytes/g, (_, bytes) =>

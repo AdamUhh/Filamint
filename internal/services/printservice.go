@@ -435,6 +435,28 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 	return result, nil
 }
 
+func (s *PrintService) ViewPrintModel(modelPath string, namePath string) error {
+	wm := internal.GetWindowManager()
+	wm.NewTransientWindow(application.WebviewWindowOptions{
+		Title:  fmt.Sprintf("Preview - %s", namePath),
+		URL:    fmt.Sprintf("/#/viewer?modelPath=%s", modelPath),
+		Width:  900,
+		Height: 700,
+	})
+
+	return nil
+}
+
+func (s *PrintService) GetModelData(modelPath string) ([]byte, error) {
+	data, err := os.ReadFile(filepath.Join(s.modelsDir, modelPath))
+	if err != nil {
+		slog.Error("failed to resolve models dir", "error", err)
+		return nil, fmt.Errorf("resolving models dir: %w", err)
+	}
+
+	return data, nil
+}
+
 func (s *PrintService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	dir, err := internal.GetModelsDir()
 	if err != nil {
@@ -446,32 +468,7 @@ func (s *PrintService) ServiceStartup(ctx context.Context, _ application.Service
 	return nil
 }
 
-func (s *PrintService) ServiceShutdown() error { return nil }
-
-func (s *PrintService) ViewPrintModel(printId int64) error {
-	model, err := s.repo.GetPrintModelById(printId)
-	if err != nil {
-		return err
-	}
-
-	wm := internal.GetWindowManager()
-	wm.NewTransientWindow(application.WebviewWindowOptions{
-		Title:  fmt.Sprintf("Preview - %s.%s", model.Name, model.Ext),
-		URL:    fmt.Sprintf("/#/viewer?modelPath=%d.%s", model.ID, model.Ext),
-		Width:  900,
-		Height: 700,
-	})
-
+func (s *PrintService) ServiceShutdown() error {
+	slog.Info("Print service shutting down")
 	return nil
-}
-
-func (s *PrintService) GetModelData(modelPath string) ([]byte, error) {
-
-	data, err := os.ReadFile(filepath.Join(s.modelsDir, modelPath))
-	if err != nil {
-		slog.Error("failed to resolve models dir", "error", err)
-		return nil, fmt.Errorf("resolving models dir: %w", err)
-	}
-
-	return data, nil
 }

@@ -10,6 +10,7 @@ import {
     RotateCwIcon,
     TrashIcon,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -41,9 +42,9 @@ import {
 } from "@/shadcn/table";
 
 import type { Print } from "@bindings";
-import { PrintService } from "@bindings";
 
 import { CopyOnClick } from "../CopyToClipboard";
+import { ViewPrintDialog } from "./ViewPrint";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
 
 export function PrintTable({
@@ -67,207 +68,245 @@ export function PrintTable({
 }) {
     const printArray = Array.from(prints.values());
 
+    const [viewState, setViewState] = useState<{
+        printId: number | null;
+        open: boolean;
+    }>({
+        printId: null,
+        open: false,
+    });
+
     const handleOnView = (print: Print) => {
-        PrintService.ViewPrintModel(print.id);
+        setViewState({
+            printId: print.id,
+            open: true,
+        });
     };
 
     return (
-        <div className="rounded-lg border">
-            <Table>
-                <PrintTableHeaders
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSort={onSort}
-                />
-                <TableBody>
-                    {isLoading ? (
-                        <PrintTableRowsLoading />
-                    ) : printArray.length === 0 ? (
-                        <PrintTableRowsEmpty />
-                    ) : (
-                        printArray.map((print) => (
-                            <ContextMenu key={print.id}>
-                                <ContextMenuTrigger asChild>
-                                    <TableRow className="capitalize">
-                                        <TableCell>
-                                            {print.datePrinted &&
-                                                format(
-                                                    print.datePrinted,
-                                                    "PPp"
-                                                )}
-                                        </TableCell>
-                                        <TableCell>{print.name}</TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-1">
-                                                {print.spools?.map((ps, i) => (
-                                                    <CopyOnClick
-                                                        key={i}
-                                                        textToCopy={
-                                                            ps.spoolCode
-                                                        }
-                                                        tooltipContent={
-                                                            <div className="flex flex-col gap-1">
-                                                                <span>{`${ps.spoolCode} · ${ps.vendor} · ${ps.color} · ${ps.colorHex}`}</span>
-                                                                <span className="size-xs text-accent">
-                                                                    Click to
-                                                                    copy Spool
-                                                                    Code
+        <>
+            <div className="rounded-lg border">
+                <Table>
+                    <PrintTableHeaders
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={onSort}
+                    />
+                    <TableBody>
+                        {isLoading ? (
+                            <PrintTableRowsLoading />
+                        ) : printArray.length === 0 ? (
+                            <PrintTableRowsEmpty />
+                        ) : (
+                            printArray.map((print) => (
+                                <ContextMenu key={print.id}>
+                                    <ContextMenuTrigger asChild>
+                                        <TableRow className="capitalize">
+                                            <TableCell>
+                                                {print.datePrinted &&
+                                                    format(
+                                                        print.datePrinted,
+                                                        "PPp"
+                                                    )}
+                                            </TableCell>
+                                            <TableCell>{print.name}</TableCell>
+                                            <TableCell>
+                                                <div className="flex gap-1">
+                                                    {print.spools?.map(
+                                                        (ps, i) => (
+                                                            <CopyOnClick
+                                                                key={i}
+                                                                textToCopy={
+                                                                    ps.spoolCode
+                                                                }
+                                                                tooltipContent={
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <span>{`${ps.spoolCode} · ${ps.vendor} · ${ps.color} · ${ps.colorHex}`}</span>
+                                                                        <span className="size-xs text-accent">
+                                                                            Click
+                                                                            to
+                                                                            copy
+                                                                            Spool
+                                                                            Code
+                                                                        </span>
+                                                                    </div>
+                                                                }
+                                                            >
+                                                                <div
+                                                                    key={
+                                                                        ps.spoolId
+                                                                    }
+                                                                    className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] transition-transform hover:cursor-copy active:scale-90"
+                                                                    style={{
+                                                                        backgroundColor:
+                                                                            ps.colorHex,
+                                                                    }}
+                                                                />
+                                                            </CopyOnClick>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {print.spools?.length
+                                                    ? print.spools
+                                                          .map(
+                                                              (ps) =>
+                                                                  ps.gramsUsed ||
+                                                                  0
+                                                          )
+                                                          .join(" / ") +
+                                                      ` (${print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0)})`
+                                                    : "NaN"}
+                                            </TableCell>
+                                            <TableCell>
+                                                {print.status}
+                                            </TableCell>
+                                            <TableCell>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                        >
+                                                            <EllipsisIcon className="pointer-events-none" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent
+                                                        className="w-40"
+                                                        align="start"
+                                                    >
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuLabel>
+                                                                Actions
+                                                            </DropdownMenuLabel>
+
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    handleOnView(
+                                                                        print
+                                                                    )
+                                                                }
+                                                            >
+                                                                <BoxIcon className="mb-0.5" />
+                                                                <span>
+                                                                    View Print
                                                                 </span>
-                                                            </div>
-                                                        }
-                                                    >
-                                                        <div
-                                                            key={ps.spoolId}
-                                                            className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] transition-transform hover:cursor-copy active:scale-90"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    ps.colorHex,
-                                                            }}
-                                                        />
-                                                    </CopyOnClick>
-                                                ))}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {print.spools?.length
-                                                ? print.spools
-                                                      .map(
-                                                          (ps) =>
-                                                              ps.gramsUsed || 0
-                                                      )
-                                                      .join(" / ") +
-                                                  ` (${print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0)})`
-                                                : "NaN"}
-                                        </TableCell>
-                                        <TableCell>{print.status}</TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                    >
-                                                        <EllipsisIcon className="pointer-events-none" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent
-                                                    className="w-40"
-                                                    align="start"
-                                                >
-                                                    <DropdownMenuGroup>
-                                                        <DropdownMenuLabel>
-                                                            Actions
-                                                        </DropdownMenuLabel>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    onDuplicate(
+                                                                        print
+                                                                    )
+                                                                }
+                                                            >
+                                                                <CopyPlusIcon className="mb-0.5" />
+                                                                <span>
+                                                                    Duplicate
+                                                                    Print
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
 
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                handleOnView(
-                                                                    print
-                                                                )
-                                                            }
-                                                        >
-                                                            <BoxIcon className="mb-0.5" />
-                                                            <span>
-                                                                View Print
-                                                            </span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                onDuplicate(
-                                                                    print
-                                                                )
-                                                            }
-                                                        >
-                                                            <CopyPlusIcon className="mb-0.5" />
-                                                            <span>
-                                                                Duplicate Print
-                                                            </span>
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuGroup>
-                                                    <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuLabel>
+                                                                Options
+                                                            </DropdownMenuLabel>
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    onEdit(
+                                                                        print
+                                                                    )
+                                                                }
+                                                            >
+                                                                <PencilIcon className="mb-0.5" />
+                                                                <span>
+                                                                    Edit Print
+                                                                </span>
+                                                            </DropdownMenuItem>
 
-                                                    <DropdownMenuGroup>
-                                                        <DropdownMenuLabel>
-                                                            Options
-                                                        </DropdownMenuLabel>
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                onEdit(print)
-                                                            }
-                                                        >
-                                                            <PencilIcon className="mb-0.5" />
-                                                            <span>
-                                                                Edit Print
-                                                            </span>
-                                                        </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    onDelete(
+                                                                        print.id
+                                                                    )
+                                                                }
+                                                                variant="destructive"
+                                                            >
+                                                                <TrashIcon className="mb-0.5" />
+                                                                <span>
+                                                                    Delete Print
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    </ContextMenuTrigger>
 
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                onDelete(
-                                                                    print.id
-                                                                )
-                                                            }
-                                                            variant="destructive"
-                                                        >
-                                                            <TrashIcon className="mb-0.5" />
-                                                            <span>
-                                                                Delete Print
-                                                            </span>
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuGroup>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <ContextMenuGroup>
+                                            <ContextMenuLabel>
+                                                Actions
+                                            </ContextMenuLabel>
 
-                                <ContextMenuContent>
-                                    <ContextMenuGroup>
-                                        <ContextMenuLabel>
-                                            Actions
-                                        </ContextMenuLabel>
+                                            <ContextMenuItem
+                                                onSelect={() =>
+                                                    handleOnView(print)
+                                                }
+                                            >
+                                                <BoxIcon className="mb-0.5" />
+                                                <span>View Print</span>
+                                            </ContextMenuItem>
+                                            <ContextMenuItem
+                                                onSelect={() =>
+                                                    onDuplicate(print)
+                                                }
+                                            >
+                                                <CopyPlusIcon className="mb-0.5" />
+                                                <span>Duplicate Print</span>
+                                            </ContextMenuItem>
+                                        </ContextMenuGroup>
+                                        <ContextMenuSeparator />
 
-                                        <ContextMenuItem
-                                            onSelect={() => handleOnView(print)}
-                                        >
-                                            <BoxIcon className="mb-0.5" />
-                                            <span>View Print</span>
-                                        </ContextMenuItem>
-                                        <ContextMenuItem
-                                            onSelect={() => onDuplicate(print)}
-                                        >
-                                            <CopyPlusIcon className="mb-0.5" />
-                                            <span>Duplicate Print</span>
-                                        </ContextMenuItem>
-                                    </ContextMenuGroup>
-                                    <ContextMenuSeparator />
+                                        <ContextMenuGroup>
+                                            <ContextMenuLabel>
+                                                Options
+                                            </ContextMenuLabel>
+                                            <ContextMenuItem
+                                                onSelect={() => onEdit(print)}
+                                            >
+                                                <PencilIcon className="mb-0.5" />
+                                                <span>Edit Print</span>
+                                            </ContextMenuItem>
 
-                                    <ContextMenuGroup>
-                                        <ContextMenuLabel>
-                                            Options
-                                        </ContextMenuLabel>
-                                        <ContextMenuItem
-                                            onSelect={() => onEdit(print)}
-                                        >
-                                            <PencilIcon className="mb-0.5" />
-                                            <span>Edit Print</span>
-                                        </ContextMenuItem>
+                                            <ContextMenuItem
+                                                onSelect={() =>
+                                                    onDelete(print.id)
+                                                }
+                                                variant="destructive"
+                                            >
+                                                <TrashIcon className="mb-0.5" />
+                                                <span>Delete Print</span>
+                                            </ContextMenuItem>
+                                        </ContextMenuGroup>
+                                    </ContextMenuContent>
+                                </ContextMenu>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
 
-                                        <ContextMenuItem
-                                            onSelect={() => onDelete(print.id)}
-                                            variant="destructive"
-                                        >
-                                            <TrashIcon className="mb-0.5" />
-                                            <span>Delete Print</span>
-                                        </ContextMenuItem>
-                                    </ContextMenuGroup>
-                                </ContextMenuContent>
-                            </ContextMenu>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
-        </div>
+            <ViewPrintDialog
+                viewState={viewState}
+                setViewState={setViewState}
+            />
+        </>
     );
 }
 

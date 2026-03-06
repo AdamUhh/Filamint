@@ -73,7 +73,7 @@ func (s *SpoolService) CreateSpool(spool Spool) (int64, error) {
 	spool.UpdatedAt = now
 
 	const maxAttempts = 5
-	for i := 0; i < maxAttempts; i++ {
+	for i := range maxAttempts {
 		code, err := internal.GenerateSpoolCodeBase(spool.Material, spool.Color)
 		if err != nil {
 			slog.Error("failed to generate spool code", "error", err, "attempt", i+1)
@@ -163,7 +163,10 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 	return result, nil
 }
 
-func (s *SpoolService) ServiceShutdown() error { return nil }
+func (s *SpoolService) ServiceShutdown() error {
+	slog.Info("Spool service shutting down")
+	return nil
+}
 
 func validateSpool(spool Spool) error {
 	if strings.TrimSpace(spool.Material) == "" {

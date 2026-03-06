@@ -18,7 +18,7 @@ func NewPrintRepository(db *sqlx.DB) *PrintRepository {
 	return &PrintRepository{db: db}
 }
 
-func (r *PrintRepository) InsertPrint(tx *sqlx.Tx, p Print, now interface{}) (int64, error) {
+func (r *PrintRepository) InsertPrint(tx *sqlx.Tx, p Print, now any) (int64, error) {
 	res, err := tx.Exec(
 		`INSERT INTO prints (name, status, notes, date_printed, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?)`,
@@ -29,7 +29,7 @@ func (r *PrintRepository) InsertPrint(tx *sqlx.Tx, p Print, now interface{}) (in
 	return res.LastInsertId()
 }
 
-func (r *PrintRepository) InsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, now interface{}) error {
+func (r *PrintRepository) InsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, now any) error {
 	_, err := tx.Exec(
 		`INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?)`,
@@ -38,7 +38,7 @@ func (r *PrintRepository) InsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintS
 	return err
 }
 
-func (r *PrintRepository) AddSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now interface{}) error {
+func (r *PrintRepository) AddSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now any) error {
 	_, err := tx.Exec(
 		`UPDATE spools
 		 SET used_weight = used_weight + ?,
@@ -51,7 +51,7 @@ func (r *PrintRepository) AddSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams i
 	return err
 }
 
-func (r *PrintRepository) UpdatePrintFields(tx *sqlx.Tx, p Print, now interface{}) error {
+func (r *PrintRepository) UpdatePrintFields(tx *sqlx.Tx, p Print, now any) error {
 	_, err := tx.Exec(
 		`UPDATE prints
 		SET name = ?, status = ?, notes = ?, date_printed = ?, updated_at = ? WHERE id = ?`,
@@ -76,7 +76,7 @@ func (r *PrintRepository) DeletePrintSpool(tx *sqlx.Tx, printID, spoolID int64) 
 	return err
 }
 
-func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now interface{}) error {
+func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now any) error {
 	_, err := tx.Exec(
 		`UPDATE spools SET used_weight = used_weight - ?, updated_at = ? WHERE id = ?`,
 		grams, now, spoolID,
@@ -84,7 +84,7 @@ func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, gr
 	return err
 }
 
-func (r *PrintRepository) UpsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, now interface{}) error {
+func (r *PrintRepository) UpsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintSpool, now any) error {
 	_, err := tx.Exec(
 		`UPDATE print_spools SET grams_used = ?, updated_at = ? WHERE print_id = ? AND spool_id = ?`,
 		ps.GramsUsed, now, printID, ps.SpoolID,
@@ -142,7 +142,7 @@ func (r *PrintRepository) FindModelByHash(tx *sqlx.Tx, hash string) (int64, erro
 	return id, err
 }
 
-func (r *PrintRepository) InsertModel(tx *sqlx.Tx, fileName, ext, hash string, size int64, now interface{}) (int64, error) {
+func (r *PrintRepository) InsertModel(tx *sqlx.Tx, fileName, ext, hash string, size int64, now any) (int64, error) {
 	res, err := tx.Exec(
 		`INSERT INTO models(name, size, ext, hash, created_at) VALUES (?, ?, ?, ?, ?)`,
 		fileName, size, ext, hash, now,

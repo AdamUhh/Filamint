@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -52,12 +54,7 @@ var routeCategoryMap = map[string][]string{
 }
 
 func isCategoryAllowed(category string, allowed []string) bool {
-	for _, c := range allowed {
-		if c == category {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowed, category)
 }
 
 func getDefaultShortcuts() []Shortcut {
@@ -157,20 +154,6 @@ func NewShortcutService(database *Database) *ShortcutService {
 	s.shortcutsEnabled.Store(true)
 
 	return s
-}
-
-func (s *ShortcutService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
-	slog.Info("Shortcut service started")
-	s.app = application.Get()
-
-	if err := s.seedDefaultsIfEmpty(); err != nil {
-		return err
-	}
-	if err := s.loadCache(); err != nil {
-		return err
-	}
-
-	return s.registerShortcuts()
 }
 
 func (s *ShortcutService) seedDefaultsIfEmpty() error {
@@ -556,9 +539,7 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 	if err != nil {
 		// Restore all cache mutations
 		s.mu.Lock()
-		for action, orig := range originals {
-			s.cache[action] = orig
-		}
+		maps.Copy(s.cache, originals)
 		s.mu.Unlock()
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -573,9 +554,7 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 			_ = tx.Rollback()
 			// Restore all cache mutations
 			s.mu.Lock()
-			for action, orig := range originals {
-				s.cache[action] = orig
-			}
+			maps.Copy(s.cache, originals)
 			s.mu.Unlock()
 			return fmt.Errorf("failed to reset shortcut '%s': %w", shortcut.Action, err)
 		}
@@ -583,9 +562,7 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 
 	if err := tx.Commit(); err != nil {
 		s.mu.Lock()
-		for action, orig := range originals {
-			s.cache[action] = orig
-		}
+		maps.Copy(s.cache, originals)
 		s.mu.Unlock()
 		return fmt.Errorf("failed to commit reset: %w", err)
 	}
@@ -596,6 +573,20 @@ func (s *ShortcutService) ResetAllShortcuts() error {
 	}
 
 	return nil
+}
+
+func (s *ShortcutService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+	slog.Info("Shortcut service started")
+	s.app = application.Get()
+
+	if err := s.seedDefaultsIfEmpty(); err != nil {
+		return err
+	}
+	if err := s.loadCache(); err != nil {
+		return err
+	}
+
+	return s.registerShortcuts()
 }
 
 func (s *ShortcutService) ServiceShutdown() error {
