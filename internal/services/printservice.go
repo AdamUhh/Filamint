@@ -2,6 +2,7 @@ package services
 
 import (
 	internal "changeme/internal"
+	"net/url"
 	"os/exec"
 	"regexp"
 
@@ -272,7 +273,7 @@ func (s *PrintService) DeletePrint(id int64, restoreSpoolGrams bool) error {
 	}
 
 	for _, m := range orphaned {
-		filePath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", m.ID, m.Ext))
+		filePath := filepath.Join(s.modelsDir, fmt.Sprintf("%d_%s.%s", m.ID, m.Name, m.Ext))
 		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 			slog.Error("failed to delete model file", "modelId", m.ID, "path", filePath, "error", err)
 		}
@@ -350,12 +351,12 @@ func (s *PrintService) UploadPrintModel(printID int64, fileName string, ext stri
 		return fmt.Errorf("inserting model record: %w", err)
 	}
 
-	absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, ext))
-
 	if err := s.repo.LinkModelToPrint(tx, printID, modelID); err != nil {
 		slog.Error("failed to link model to print", "printId", printID, "modelId", modelID, "error", err)
 		return fmt.Errorf("linking model %d to print %d: %w", modelID, printID, err)
 	}
+
+	absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d_%s.%s", modelID, fileName, ext))
 
 	// The file is written before the transaction commits intentionally -
 	// This means if the commit fails, we attempt to clean up the file below
@@ -387,7 +388,7 @@ func (s *PrintService) DeletePrintModel(printID int64, modelID int64) error {
 		return fmt.Errorf("unlinking model %d from print %d: %w", modelID, printID, err)
 	}
 
-	modelExt, err := s.repo.DeleteModelIfOrphaned(tx, modelID)
+	modelExt, modelName, err := s.repo.DeleteModelIfOrphaned(tx, modelID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		slog.Error("failed to delete orphaned model", "modelId", modelID, "error", err)
 		return fmt.Errorf("failed to delete orphaned model %d: %w", modelID, err)
@@ -399,7 +400,7 @@ func (s *PrintService) DeletePrintModel(printID int64, modelID int64) error {
 	}
 
 	if modelExt != "" {
-		absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d.%s", modelID, modelExt))
+		absPath := filepath.Join(s.modelsDir, fmt.Sprintf("%d_%s.%s", modelID, modelName, modelExt))
 		if err := os.Remove(absPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 			slog.Error("failed to remove model file", "modelId", modelID, "path", absPath, "error", err)
 		}
@@ -437,11 +438,15 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 	return result, nil
 }
 
-func (s *PrintService) ViewPrintModel(modelPath string, namePath string) error {
+func (s *PrintService) ViewPrintModel(id int64, name string, ext string) error {
+
+	modelPath := fmt.Sprintf("%d_%s.%s", id, name, ext)
+	namePath := fmt.Sprintf("%s.%s", name, ext)
+
 	wm := internal.GetWindowManager()
 	wm.NewTransientWindow(application.WebviewWindowOptions{
 		Title:  fmt.Sprintf("Preview - %s", namePath),
-		URL:    fmt.Sprintf("/#/viewer?modelPath=%s", modelPath),
+		URL:    fmt.Sprintf("/#/viewer?modelPath=%s", url.QueryEscape(modelPath)),
 		Width:  900,
 		Height: 700,
 	})
@@ -452,7 +457,7 @@ func (s *PrintService) ViewPrintModel(modelPath string, namePath string) error {
 // allowedExecutableRe matches either:
 //   - An absolute path: starts with a drive letter (Windows) or "/" (Unix),
 //     contains only safe characters, and has no directory traversal.
-//   - A bare executable name: only word characters, hyphens, and dots —
+//   - A bare executable name: only word characters, hyphens, and dots -
 //     no path separators at all (resolved via PATH at runtime).
 var allowedExecutableRe = regexp.MustCompile(
 	`^(?:[A-Za-z]:[/\\]|/)(?:[^/\\:*?"<>|\x00]+[/\\])*[^/\\:*?"<>|\x00]+$` +
@@ -486,7 +491,7 @@ func validateAppPath(openAppPath string) error {
 		return fmt.Errorf("app path must not be empty")
 	}
 
-	// Hard length cap — no legitimate executable path needs more than this.
+	// Hard length cap - no legitimate executable path needs more than this.
 	const maxLen = 512
 	if len(openAppPath) > maxLen {
 		return fmt.Errorf("app path exceeds maximum allowed length (%d characters)", maxLen)
@@ -506,7 +511,7 @@ func validateAppPath(openAppPath string) error {
 	}
 
 	// For absolute paths (non-bare-name, non-.lnk), verify the file exists
-	// and is a regular file — not a symlink, directory, or device node.
+	// and is a regular file - not a symlink, directory, or device node.
 	if strings.ContainsAny(openAppPath, `/\`) {
 		info, err := os.Lstat(openAppPath)
 		if err != nil {
@@ -523,7 +528,8 @@ func validateAppPath(openAppPath string) error {
 	return nil
 }
 
-func (s *PrintService) OpenInApp(modelName string, openAppPath string) error {
+func (s *PrintService) OpenInApp(id int64, name string, ext string, openAppPath string) error {
+	modelName := fmt.Sprintf("%d_%s.%s", id, name, ext)
 	// Validate the model name to prevent directory traversal.
 	if filepath.Base(modelName) != modelName || strings.ContainsAny(modelName, `/\:`) {
 		return fmt.Errorf("invalid model name %q", modelName)
@@ -535,7 +541,7 @@ func (s *PrintService) OpenInApp(modelName string, openAppPath string) error {
 
 	modelPath := filepath.Join(s.modelsDir, modelName)
 
-	// Confirm the resolved model path is still inside modelsDir — a second
+	// Confirm the resolved model path is still inside modelsDir - a second
 	// layer of defence against any traversal that slipped through.
 	if !strings.HasPrefix(filepath.Clean(modelPath)+string(filepath.Separator),
 		filepath.Clean(s.modelsDir)+string(filepath.Separator)) {

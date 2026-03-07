@@ -110,7 +110,7 @@ func (r *PrintRepository) DeletePrint(tx *sqlx.Tx, printID int64) error {
 
 func (r *PrintRepository) FindOrphanedModels(tx *sqlx.Tx, modelIDs []int64) ([]PrintModel, error) {
 	query, args, err := sqlx.In(
-		`SELECT id, ext FROM models WHERE id IN (?) AND id NOT IN (SELECT model_id FROM print_models)`,
+		`SELECT id, name, ext FROM models WHERE id IN (?) AND id NOT IN (SELECT model_id FROM print_models)`,
 		modelIDs,
 	)
 	if err != nil {
@@ -171,20 +171,24 @@ func (r *PrintRepository) UnlinkModelFromPrint(tx *sqlx.Tx, printID, modelID int
 // DeleteModelIfOrphaned deletes the model record if no print_models rows reference it,
 // returning the ext so the caller can remove the file. Returns ("", sql.ErrNoRows) if
 // the model still has references.
-func (r *PrintRepository) DeleteModelIfOrphaned(tx *sqlx.Tx, modelID int64) (string, error) {
-	var ext string
-	err := tx.Get(&ext, `
-		DELETE FROM models
-		WHERE id = ?
-		AND NOT EXISTS (
-			SELECT 1 FROM print_models WHERE model_id = ?
-		)
-		RETURNING ext
-	`, modelID, modelID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", sql.ErrNoRows
+// In repository
+func (r *PrintRepository) DeleteModelIfOrphaned(tx *sqlx.Tx, modelID int64) (string, string, error) {
+	var result struct {
+		Ext  string `db:"ext"`
+		Name string `db:"name"`
 	}
-	return ext, err
+	err := tx.Get(&result, `
+        DELETE FROM models
+        WHERE id = ?
+        AND NOT EXISTS (
+            SELECT 1 FROM print_models WHERE model_id = ?
+        )
+        RETURNING ext, name
+    `, modelID, modelID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", "", sql.ErrNoRows
+	}
+	return result.Ext, result.Name, err
 }
 
 func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResult, error) {

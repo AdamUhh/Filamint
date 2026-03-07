@@ -105,7 +105,7 @@ export function OpenInAppDialog({
         await Promise.all(
             selectedModels.map(async (m) => {
                 try {
-                    await PrintService.OpenInApp(`${m.id}.${m.ext}`, path);
+                    await PrintService.OpenInApp(m.id, m.name, m.ext, path);
                 } catch (err: unknown) {
                     errors.push({
                         name: `${m.name}.${m.ext}`,
@@ -138,10 +138,11 @@ export function OpenInAppDialog({
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                View Print Models
+                                Open Model In...
                             </DialogTitle>
                             <DialogDescription>
-                                Select one or more models to open.
+                                Select one or more models to open in a (slicer)
+                                app.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -228,7 +229,7 @@ export function OpenInAppDialog({
                                                     />
                                                 </TableCell>
                                                 <TableCell className="max-w-0 truncate font-medium">
-                                                    {model.name}
+                                                    {model.id}_{model.name}
                                                 </TableCell>
                                                 <TableCell className="text-right font-mono text-xs text-muted-foreground uppercase">
                                                     .{model.ext}

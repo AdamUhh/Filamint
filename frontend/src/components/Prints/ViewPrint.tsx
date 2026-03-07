@@ -122,10 +122,7 @@ export function ViewPrintDialog({
         await Promise.all(
             selectedModels.map(async (m) => {
                 try {
-                    await PrintService.ViewPrintModel(
-                        `${m.id}.${m.ext}`,
-                        `${m.name}.${m.ext}`
-                    );
+                    await PrintService.ViewPrintModel(m.id, m.name, m.ext);
                 } catch (err: unknown) {
                     errors.push({
                         name: `${m.name}.${m.ext}`,
@@ -263,7 +260,7 @@ export function ViewPrintDialog({
                                             />
                                         </TableCell>
                                         <TableCell className="max-w-0 truncate font-medium">
-                                            {model.name}
+                                            {model.id}_{model.name}
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-xs text-muted-foreground uppercase">
                                             .{model.ext}

@@ -37,8 +37,8 @@ export function GetPrintModels(printID: number): $CancellablePromise<$models.Pri
     });
 }
 
-export function OpenInApp(modelName: string, openAppPath: string): $CancellablePromise<void> {
-    return $Call.ByID(937487182, modelName, openAppPath);
+export function OpenInApp(id: number, name: string, ext: string, openAppPath: string): $CancellablePromise<void> {
+    return $Call.ByID(937487182, id, name, ext, openAppPath);
 }
 
 export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
@@ -55,8 +55,8 @@ export function UploadPrintModel(printID: number, fileName: string, ext: string,
     return $Call.ByID(1986546053, printID, fileName, ext, size, data);
 }
 
-export function ViewPrintModel(modelPath: string, namePath: string): $CancellablePromise<void> {
-    return $Call.ByID(4185747245, modelPath, namePath);
+export function ViewPrintModel(id: number, name: string, ext: string): $CancellablePromise<void> {
+    return $Call.ByID(4185747245, id, name, ext);
 }
 
 // Private type creation functions
