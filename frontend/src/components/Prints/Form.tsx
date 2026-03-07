@@ -1,3 +1,4 @@
+import { Loader2Icon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
@@ -253,13 +254,20 @@ export function PrintFormDialog({
                                 updateMutation.isPending
                             }
                         >
+                            {isSaving && (
+                                <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+                            )}
                             {isSaving
-                                ? "Saving..."
+                                ? editState.id > 0
+                                    ? "Updating..."
+                                    : editState.id === 0 && editState.original
+                                      ? "Duplicating..."
+                                      : "Creating..."
                                 : editState.id > 0
                                   ? "Update"
                                   : editState.id === 0 && editState.original
                                     ? "Duplicate"
-                                    : "Create"}
+                                    : "Create"}{" "}
                         </Button>
                     </DialogFooter>
                 </form>

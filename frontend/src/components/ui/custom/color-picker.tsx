@@ -2,7 +2,7 @@
 
 // Source: https://github.com/vatsalpipalava/shadcn-input-color
 //
-import { Loader2 } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { z } from "zod";
@@ -512,7 +512,7 @@ export function ColorPicker({
                     />
                     {isLoading && (
                         <span className="absolute inset-y-0 right-0 flex items-center pr-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
                         </span>
                     )}
                 </div>

@@ -1,3 +1,4 @@
+import { Loader2Icon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect } from "react";
 
 import { Button } from "@/shadcn/button";
@@ -124,7 +125,17 @@ export function SpoolFormDialog({
                                         (editState.id > 0 && isDefaultValue)
                                     }
                                 >
-                                    {editState.id > 0 ? "Update" : "Create"}
+                                    {(createMutation.isPending ||
+                                        updateMutation.isPending) && (
+                                        <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+                                    )}
+                                    {createMutation.isPending
+                                        ? "Creating..."
+                                        : updateMutation.isPending
+                                          ? "Updating..."
+                                          : editState.id > 0
+                                            ? "Update"
+                                            : "Create"}
                                 </Button>
                             )}
                         </form.Subscribe>

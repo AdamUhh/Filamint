@@ -7,7 +7,6 @@ import {
     CopyPlusIcon,
     EllipsisIcon,
     FilePlusIcon,
-    HistoryIcon,
     PencilIcon,
     RotateCwIcon,
     TrashIcon,
@@ -56,7 +55,6 @@ export function SpoolTable({
     onEdit,
     onDuplicate,
     onLogAPrint,
-    onViewPrintHistory,
     onDelete,
     onSort,
 }: {
@@ -68,7 +66,6 @@ export function SpoolTable({
     onEdit: (spool: Spool) => void;
     onDuplicate: (spool: Spool) => void;
     onLogAPrint: (spool: Spool) => void;
-    onViewPrintHistory: (spool: Spool) => void;
     onDelete: (id: number) => void;
     onSort?: (column: string) => void;
 }) {
@@ -197,19 +194,6 @@ export function SpoolTable({
                                                                     Log a print
                                                                 </span>
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onSelect={() =>
-                                                                    onViewPrintHistory(
-                                                                        spool
-                                                                    )
-                                                                }
-                                                            >
-                                                                <HistoryIcon className="mb-0.5" />
-                                                                <span>
-                                                                    View Print
-                                                                    History
-                                                                </span>
-                                                            </DropdownMenuItem>
                                                         </DropdownMenuGroup>
 
                                                         <DropdownMenuSeparator />
@@ -269,14 +253,6 @@ export function SpoolTable({
                                             >
                                                 <FilePlusIcon className="mb-0.5" />
                                                 <span>Log a print</span>
-                                            </ContextMenuItem>
-                                            <ContextMenuItem
-                                                onSelect={() =>
-                                                    onViewPrintHistory(spool)
-                                                }
-                                            >
-                                                <HistoryIcon className="mb-0.5" />
-                                                <span>View Print History</span>
                                             </ContextMenuItem>
                                         </ContextMenuGroup>
 

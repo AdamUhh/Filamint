@@ -112,8 +112,6 @@ export function SpoolsPage() {
         navigate(`/prints?spoolId=${spool.id}`);
     };
 
-    const handleViewPrintHistory = (spool: Spool) => {};
-
     return (
         <div className="space-y-6 p-6">
             <SpoolHeader
@@ -165,7 +163,6 @@ export function SpoolsPage() {
                     })
                 }
                 onLogAPrint={handleLogAPrint}
-                onViewPrintHistory={handleViewPrintHistory}
                 sortBy={queryParams.sortBy}
                 sortOrder={queryParams.sortOrder as "asc" | "desc"}
                 onSort={handleSort}

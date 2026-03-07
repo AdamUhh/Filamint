@@ -2,8 +2,6 @@
 - - [ ] 
 
 > Spools
-- [ ] Need to add Log a print
-- [ ] Need to add View Print History
 - [ ] Unsure: Allow selection of multiple spools across pages, where the user can then select "add a print with these spools" (cba)
 - [ ] Unsure: Allow create and update to change spoolcode (eh... don't think it's necessary)
 
@@ -18,3 +16,8 @@
 > QoL
 - [ ] Add updater (as of 5/Mar/2026, still not implemented by wails)
 - [ ] Cleanup code
+
+> Final
+- [ ] App Name
+- [ ] App Image/Icon
+- [ ] Figure out how to fill the build configs with proper info about app, docs are bad currently
