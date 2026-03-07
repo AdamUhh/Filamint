@@ -27,6 +27,10 @@ export function GetSpoolPrints(spoolID: number): $CancellablePromise<$models.Spo
     });
 }
 
+export function OpenDBDir(): $CancellablePromise<void> {
+    return $Call.ByID(143800533);
+}
+
 export function QuerySpools(params: $models.SpoolQueryParams): $CancellablePromise<$models.SpoolQueryResult | null> {
     return $Call.ByID(375956364, params).then(($result: any) => {
         return $$createType3($result);

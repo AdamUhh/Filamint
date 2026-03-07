@@ -4,6 +4,8 @@ import (
 	internal "changeme/internal"
 	"fmt"
 	"log/slog"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -170,6 +172,21 @@ func (d *SpoolService) GetDBDir() (string, error) {
 		return "", fmt.Errorf("failed to get DBDir: %w", err)
 	}
 	return base, nil
+}
+
+func (s *SpoolService) OpenDBDir() error {
+	dir, err := s.GetDBDir()
+	if err != nil {
+		return err
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return exec.Command("explorer", dir).Start()
+	case "darwin":
+		return exec.Command("open", dir).Start()
+	default:
+		return exec.Command("xdg-open", dir).Start()
+	}
 }
 
 func (s *SpoolService) ServiceShutdown() error {

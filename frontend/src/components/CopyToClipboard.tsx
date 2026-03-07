@@ -96,7 +96,9 @@ export function CopyOnClick({
                     : tooltipContent
             }
         >
-            <div onClick={handleCopy}>{children}</div>
+            <div className="hover:cursor-pointer" onClick={handleCopy}>
+                {children}
+            </div>
         </LazyTooltip>
     );
 }
