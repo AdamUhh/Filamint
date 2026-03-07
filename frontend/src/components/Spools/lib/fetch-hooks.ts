@@ -63,6 +63,18 @@ export function useSpools(params: Partial<SpoolQueryParams> = {}) {
     };
 }
 
+export function useSpool(id?: number) {
+    return useQuery({
+        queryKey: ["spool", id],
+        queryFn: async () => {
+            if (!id) return null;
+            return await SpoolService.GetSpoolById(id);
+        },
+        enabled: !!id && id > 0,
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
 export function useSpoolPrints(id: number) {
     return useQuery({
         queryKey: ["spool_prints", id],

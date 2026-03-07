@@ -1,6 +1,7 @@
 import { useKeyCombos } from "@/hooks/useKeyCombo";
 import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
@@ -27,6 +28,7 @@ import type { EditState } from "./lib/types";
 
 export function SpoolsPage() {
     const [templateOpen, setTemplateOpen] = useState(false);
+    const navigate = useNavigate();
 
     const [queryParams, setQueryParams] = useState<SpoolQueryParams>({
         search: "",
@@ -101,13 +103,14 @@ export function SpoolsPage() {
             await deleteMutation.mutateAsync(deleteIntent.spoolId);
         } catch (error) {
             console.error("Failed to delete print:", error);
-            // TODO: Show error toast
         } finally {
             setDeleteIntent(null);
         }
     };
 
-    const handleLogAPrint = (spool: Spool) => {};
+    const handleLogAPrint = (spool: Spool) => {
+        navigate(`/prints?spoolId=${spool.id}`);
+    };
 
     const handleViewPrintHistory = (spool: Spool) => {};
 

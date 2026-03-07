@@ -146,6 +146,15 @@ func (s *SpoolService) GetSpoolPrints(spoolID int64) ([]SpoolPrint, error) {
 	return prints, nil
 }
 
+func (s *SpoolService) GetSpoolById(spoolID int64) (*Spool, error) {
+	spool, err := s.repo.GetSpool(spoolID)
+	if err != nil {
+		slog.Error("failed to get spool", "spoolID", spoolID, "error", err)
+		return nil, err
+	}
+	return spool, nil
+}
+
 func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, error) {
 	if params.SortBy == "" {
 		params.SortBy = "updated_at"

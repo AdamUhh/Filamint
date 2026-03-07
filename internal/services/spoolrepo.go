@@ -152,6 +152,17 @@ func (r *SpoolRepository) GetPrints(spoolID int64) ([]SpoolPrint, error) {
 	return prints, nil
 }
 
+func (r *SpoolRepository) GetSpool(spoolID int64) (*Spool, error) {
+	var spool Spool
+	err := r.db.Get(&spool, `
+	    SELECT * FROM spools WHERE id = ?
+	`, spoolID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching spool id %d: %w", spoolID, err)
+	}
+	return &spool, nil
+}
+
 func (r *SpoolRepository) Query(params SpoolQueryParams) (*SpoolQueryResult, error) {
 	var whereClauses []string
 	var args []any

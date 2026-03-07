@@ -21,7 +21,7 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
-import { formatBytesToMB } from "@/lib/util-format";
+import { formatBytesToMB, tryParseJson } from "@/lib/util-format";
 
 import { PrintModel, PrintService } from "@bindings";
 
@@ -111,7 +111,8 @@ export function OpenInAppDialog({
                         name: `${m.name}.${m.ext}`,
                         error:
                             err instanceof Error
-                                ? JSON.parse(err.message)?.message
+                                ? (tryParseJson(err.message)?.message ??
+                                  err.message)
                                 : "Failed to open file.",
                     });
                 }

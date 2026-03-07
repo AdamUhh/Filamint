@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon, TrashIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { Button } from "@/shadcn/button";
 import { ButtonGroup } from "@/shadcn/button-group";
@@ -27,11 +28,13 @@ import {
 
 import { useFieldContext } from "@/components/Prints/lib/hooks";
 
+import { tryParseJson } from "@/lib/util-format";
+
 import type { Print, SpoolQueryParams } from "@bindings";
 
 import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";
-import { useSpools } from "../Spools/lib/fetch-hooks";
+import { useSpool, useSpools } from "../Spools/lib/fetch-hooks";
 import { SelectSpoolTable } from "./SelectSpoolTable";
 import { Dropzone } from "./drop";
 import { PAGE_SIZE } from "./lib/defaults";
@@ -142,6 +145,67 @@ export function PrintGramsUsedFormField() {
 
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
+    );
+}
+
+export function PrintSpoolParamFormField({ editingId }: { editingId: number }) {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const spoolId = searchParams.get("spoolId");
+    const {
+        data: spool,
+        isFetching,
+        isSuccess,
+        isError,
+        error,
+    } = useSpool(spoolId ? Number(spoolId) : undefined);
+    const field = useFieldContext<Print["spools"]>();
+    const hasSelected = useRef(false);
+    const [displayError, setDisplayError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!spoolId || isFetching || hasSelected.current) return;
+
+        if (isError) {
+            setDisplayError(error.message);
+            setSearchParams(new URLSearchParams());
+            return;
+        }
+
+        if (!isSuccess || !spool) return;
+
+        field.pushValue({
+            id: editingId,
+            printId: editingId,
+            spoolId: spool.id,
+            gramsUsed: 0,
+            totalWeight: spool.totalWeight,
+            usedWeight: spool.usedWeight,
+            createdAt: spool.createdAt,
+            updatedAt: spool.updatedAt,
+            spoolCode: spool.spoolCode,
+            vendor: spool.vendor,
+            material: spool.material,
+            color: spool.color,
+            colorHex: spool.colorHex,
+        });
+
+        hasSelected.current = true;
+        setSearchParams(new URLSearchParams());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [spoolId, isFetching, isError, isSuccess]);
+
+    useEffect(() => {
+        if (!displayError) return;
+        const timer = setTimeout(() => setDisplayError(null), 5000);
+        return () => clearTimeout(timer);
+    }, [displayError]);
+
+    if (!displayError) return null;
+    return (
+        <p className="text-xs text-destructive">
+            There was an error logging the spool:{" "}
+            {tryParseJson(displayError)?.message ?? displayError}
+        </p>
     );
 }
 

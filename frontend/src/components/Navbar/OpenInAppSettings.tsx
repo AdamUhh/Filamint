@@ -13,6 +13,7 @@ import {
     DEFAULT_MAC_OPEN_IN_APP,
     DEFAULT_OPEN_IN_APP,
 } from "@/lib/constant-spools";
+import { tryParseJson } from "@/lib/util-format";
 
 function prettyJson(value: AppOptions["openInApp"]) {
     return JSON.stringify(value, null, 2);
@@ -20,7 +21,7 @@ function prettyJson(value: AppOptions["openInApp"]) {
 
 function parseValue(text: string): AppOptions["openInApp"] | null {
     try {
-        const parsed = JSON.parse(text);
+        const parsed = tryParseJson(text);
         if (
             Array.isArray(parsed) &&
             parsed.every(

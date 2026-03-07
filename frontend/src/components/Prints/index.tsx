@@ -1,6 +1,7 @@
 import { useKeyCombo } from "@/hooks/useKeyCombo";
 import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { Button } from "@/shadcn/button";
 import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
@@ -26,6 +27,15 @@ import type { PrintQueryParams } from "@bindings";
 import type { EditState } from "./lib/types";
 
 export function PrintsPage() {
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get("spoolId")) {
+            setEditState({ isOpen: true, id: 0, original: null });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const [queryParams, setQueryParams] = useState<PrintQueryParams>({
         search: "",
         sortBy: "date_printed",

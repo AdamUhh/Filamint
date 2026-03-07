@@ -21,9 +21,15 @@ export function GetDBDir(): $CancellablePromise<string> {
     return $Call.ByID(1087310713);
 }
 
+export function GetSpoolById(spoolID: number): $CancellablePromise<$models.Spool | null> {
+    return $Call.ByID(837597023, spoolID).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function GetSpoolPrints(spoolID: number): $CancellablePromise<$models.SpoolPrint[]> {
     return $Call.ByID(1917846263, spoolID).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
@@ -33,7 +39,7 @@ export function OpenDBDir(): $CancellablePromise<void> {
 
 export function QuerySpools(params: $models.SpoolQueryParams): $CancellablePromise<$models.SpoolQueryResult | null> {
     return $Call.ByID(375956364, params).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
@@ -42,7 +48,9 @@ export function UpdateSpool(spool: $models.Spool): $CancellablePromise<void> {
 }
 
 // Private type creation functions
-const $$createType0 = $models.SpoolPrint.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $models.SpoolQueryResult.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
+const $$createType0 = $models.Spool.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $models.SpoolPrint.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = $models.SpoolQueryResult.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);

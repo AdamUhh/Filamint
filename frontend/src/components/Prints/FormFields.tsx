@@ -23,6 +23,7 @@ export const PrintForm = withForm({
             isOpen: false,
             id: 0,
             original: null,
+            spoolId: null,
         } as EditState,
     },
     render: function Render({ form, editState }) {
@@ -82,7 +83,6 @@ export const PrintForm = withForm({
                                 >
                                     <div className="flex items-center justify-between">
                                         <FieldLabel>Spools</FieldLabel>
-
                                         <Dialog modal>
                                             <DialogTrigger asChild>
                                                 <Button
@@ -106,6 +106,10 @@ export const PrintForm = withForm({
                                             </DialogContent>
                                         </Dialog>
                                     </div>
+
+                                    <field.PrintSpoolParamFormField
+                                        editingId={editState.id}
+                                    />
 
                                     {field.state.value.map((s, i) => (
                                         <div key={i} className="flex gap-2">

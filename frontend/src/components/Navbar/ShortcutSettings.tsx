@@ -18,6 +18,7 @@ import {
     MODIFIER_KEYS,
     SPECIAL_KEYS,
 } from "@/lib/constant-mod-keys";
+import { tryParseJson } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
 import { ShortcutService } from "@bindings";
@@ -155,14 +156,11 @@ export function ShortcutsSettings() {
             await fetchShortcuts();
             handleCancel();
         } catch (err: any) {
-            const message = (() => {
-                try {
-                    return JSON.parse(err.message)?.message ?? err.message;
-                } catch {
-                    return err.message ?? "Unknown error";
-                }
-            })();
-            setError(message);
+            setError(
+                tryParseJson(err.message)?.message ??
+                    err.message ??
+                    "Unknown error"
+            );
         } finally {
             setIsLoading(false);
         }
