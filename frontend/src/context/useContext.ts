@@ -7,6 +7,7 @@ export interface AppOptions {
     materials: string[];
     materialTypes: string[];
     colors: string[];
+    openInApp: Record<string, string>[];
 }
 
 export interface AppContextValue {

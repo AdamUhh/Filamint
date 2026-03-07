@@ -37,6 +37,10 @@ export function GetPrintModels(printID: number): $CancellablePromise<$models.Pri
     });
 }
 
+export function OpenInApp(modelName: string, openAppPath: string): $CancellablePromise<void> {
+    return $Call.ByID(937487182, modelName, openAppPath);
+}
+
 export function QueryPrints(params: $models.PrintQueryParams): $CancellablePromise<$models.PrintQueryResult | null> {
     return $Call.ByID(223780716, params).then(($result: any) => {
         return $$createType3($result);

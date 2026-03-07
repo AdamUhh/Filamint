@@ -2,6 +2,8 @@ package services
 
 import (
 	internal "changeme/internal"
+	"os/exec"
+	"regexp"
 
 	"context"
 	"crypto/sha256"
@@ -445,6 +447,110 @@ func (s *PrintService) ViewPrintModel(modelPath string, namePath string) error {
 	})
 
 	return nil
+}
+
+// allowedExecutableRe matches either:
+//   - An absolute path: starts with a drive letter (Windows) or "/" (Unix),
+//     contains only safe characters, and has no directory traversal.
+//   - A bare executable name: only word characters, hyphens, and dots —
+//     no path separators at all (resolved via PATH at runtime).
+var allowedExecutableRe = regexp.MustCompile(
+	`^(?:[A-Za-z]:[/\\]|/)(?:[^/\\:*?"<>|\x00]+[/\\])*[^/\\:*?"<>|\x00]+$` +
+		`|^[A-Za-z0-9][A-Za-z0-9._-]*$`,
+)
+
+// blockedPatterns catches shell interpreters, script extensions, and common
+// injection tokens that should never appear in a trusted app path.
+var blockedPatterns = []*regexp.Regexp{
+	// Shell metacharacters and injection vectors
+	regexp.MustCompile(`[;&|` + "`" + `$<>!]`),
+	// Environment-variable expansion: %VAR% or $VAR / ${VAR}
+	regexp.MustCompile(`%[^%]+%|\$\{?[A-Za-z_]`),
+	// Network / UNC paths
+	regexp.MustCompile(`^(\\\\|//)`),
+	// Directory traversal
+	regexp.MustCompile(`\.\.`),
+	// Null byte
+	regexp.MustCompile(`\x00`),
+	// Script file extensions
+	regexp.MustCompile(`(?i)\.(sh|bash|zsh|fish|ps1|psm1|psd1|bat|cmd|vbs|vbe|js|mjs|ts|py|rb|pl|php|lua|tcl|wsf|hta)$`),
+	// Script interpreter names as a word token
+	regexp.MustCompile(`(?i)\b(bash|sh|zsh|fish|cmd|powershell|pwsh|python\d*|ruby|perl|node|deno|bun|php|lua|tclsh|cscript|wscript)\b`),
+}
+
+// validateAppPath returns an error if openAppPath fails any safety rule.
+// This is intentionally separate from exec logic so it can be unit-tested
+// independently and called before any OS interaction.
+func validateAppPath(openAppPath string) error {
+	if openAppPath == "" {
+		return fmt.Errorf("app path must not be empty")
+	}
+
+	// Hard length cap — no legitimate executable path needs more than this.
+	const maxLen = 512
+	if len(openAppPath) > maxLen {
+		return fmt.Errorf("app path exceeds maximum allowed length (%d characters)", maxLen)
+	}
+
+	for _, re := range blockedPatterns {
+		if re.MatchString(openAppPath) {
+			return fmt.Errorf("app path contains a disallowed pattern: %q matched %s", openAppPath, re)
+		}
+	}
+
+	// .lnk files are a Windows-only special case handled below; exclude them
+	// from the strict shape check but still require an absolute path.
+	isLnk := strings.HasSuffix(strings.ToLower(openAppPath), ".lnk")
+	if !isLnk && !allowedExecutableRe.MatchString(openAppPath) {
+		return fmt.Errorf("app path %q is not an absolute path or a bare executable name", openAppPath)
+	}
+
+	// For absolute paths (non-bare-name, non-.lnk), verify the file exists
+	// and is a regular file — not a symlink, directory, or device node.
+	if strings.ContainsAny(openAppPath, `/\`) {
+		info, err := os.Lstat(openAppPath)
+		if err != nil {
+			return fmt.Errorf("app path %q is not accessible: %w", openAppPath, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("app path %q must not be a symbolic link", openAppPath)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("app path %q must be a regular file", openAppPath)
+		}
+	}
+
+	return nil
+}
+
+func (s *PrintService) OpenInApp(modelName string, openAppPath string) error {
+	// Validate the model name to prevent directory traversal.
+	if filepath.Base(modelName) != modelName || strings.ContainsAny(modelName, `/\:`) {
+		return fmt.Errorf("invalid model name %q", modelName)
+	}
+
+	if err := validateAppPath(openAppPath); err != nil {
+		return fmt.Errorf("unsafe app path rejected: %w", err)
+	}
+
+	modelPath := filepath.Join(s.modelsDir, modelName)
+
+	// Confirm the resolved model path is still inside modelsDir — a second
+	// layer of defence against any traversal that slipped through.
+	if !strings.HasPrefix(filepath.Clean(modelPath)+string(filepath.Separator),
+		filepath.Clean(s.modelsDir)+string(filepath.Separator)) {
+		return fmt.Errorf("model path escapes models directory")
+	}
+
+	var cmd *exec.Cmd
+	if strings.HasSuffix(strings.ToLower(openAppPath), ".lnk") {
+		// .lnk files must be launched via the Windows shell.
+		cmd = exec.Command("cmd", "/c", "start", "", openAppPath, modelPath)
+	} else {
+		cmd = exec.Command(openAppPath, modelPath)
+	}
+
+	return cmd.Start()
 }
 
 func (s *PrintService) GetModelData(modelPath string) ([]byte, error) {

@@ -44,6 +44,7 @@ import {
 import type { Print } from "@bindings";
 
 import { CopyOnClick } from "../CopyToClipboard";
+import { OpenInAppDialog } from "./OpenApp";
 import { ViewPrintDialog } from "./ViewPrint";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
 
@@ -75,6 +76,21 @@ export function PrintTable({
         printId: null,
         open: false,
     });
+
+    const [openInAppState, setOpenInAppState] = useState<{
+        printId: number | null;
+        open: boolean;
+    }>({
+        printId: null,
+        open: false,
+    });
+
+    const handleOpenApp = (print: Print) => {
+        setOpenInAppState({
+            printId: print.id,
+            open: true,
+        });
+    };
 
     const handleOnView = (print: Print) => {
         setViewState({
@@ -192,6 +208,18 @@ export function PrintTable({
                                                             >
                                                                 <BoxIcon className="mb-0.5" />
                                                                 <span>
+                                                                    Open in...
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    handleOnView(
+                                                                        print
+                                                                    )
+                                                                }
+                                                            >
+                                                                <BoxIcon className="mb-0.5" />
+                                                                <span>
                                                                     View Print
                                                                 </span>
                                                             </DropdownMenuItem>
@@ -256,6 +284,14 @@ export function PrintTable({
 
                                             <ContextMenuItem
                                                 onSelect={() =>
+                                                    handleOpenApp(print)
+                                                }
+                                            >
+                                                <BoxIcon className="mb-0.5" />
+                                                <span>Open in...</span>
+                                            </ContextMenuItem>
+                                            <ContextMenuItem
+                                                onSelect={() =>
                                                     handleOnView(print)
                                                 }
                                             >
@@ -302,6 +338,10 @@ export function PrintTable({
                 </Table>
             </div>
 
+            <OpenInAppDialog
+                openInAppState={openInAppState}
+                setOpenInAppState={setOpenInAppState}
+            />
             <ViewPrintDialog
                 viewState={viewState}
                 setViewState={setViewState}

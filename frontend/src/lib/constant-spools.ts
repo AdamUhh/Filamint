@@ -1,3 +1,5 @@
+import type { AppOptions } from "@/context/useContext";
+
 // https://3dfilamentprofiles.com/brands?perPage=100&sort=spools_d
 export const DEFAULT_SPOOL_VENDORS = [
     "Bambu Lab",
@@ -317,4 +319,15 @@ export const DEFAULT_SPOOL_COLORS = [
     "Copper",
     "Transparent",
     "Clear",
+];
+
+export const DEFAULT_OPEN_IN_APP: AppOptions["openInApp"] = [
+    {
+        "Orca Slicer":
+            "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\OrcaSlicer\\OrcaSlicer.lnk",
+    },
+    {
+        "Bambu Studio":
+            "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Bambu Studio\\Bambu Studio.lnk",
+    },
 ];

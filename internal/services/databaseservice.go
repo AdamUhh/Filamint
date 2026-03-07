@@ -78,7 +78,6 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, fmt.Errorf("failed to seed spools: %w", err)
 	}
 
-	slog.Info("Database service started", "path", absPath)
 	return database, nil
 }
 
@@ -279,6 +278,7 @@ func (d *Database) seedSpoolsIfEmpty() error {
 }
 
 func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	slog.Info("Database service started")
 	ctx, cancel := context.WithCancel(ctx)
 	d.cancel = cancel
 	go d.periodicMaintenance(ctx)
@@ -287,7 +287,7 @@ func (d *Database) ServiceStartup(ctx context.Context, _ application.ServiceOpti
 }
 
 func (d *Database) ServiceShutdown() error {
-	slog.Info("Database service shutting down")
+	slog.Info("Database service started")
 
 	if d.cancel != nil {
 		d.cancel()

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
+    DEFAULT_OPEN_IN_APP,
     DEFAULT_SPOOL_COLORS,
     DEFAULT_SPOOL_MATERIALS,
     DEFAULT_SPOOL_MATERIALTYPES,
@@ -31,6 +32,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             materials: DEFAULT_SPOOL_MATERIALS,
             materialTypes: DEFAULT_SPOOL_MATERIALTYPES,
             colors: DEFAULT_SPOOL_COLORS,
+            openInApp: DEFAULT_OPEN_IN_APP,
         };
     });
 

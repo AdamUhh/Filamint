@@ -2,6 +2,7 @@ import { Separator } from "@/shadcn/separator";
 
 import { CurrencySettings } from "./CurrencySettings";
 import { DefaultSpoolSettings } from "./MaterialSettings";
+import { OpenInAppSettings } from "./OpenInAppSettings";
 import { ShortcutsSettings } from "./ShortcutSettings";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
@@ -15,6 +16,8 @@ export function AppSettings() {
             </div>
             <Separator />
             <DefaultSpoolSettings />
+            <Separator />
+            <OpenInAppSettings />
             <Separator />
             <ShortcutsSettings />
         </div>
