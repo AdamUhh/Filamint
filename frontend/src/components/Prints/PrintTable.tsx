@@ -224,6 +224,14 @@ export function PrintTable({
                                                                     View Print
                                                                 </span>
                                                             </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
+
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuLabel>
+                                                                Options
+                                                            </DropdownMenuLabel>
+
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
                                                                     onDuplicate(
@@ -237,13 +245,6 @@ export function PrintTable({
                                                                     Print
                                                                 </span>
                                                             </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuLabel>
-                                                                Options
-                                                            </DropdownMenuLabel>
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
                                                                     onEdit(
@@ -299,6 +300,14 @@ export function PrintTable({
                                                 <BoxIcon className="mb-0.5" />
                                                 <span>View Print</span>
                                             </ContextMenuItem>
+                                        </ContextMenuGroup>
+                                        <ContextMenuSeparator />
+
+                                        <ContextMenuGroup>
+                                            <ContextMenuLabel>
+                                                Options
+                                            </ContextMenuLabel>
+
                                             <ContextMenuItem
                                                 onSelect={() =>
                                                     onDuplicate(print)
@@ -307,13 +316,6 @@ export function PrintTable({
                                                 <CopyPlusIcon className="mb-0.5" />
                                                 <span>Duplicate Print</span>
                                             </ContextMenuItem>
-                                        </ContextMenuGroup>
-                                        <ContextMenuSeparator />
-
-                                        <ContextMenuGroup>
-                                            <ContextMenuLabel>
-                                                Options
-                                            </ContextMenuLabel>
                                             <ContextMenuItem
                                                 onSelect={() => onEdit(print)}
                                             >

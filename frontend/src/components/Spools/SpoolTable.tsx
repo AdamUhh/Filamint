@@ -163,9 +163,10 @@ export function SpoolTable({
                                                         className="w-40"
                                                         align="start"
                                                     >
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuGroup>
                                                             <DropdownMenuLabel>
-                                                                Actions
+                                                                Prints
                                                             </DropdownMenuLabel>
 
                                                             <DropdownMenuItem
@@ -180,13 +181,6 @@ export function SpoolTable({
                                                                     Duplicate
                                                                 </span>
                                                             </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuLabel>
-                                                                Prints
-                                                            </DropdownMenuLabel>
-
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
                                                                     onEdit(
@@ -258,20 +252,6 @@ export function SpoolTable({
                                         </TableRow>
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
-                                        <ContextMenuGroup>
-                                            <ContextMenuLabel>
-                                                Actions
-                                            </ContextMenuLabel>
-
-                                            <ContextMenuItem
-                                                onSelect={() =>
-                                                    onDuplicate(spool)
-                                                }
-                                            >
-                                                <CopyPlusIcon className="mb-0.5" />
-                                                <span>Duplicate</span>
-                                            </ContextMenuItem>
-                                        </ContextMenuGroup>
                                         <ContextMenuSeparator />
                                         <ContextMenuGroup>
                                             <ContextMenuLabel>
@@ -297,6 +277,15 @@ export function SpoolTable({
                                             <ContextMenuLabel>
                                                 Options
                                             </ContextMenuLabel>
+                                            <ContextMenuItem
+                                                onSelect={() =>
+                                                    onDuplicate(spool)
+                                                }
+                                            >
+                                                <CopyPlusIcon className="mb-0.5" />
+                                                <span>Duplicate</span>
+                                            </ContextMenuItem>
+
                                             <ContextMenuItem
                                                 onSelect={() => onEdit(spool)}
                                             >

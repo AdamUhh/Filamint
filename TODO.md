@@ -18,6 +18,5 @@
 - [ ] Unsure: Should have Duplicate and Duplicate Clean. Duplicate will have sql col 'duplicate of <printId> (dId)', that way, you can easily track the first print? 
 
 > QoL
-- [ ] Move all Duplicate drop/context menu in Options group
 - [ ] Add updater (as of 5/Mar/2026, still not implemented by wails)
 - [ ] Cleanup code
