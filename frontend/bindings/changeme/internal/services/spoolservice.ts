@@ -17,6 +17,10 @@ export function DeleteSpool(id: number): $CancellablePromise<void> {
     return $Call.ByID(547871858, id);
 }
 
+export function GetDBDir(): $CancellablePromise<string> {
+    return $Call.ByID(1087310713);
+}
+
 export function GetSpoolPrints(spoolID: number): $CancellablePromise<$models.SpoolPrint[]> {
     return $Call.ByID(1917846263, spoolID).then(($result: any) => {
         return $$createType1($result);

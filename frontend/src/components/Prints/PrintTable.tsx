@@ -8,6 +8,7 @@ import {
     EllipsisIcon,
     PencilIcon,
     RotateCwIcon,
+    SquareArrowOutUpRightIcon,
     TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -44,7 +45,7 @@ import {
 import type { Print } from "@bindings";
 
 import { CopyOnClick } from "../CopyToClipboard";
-import { OpenInAppDialog } from "./OpenApp";
+import { OpenInAppDialog } from "./OpenInApp";
 import { ViewPrintDialog } from "./ViewPrint";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
 
@@ -85,7 +86,7 @@ export function PrintTable({
         open: false,
     });
 
-    const handleOpenApp = (print: Print) => {
+    const handleOpenInApp = (print: Print) => {
         setOpenInAppState({
             printId: print.id,
             open: true,
@@ -206,7 +207,7 @@ export function PrintTable({
                                                                     )
                                                                 }
                                                             >
-                                                                <BoxIcon className="mb-0.5" />
+                                                                <SquareArrowOutUpRightIcon className="mb-0.5" />
                                                                 <span>
                                                                     Open in...
                                                                 </span>
@@ -284,10 +285,10 @@ export function PrintTable({
 
                                             <ContextMenuItem
                                                 onSelect={() =>
-                                                    handleOpenApp(print)
+                                                    handleOpenInApp(print)
                                                 }
                                             >
-                                                <BoxIcon className="mb-0.5" />
+                                                <SquareArrowOutUpRightIcon className="mb-0.5" />
                                                 <span>Open in...</span>
                                             </ContextMenuItem>
                                             <ContextMenuItem

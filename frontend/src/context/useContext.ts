@@ -8,6 +8,7 @@ export interface AppOptions {
     materialTypes: string[];
     colors: string[];
     openInApp: Record<string, string>[];
+    platform?: "windows" | "darwin" | "linux";
 }
 
 export interface AppContextValue {

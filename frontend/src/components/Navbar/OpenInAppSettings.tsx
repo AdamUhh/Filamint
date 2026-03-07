@@ -8,7 +8,11 @@ import {
     InputGroupTextarea,
 } from "@/shadcn/input-group";
 
-import { DEFAULT_OPEN_IN_APP } from "@/lib/constant-spools";
+import {
+    DEFAULT_LINUX_OPEN_IN_APP,
+    DEFAULT_MAC_OPEN_IN_APP,
+    DEFAULT_OPEN_IN_APP,
+} from "@/lib/constant-spools";
 
 function prettyJson(value: AppOptions["openInApp"]) {
     return JSON.stringify(value, null, 2);
@@ -35,8 +39,16 @@ function parseValue(text: string): AppOptions["openInApp"] | null {
     }
 }
 
+function getDefaultOpenInApp(platform?: string): AppOptions["openInApp"] {
+    if (platform === "darwin") return DEFAULT_MAC_OPEN_IN_APP;
+    if (platform === "linux") return DEFAULT_LINUX_OPEN_IN_APP;
+    return DEFAULT_OPEN_IN_APP;
+}
+
 export function OpenInAppSettings() {
     const { options, setOptions } = useApp();
+
+    const platformDefaults = getDefaultOpenInApp(options.platform);
 
     const [sourceText, setSourceText] = useState(() =>
         prettyJson(options.openInApp ?? [])
@@ -78,7 +90,7 @@ export function OpenInAppSettings() {
                         variant="ghost"
                         size="sm"
                         className="hidden h-auto px-2 py-0 text-2xs group-hover:flex"
-                        onClick={() => setText(prettyJson(DEFAULT_OPEN_IN_APP))}
+                        onClick={() => setText(prettyJson(platformDefaults))}
                     >
                         Reset Defaults
                     </Button>

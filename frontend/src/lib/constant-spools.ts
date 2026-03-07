@@ -331,3 +331,21 @@ export const DEFAULT_OPEN_IN_APP: AppOptions["openInApp"] = [
             "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Bambu Studio\\Bambu Studio.lnk",
     },
 ];
+
+export const DEFAULT_LINUX_OPEN_IN_APP: AppOptions["openInApp"] = [
+    {
+        "Orca Slicer": "orca-slicer",
+    },
+    {
+        "Bambu Studio": "bambu-slicer",
+    },
+];
+
+export const DEFAULT_MAC_OPEN_IN_APP: AppOptions["openInApp"] = [
+    {
+        "Orca Slicer": "OrcaSlicer",
+    },
+    {
+        "Bambu Studio": "BambuSlicer",
+    },
+];

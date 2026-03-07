@@ -163,6 +163,15 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 	return result, nil
 }
 
+func (d *SpoolService) GetDBDir() (string, error) {
+	base, err := internal.GetAppDataDir()
+	if err != nil {
+		slog.Info("failed to get DBDir", "error", err)
+		return "", fmt.Errorf("failed to get DBDir: %w", err)
+	}
+	return base, nil
+}
+
 func (s *SpoolService) ServiceShutdown() error {
 	slog.Info("Spool service shutting down")
 	return nil

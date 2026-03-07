@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
+    DEFAULT_LINUX_OPEN_IN_APP,
+    DEFAULT_MAC_OPEN_IN_APP,
     DEFAULT_OPEN_IN_APP,
     DEFAULT_SPOOL_COLORS,
     DEFAULT_SPOOL_MATERIALS,
@@ -14,12 +16,31 @@ import {
     type AppOptions,
 } from "./useContext";
 
+function getDefaultOpenInApp(platform?: string): AppOptions["openInApp"] {
+    if (platform === "darwin") return DEFAULT_MAC_OPEN_IN_APP;
+    if (platform === "linux") return DEFAULT_LINUX_OPEN_IN_APP;
+    return DEFAULT_OPEN_IN_APP;
+}
+
+function detectPlatform(): AppOptions["platform"] {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("win")) return "windows";
+    if (ua.includes("mac")) return "darwin";
+    if (ua.includes("linux")) return "linux";
+    return "windows";
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
     const [options, setOptions] = useState<AppOptions>(() => {
+        const platform = detectPlatform();
+
         try {
             const saved = localStorage.getItem("app-options");
             if (saved) {
-                return JSON.parse(saved) as AppOptions;
+                return {
+                    ...(JSON.parse(saved) as AppOptions),
+                    platform, // always override with fresh detection
+                };
             }
         } catch (err) {
             console.error("Failed to parse saved options:", err);
@@ -32,7 +53,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             materials: DEFAULT_SPOOL_MATERIALS,
             materialTypes: DEFAULT_SPOOL_MATERIALTYPES,
             colors: DEFAULT_SPOOL_COLORS,
-            openInApp: DEFAULT_OPEN_IN_APP,
+            openInApp: getDefaultOpenInApp(platform),
+            platform,
         };
     });
 
