@@ -8,8 +8,6 @@
 - [ ] Unsure: Allow create and update to change spoolcode (eh... don't think it's necessary)
 
 > Prints
-- [ ] form submit: dont iterate, send it all together; lessen load on bridge
-- [ ] Add option to "print in *" e.g. OrcaSlicer
 - [ ] Unsure: Add another way to view prints
 - - [  ] Whenever you add a file, it should also take a screenshot of the print
 - - [  ] Then, in the 2nd view, it should show the print in a nice card view, makes it easier for users to see their prints

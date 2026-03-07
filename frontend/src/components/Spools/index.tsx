@@ -20,7 +20,7 @@ import {
     useSpools,
 } from "@/components/Spools/lib/fetch-hooks";
 
-import type { SpoolQueryParams } from "@bindings";
+import type { Spool, SpoolQueryParams } from "@bindings";
 
 import { SpoolFormDialog } from "./Form";
 import type { EditState } from "./lib/types";
@@ -107,6 +107,10 @@ export function SpoolsPage() {
         }
     };
 
+    const handleLogAPrint = (spool: Spool) => {};
+
+    const handleViewPrintHistory = (spool: Spool) => {};
+
     return (
         <div className="space-y-6 p-6">
             <SpoolHeader
@@ -157,6 +161,8 @@ export function SpoolsPage() {
                         original: spool,
                     })
                 }
+                onLogAPrint={handleLogAPrint}
+                onViewPrintHistory={handleViewPrintHistory}
                 sortBy={queryParams.sortBy}
                 sortOrder={queryParams.sortOrder as "asc" | "desc"}
                 onSort={handleSort}

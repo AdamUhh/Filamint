@@ -43,8 +43,6 @@ export function PrintFormDialog({
         defaultValues: defaultPrintValues,
         validators: { onChange: printSchema },
         onSubmit: async ({ value }) => {
-            console.debug("models", value.models);
-
             const modelsToSave: TModelSchema[] = value.models;
 
             const filesToUpload = modelsToSave.filter(
@@ -62,12 +60,6 @@ export function PrintFormDialog({
                             (m) => "id" in m && m.id === orig.id
                         )
                 ) || [];
-
-            console.debug("Files to upload:", filesToUpload);
-            console.debug("Existing models:", existingModels);
-            console.debug("Removed models:", removedModels);
-
-            // return;
 
             const printToSave: Print = {
                 id: editState.id,

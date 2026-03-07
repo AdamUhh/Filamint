@@ -210,7 +210,7 @@ export function ThreeMFScene({
             config.objectIds.forEach((id) => {
                 const obj = objectMap.get(id);
                 if (!obj) {
-                    console.warn(`[ThreeMFScene] object id ${id} not found`);
+                    console.error(`[ThreeMFScene] object id ${id} not found`);
                     return;
                 }
                 const clone = obj.clone(true); // true = deep clone (includes children)

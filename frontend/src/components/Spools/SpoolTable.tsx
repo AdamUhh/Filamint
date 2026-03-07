@@ -55,6 +55,8 @@ export function SpoolTable({
     sortOrder,
     onEdit,
     onDuplicate,
+    onLogAPrint,
+    onViewPrintHistory,
     onDelete,
     onSort,
 }: {
@@ -65,6 +67,8 @@ export function SpoolTable({
     sortOrder?: "asc" | "desc";
     onEdit: (spool: Spool) => void;
     onDuplicate: (spool: Spool) => void;
+    onLogAPrint: (spool: Spool) => void;
+    onViewPrintHistory: (spool: Spool) => void;
     onDelete: (id: number) => void;
     onSort?: (column: string) => void;
 }) {
@@ -183,7 +187,7 @@ export function SpoolTable({
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
-                                                                    onEdit(
+                                                                    onLogAPrint(
                                                                         spool
                                                                     )
                                                                 }
@@ -195,7 +199,7 @@ export function SpoolTable({
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
-                                                                    onEdit(
+                                                                    onViewPrintHistory(
                                                                         spool
                                                                     )
                                                                 }
@@ -259,13 +263,17 @@ export function SpoolTable({
                                             </ContextMenuLabel>
 
                                             <ContextMenuItem
-                                                onSelect={() => onEdit(spool)}
+                                                onSelect={() =>
+                                                    onLogAPrint(spool)
+                                                }
                                             >
                                                 <FilePlusIcon className="mb-0.5" />
                                                 <span>Log a print</span>
                                             </ContextMenuItem>
                                             <ContextMenuItem
-                                                onSelect={() => onEdit(spool)}
+                                                onSelect={() =>
+                                                    onViewPrintHistory(spool)
+                                                }
                                             >
                                                 <HistoryIcon className="mb-0.5" />
                                                 <span>View Print History</span>
