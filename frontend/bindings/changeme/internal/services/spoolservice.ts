@@ -17,6 +17,9 @@ export function DeleteSpool(id: number): $CancellablePromise<void> {
     return $Call.ByID(547871858, id);
 }
 
+/**
+ * Settings
+ */
 export function GetDBDir(): $CancellablePromise<string> {
     return $Call.ByID(1087310713);
 }
@@ -33,6 +36,9 @@ export function GetSpoolPrints(spoolID: number): $CancellablePromise<$models.Spo
     });
 }
 
+/**
+ * Settings
+ */
 export function OpenDBDir(): $CancellablePromise<void> {
     return $Call.ByID(143800533);
 }

@@ -80,6 +80,7 @@ func main() {
 				}
 			},
 		},
+		Logger: logger.Logger,
 	})
 
 	wm := internal.NewWindowManager(app, appDataDir)

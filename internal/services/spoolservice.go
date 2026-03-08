@@ -174,6 +174,7 @@ func (s *SpoolService) QuerySpools(params SpoolQueryParams) (*SpoolQueryResult, 
 	return result, nil
 }
 
+// Settings
 func (d *SpoolService) GetDBDir() (string, error) {
 	base, err := internal.GetAppDataDir()
 	if err != nil {
@@ -183,6 +184,7 @@ func (d *SpoolService) GetDBDir() (string, error) {
 	return base, nil
 }
 
+// Settings
 func (s *SpoolService) OpenDBDir() error {
 	dir, err := s.GetDBDir()
 	if err != nil {

@@ -15,7 +15,8 @@ import (
 )
 
 type Logger struct {
-	file *os.File
+	file   *os.File
+	Logger *slog.Logger
 }
 
 type prettyHandler struct {
@@ -86,13 +87,17 @@ func NewLogger(appDataDir string) (*Logger, error) {
 
 	handler := &prettyHandler{
 		writer: multiWriter,
-		level:  slog.LevelDebug,
+		level:  slog.LevelInfo,
 		source: false,
 	}
 
-	slog.SetDefault(slog.New(handler))
+	l := slog.New(handler)
+	slog.SetDefault(l)
 
-	return &Logger{file: logFile}, nil
+	return &Logger{
+		file:   logFile,
+		Logger: l,
+	}, nil
 }
 
 func (l *Logger) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
