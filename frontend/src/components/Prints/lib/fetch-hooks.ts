@@ -35,8 +35,6 @@ export function usePrints(params: Partial<PrintQueryParams> = {}) {
     const query = useQuery({
         queryKey: ["prints", queryParams],
         queryFn: () => PrintService.QueryPrints(queryParams),
-        staleTime: 2 * 60 * 1000,
-        gcTime: 5 * 60 * 1000,
     });
 
     const printsMap = useMemo(
@@ -113,7 +111,6 @@ export function usePrintModels(id: number) {
             return await PrintService.GetPrintModels(id);
         },
         enabled: id > 0,
-        staleTime: 5 * 60 * 1000,
     });
 }
 

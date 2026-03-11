@@ -43,8 +43,6 @@ export function useSpools(params: Partial<SpoolQueryParams> = {}) {
     const query = useQuery({
         queryKey: ["spools", queryParams],
         queryFn: () => SpoolService.QuerySpools(queryParams),
-        staleTime: 2 * 60 * 1000,
-        gcTime: 5 * 60 * 1000,
     });
 
     const spoolsMap = useMemo(
@@ -71,7 +69,6 @@ export function useSpool(id?: number) {
             return await SpoolService.GetSpoolById(id);
         },
         enabled: !!id && id > 0,
-        staleTime: 5 * 60 * 1000,
     });
 }
 
@@ -83,7 +80,6 @@ export function useSpoolPrints(id: number) {
             return await SpoolService.GetSpoolPrints(id);
         },
         enabled: id > 0,
-        staleTime: 5 * 60 * 1000,
     });
 }
 

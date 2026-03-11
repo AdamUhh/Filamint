@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+
 import { Separator } from "@/shadcn/separator";
 
 import { CurrencySettings } from "./CurrencySettings";
@@ -9,21 +11,26 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function AppSettings() {
     return (
-        <div className="space-y-6">
-            <FileDirLocation />
-
-            <div className="flex gap-4">
-                <ThemeSwitcher />
-                <Separator orientation="vertical" className="mx-auto" />
-                <CurrencySettings />
+        <div className="flex gap-4">
+            <div className="w-64 space-y-6">
+                <Link to="#theme-settings">Theme</Link>
             </div>
+            <div className="space-y-6">
+                <FileDirLocation />
 
-            <Separator />
-            <DefaultSpoolSettings />
-            <Separator />
-            <OpenInAppSettings />
-            <Separator />
-            <ShortcutsSettings />
+                <div className="flex gap-4">
+                    <ThemeSwitcher />
+                    <Separator orientation="vertical" className="mx-auto" />
+                    <CurrencySettings />
+                </div>
+
+                <Separator />
+                <DefaultSpoolSettings />
+                <Separator />
+                <OpenInAppSettings />
+                <Separator />
+                <ShortcutsSettings />
+            </div>
         </div>
     );
 }

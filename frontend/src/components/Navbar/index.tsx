@@ -64,7 +64,7 @@ export function Navbar() {
             </div>
 
             <Dialog open={settingsOpen} onOpenChange={handleDialogChange}>
-                <DialogContent className="max-h-[85vh] overflow-y-scroll p-6 sm:max-w-2xl">
+                <DialogContent className="max-h-[85vh] overflow-y-scroll p-6 sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Settings</DialogTitle>
                     </DialogHeader>
