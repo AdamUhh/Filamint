@@ -2,12 +2,15 @@ package services
 
 import (
 	internal "changeme/internal"
+	"context"
 	"fmt"
 	"log/slog"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type Spool struct {
@@ -198,6 +201,11 @@ func (s *SpoolService) OpenDBDir() error {
 	default:
 		return exec.Command("xdg-open", dir).Start()
 	}
+}
+
+func (s *SpoolService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	slog.Info("Spool service started")
+	return nil
 }
 
 func (s *SpoolService) ServiceShutdown() error {

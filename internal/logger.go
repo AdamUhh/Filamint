@@ -39,7 +39,7 @@ func (h *prettyHandler) Handle(_ context.Context, r slog.Record) error {
 		source = fmt.Sprintf(" (%s:%d)", filepath.Base(f.File), f.Line)
 	}
 
-	timestamp := r.Time.Format("[2006-01-02 15:04:05]")
+	timestamp := r.Time.Format("2006/01/02 15:04:05")
 
 	var attrs strings.Builder
 	r.Attrs(func(a slog.Attr) bool {

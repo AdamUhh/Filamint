@@ -576,7 +576,7 @@ func (s *PrintService) ServiceStartup(ctx context.Context, _ application.Service
 		return fmt.Errorf("resolving models dir: %w", err)
 	}
 	s.modelsDir = dir
-	slog.Info("print service started", "modelsDir", dir)
+	slog.Info("Print service started,", "modelsDir", dir)
 	return nil
 }
 
