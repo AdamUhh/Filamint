@@ -4,7 +4,7 @@
   "author": "AdamUhh",
   "description": "A 3D printing filament manager to keep track of spools, usage, and prints",
   "icon": "build/appicon.png",
-  "outputFilename": "filament-tracker",
+  "outputFilename": "filamint",
   "platforms": ["windows/amd64", "darwin/amd64", "linux/amd64"],
   "frontend": {
     "dir": "./frontend",

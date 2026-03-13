@@ -14,20 +14,20 @@ func GetAppDataDir() (string, error) {
 	var base string
 	switch runtime.GOOS {
 	case "windows":
-		// C:\Users\<user>\AppData\Roaming\filament-tracker/
+		// C:\Users\<user>\AppData\Roaming\filamint/
 		base = os.Getenv("APPDATA")
 		if base == "" {
 			return "", fmt.Errorf("APPDATA env var not set")
 		}
 	case "darwin":
-		// /Users/<user>/Library/Application Support/filament-tracker/
+		// /Users/<user>/Library/Application Support/filamint/
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
 		base = filepath.Join(home, "Library", "Application Support")
 	default:
-		// /home/<user>/.local/share/filament-tracker/
+		// /home/<user>/.local/share/filamint/
 		base = os.Getenv("XDG_DATA_HOME")
 		if base == "" {
 			home, err := os.UserHomeDir()
@@ -38,7 +38,7 @@ func GetAppDataDir() (string, error) {
 		}
 	}
 
-	dir := filepath.Join(base, "filament-tracker")
+	dir := filepath.Join(base, "filamint")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data dir: %w", err)
 	}

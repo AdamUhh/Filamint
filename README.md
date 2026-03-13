@@ -1,59 +1,80 @@
-# Welcome to Your New Wails3 Project!
+# Filamint - 3D Print & Filament Tracker
 
-Congratulations on generating your Wails3 application! This README will guide you through the next steps to get your project up and running.
+Track your spools and prints, simply.
 
-## Getting Started
+## Features
 
-1. Navigate to your project directory in the terminal.
+- Create, edit, and delete spools and prints
+- Upload files to prints with duplicate-file prevention using hashing for storage optimization
+- Hotkey support for faster navigation and actions
+- Advanced search using qualifier-based queries
+- Customizable themes including dark, light, and more
+- Configurable autocomplete suggestions for fields such as vendors, materials, and more
+- Cross-platform support: Windows, Linux, and macOS
 
-2. To run your application in development mode, use the following command:
 
-   ```
-   wails3 dev
-   ```
+## Development
 
-   This will start your application and enable hot-reloading for both frontend and backend changes.
+#### File Location
 
-3. To build your application for production, use:
+The application stores its **database, window state, and models/** in platform-specific directories:
 
-   ```
-   wails3 build
-   ```
+- **Windows:**  
+  `C:\Users\<user>\AppData\Roaming\filamint\`
 
-   This will create a production-ready executable in the `build` directory.
+- **macOS (Darwin):**  
+  `/Users/<user>/Library/Application Support/filamint/`
 
-## Exploring Wails3 Features
+- **Linux / Other UNIX-like OS:**  
+  `/home/<user>/.local/share/filamint/`  
+  *(Respects `XDG_DATA_HOME` if set)*
 
-Now that you have your project set up, it's time to explore the features that Wails3 offers:
 
-1. **Check out the examples**: The best way to learn is by example. Visit the `examples` directory in the `v3/examples` directory to see various sample applications.
+#### Project Structure
 
-2. **Run an example**: To run any of the examples, navigate to the example's directory and use:
+```bash
+Filamint/
+├── backend/                        # Go backend source
+│   ├── main.go                     # App entry point
+│   ├── internal/                   # Internal logic & services
+│   │   ├── logger.go               # Logging utilities
+│   │   ├── utils.go                # General helper functions
+│   │   ├── windowstate.go          # Track window state (size, position)
+│   │   └── services/               # Domain-specific services
+│   │       ├── databaseservice.go  # DB access
+│   │       ├── printrepo.go        # Print data repository
+│   │       ├── printservice.go     # Print-related business logic
+│   │       ├── shortcutsservice.go # Hotkey management
+│   │       ├── spoolrepo.go        # Spool data repository
+│   │       └── spoolservice.go     # Spool-related business logic
+│
+├── frontend/                        # Wails frontend (TypeScript + React)
+│   ├── src/                         # App source code (components, hooks, context, lib)
+│   ├── bindings/                    # Wails Go ↔ TS bindings
+│   ├── package.json                  # NPM dependencies
+│   ├── tsconfig.json                 # TypeScript configuration
+│   └── vite.config.ts                # Vite bundler configuration
+│
+├── build/                           # Platform-specific build assets (Windows/Linux/macOS)
+├── bin/                             # Compiled binaries
+└── README.md                        # This file
+```
 
-   ```
-   go run .
-   ```
+**Commit Message Convention**
 
-   Note: Some examples may be under development during the alpha phase.
+- `feat:` - New features 
+- `fix:` - Bug fixes 
+- `docs:` - Documentation 
+- `chore:` - Maintenance 
+- `refactor:` - Code restructuring without behavior change
+- `perf:` - Performance improvement
 
-3. **Explore the documentation**: Visit the [Wails3 documentation](https://v3.wails.io/) for in-depth guides and API references.
-
-4. **Join the community**: Have questions or want to share your progress? Join the [Wails Discord](https://discord.gg/JDdSxwjhGf) or visit the [Wails discussions on GitHub](https://github.com/wailsapp/wails/discussions).
-
-## Project Structure
-
-Take a moment to familiarize yourself with your project structure:
-
-- `frontend/`: Contains your frontend code (HTML, CSS, JavaScript/TypeScript)
-- `main.go`: The entry point of your Go backend
-- `app.go`: Define your application structure and methods here
-- `wails.json`: Configuration file for your Wails project
-
-## Next Steps
-
-1. Modify the frontend in the `frontend/` directory to create your desired UI.
-2. Add backend functionality in `main.go`.
-3. Use `wails3 dev` to see your changes in real-time.
-4. When ready, build your application with `wails3 build`.
-
-Happy coding with Wails3! If you encounter any issues or have questions, don't hesitate to consult the documentation or reach out to the Wails community.
+Examples:
+```bash
+git commit -m "feat(theme): add dark mode toggle and persist preference"
+git commit -m "fix(router): prevent crash when route params are undefined"
+git commit -m "docs(readme): add local development setup instructions"
+git commit -m "chore(deps): upgrade React to 19.0.0"
+git commit -m "refactor(db): simplify spool query logic"
+git commit -m "perf(cache): memoize expensive layout calculations"
+```
