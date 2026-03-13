@@ -1,6 +1,6 @@
-# Filamint - 3D Print & Filament Tracker
+# Filamint - A 3D Print & Filament Tracker
 
-Track your spools and prints, simply.
+**Keep track of your spools and prints**
 
 ## Features
 
@@ -12,12 +12,11 @@ Track your spools and prints, simply.
 - Configurable autocomplete suggestions for fields such as vendors, materials, and more
 - Cross-platform support: Windows, Linux, and macOS
 
-
 ## Development
 
-#### File Location
+### File Locations
 
-The application stores its **database, window state, and models/** in platform-specific directories:
+Filamint keeps its **database, window state, and models** in the following directories:
 
 - **Windows:**  
   `C:\Users\<user>\AppData\Roaming\filamint\`
@@ -25,9 +24,9 @@ The application stores its **database, window state, and models/** in platform-s
 - **macOS (Darwin):**  
   `/Users/<user>/Library/Application Support/filamint/`
 
-- **Linux / Other UNIX-like OS:**  
+- **Linux / UNIX-like systems:**  
   `/home/<user>/.local/share/filamint/`  
-  *(Respects `XDG_DATA_HOME` if set)*
+  *(Will respect `XDG_DATA_HOME` if you have it set.)*
 
 
 #### Project Structure

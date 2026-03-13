@@ -1,9 +1,9 @@
 {
-  "name": "Filament Tracker",
+  "name": "Filamint",
   "version": "1.0.0",
   "author": "AdamUhh",
   "description": "A 3D printing filament manager to keep track of spools, usage, and prints",
-  "icon": "build/appicon.png",
+  "icon": "build/app-icon.png",
   "outputFilename": "filamint",
   "platforms": ["windows/amd64", "darwin/amd64", "linux/amd64"],
   "frontend": {
