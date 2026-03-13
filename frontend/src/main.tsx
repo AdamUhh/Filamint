@@ -19,13 +19,13 @@ import { AppEventHandler, RouteTracker } from "@/components/AppEventHandler";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { Navbar } from "@/components/Navbar";
 import { PrintsPage } from "@/components/Prints";
-import { SpoolsPage } from "@/components/Spools";
 
 import { getThemeScript } from "@/lib/util-theme";
 
 import "./index.css";
 
 const ViewerPage = lazy(() => import("./components/Viewer"));
+const SpoolsPage = lazy(() => import("./components/Spools"));
 
 // === Pre-hydration theme injection ===
 if (typeof document !== "undefined") {
@@ -70,7 +70,23 @@ const router = createHashRouter([
                 path: "/",
                 element: <Navigate to="/prints" replace />,
             },
-            { path: "/spools", element: <SpoolsPage /> },
+            {
+                path: "/spools",
+                element: (
+                    <Suspense
+                        fallback={
+                            <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-[#333]">
+                                <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+                                <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">
+                                    Loading...
+                                </p>
+                            </div>
+                        }
+                    >
+                        <SpoolsPage />
+                    </Suspense>
+                ),
+            },
             { path: "/prints", element: <PrintsPage /> },
             {
                 path: "/viewer",

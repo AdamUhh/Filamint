@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { CalendarIcon, ChevronDownIcon, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";

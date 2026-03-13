@@ -26,7 +26,7 @@ import type { Spool, SpoolQueryParams } from "@bindings";
 import { SpoolFormDialog } from "./Form";
 import type { EditState } from "./lib/types";
 
-export function SpoolsPage() {
+export default function SpoolsPage() {
     const [templateOpen, setTemplateOpen] = useState(false);
     const navigate = useNavigate();
 

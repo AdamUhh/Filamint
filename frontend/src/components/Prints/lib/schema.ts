@@ -1,4 +1,4 @@
-import z from "zod";
+import * as z from "zod/mini";
 
 const modelSchema = z.union([
     z.custom<File>(), // for new uploads
@@ -13,18 +13,24 @@ const modelSchema = z.union([
 ]);
 
 export const printSchema = z.object({
-    name: z.string().min(1, "Name is required").max(300),
-    status: z.string().min(1).max(50),
-    notes: z.string().max(2000),
-    datePrinted: z.string().refine((val) => !isNaN(Date.parse(val)), {
-        message: "Invalid date",
-    }),
+    name: z
+        .string()
+        .check(z.minLength(1, "Name is required"), z.maxLength(300)),
+    status: z.string().check(z.minLength(1), z.maxLength(50)),
+    notes: z.string().check(z.maxLength(2000)),
+    datePrinted: z.string().check(
+        z.refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid date",
+        })
+    ),
     models: z.array(modelSchema),
     spools: z
         .array(
             z.object({
-                spoolId: z.number().int().nonnegative(),
-                spoolCode: z.string().min(1, "Please select a spool"),
+                spoolId: z.number().check(z.int(), z.gte(0)),
+                spoolCode: z
+                    .string()
+                    .check(z.minLength(1, "Please select a spool")),
                 color: z.string(),
                 colorHex: z.string(),
                 vendor: z.string(),
@@ -33,24 +39,27 @@ export const printSchema = z.object({
                 usedWeight: z.number(),
                 gramsUsed: z
                     .number()
-                    .min(1, "How many grams did this print use?")
-                    .max(10000),
+                    .check(
+                        z.gte(1, "How many grams did this print use?"),
+                        z.lte(10000)
+                    ),
             })
         )
-        .min(1, "At least one spool is required")
-        .superRefine((spools, ctx) => {
-            spools.forEach((spool, index) => {
-                const remaining = spool.totalWeight - spool.usedWeight;
-
-                if (spool.gramsUsed > remaining) {
-                    ctx.addIssue({
-                        code: "custom",
-                        path: [index, "gramsUsed"],
-                        message: `Grams used (${spool.gramsUsed}) exceeds remaining weight (${remaining}).`,
-                    });
-                }
-            });
-        }),
+        .check(
+            z.minLength(1, "At least one spool is required"),
+            z.superRefine((spools, ctx) => {
+                spools.forEach((spool, index) => {
+                    const remaining = spool.totalWeight - spool.usedWeight;
+                    if (spool.gramsUsed > remaining) {
+                        ctx.addIssue({
+                            code: "custom",
+                            path: [index, "gramsUsed"],
+                            message: `Grams used (${spool.gramsUsed}) exceeds remaining weight (${remaining}).`,
+                        });
+                    }
+                });
+            })
+        ),
 });
 
 export type TPrintSchema = z.infer<typeof printSchema>;

@@ -1,5 +1,5 @@
 import { useApp } from "@/context/useContext";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import {
     ArrowDownIcon,
     ArrowUpDownIcon,

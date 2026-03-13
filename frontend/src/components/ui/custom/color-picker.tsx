@@ -5,7 +5,7 @@
 import { Loader2Icon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,13 +126,17 @@ function hslToRgb(
     };
 }
 
-const colorSchema = z
-    .string()
-    .regex(
-        /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/,
-        "Color must be a valid hex color (e.g., #FF0000 or #FF0000FF)"
-    )
-    .transform((val) => val.toUpperCase());
+const colorSchema = z.pipe(
+    z
+        .string()
+        .check(
+            z.regex(
+                /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/,
+                "Color must be a valid hex color (e.g., #FF0000 or #FF0000FF)"
+            )
+        ),
+    z.transform((val) => val.toUpperCase())
+);
 
 interface ColorPickerProps {
     name: string;

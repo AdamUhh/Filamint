@@ -34,9 +34,52 @@ export default defineConfig({
         },
         rollupOptions: {
             output: {
-                manualChunks: {
-                    vendor: ["react", "react-dom"], // Separate vendor bundle
+                manualChunks(id: string) {
+                    if (!id.includes("node_modules")) return;
+
+                    // Three.js ecosystem (heaviest, isolated)
+                    if (id.includes("three") || id.includes("@react-three"))
+                        return "three";
+
+                    // Tanstack
+                    if (id.includes("@tanstack")) return "tanstack";
+
+                    // React core (changes least, most valuable to cache)
+                    if (id.includes("react-dom") || id.includes("react-router"))
+                        return "react";
+
+                    // UI component libs (change together, chunked separately from react core)
+                    if (
+                        id.includes("radix-ui") ||
+                        id.includes("@base-ui") ||
+                        id.includes("cmdk") ||
+                        id.includes("react-day-picker") ||
+                        id.includes("react-colorful") ||
+                        id.includes("react-dropzone") ||
+                        id.includes("sonner")
+                    )
+                        return "ui";
+
+                    // Icons (lucide can be large depending on usage)
+                    if (id.includes("lucide-react")) return "icons";
+
+                    // Tiny utilities (all stable, rarely change)
+                    if (
+                        id.includes("date-fns") ||
+                        id.includes("clsx") ||
+                        id.includes("zod") ||
+                        id.includes("tailwind-merge") ||
+                        id.includes("class-variance-authority") ||
+                        id.includes("tw-animate-css")
+                    )
+                        return "utils";
+
+                    return "vendor";
                 },
+
+                // manualChunks: {
+                //     vendor: ["react", "react-dom"], // Separate vendor bundle
+                // },
             },
         },
     },

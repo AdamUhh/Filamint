@@ -1,6 +1,6 @@
 import { useApp } from "@/context/useContext";
 import type { UpdateMetaOptions } from "@tanstack/react-form";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 
 import { Button } from "@/shadcn/button";

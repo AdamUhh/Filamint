@@ -1,4 +1,3 @@
-import { unzipSync } from "fflate";
 import { useEffect, useMemo } from "react";
 import {
     Box3,
@@ -8,6 +7,7 @@ import {
     type Object3D,
     Vector3,
 } from "three";
+import { unzipSync } from "three/examples/jsm/libs/fflate.module.js";
 import { ThreeMFLoader } from "three/examples/jsm/loaders/3MFLoader.js";
 
 import { PLATE_GAP, PLATE_SIZE } from "@/lib/constant-three";
