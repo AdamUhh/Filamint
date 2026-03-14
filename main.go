@@ -4,6 +4,7 @@ import (
 	internal "changeme/internal"
 	services "changeme/internal/services"
 	"regexp"
+	"strings"
 
 	"embed"
 	"log"
@@ -28,12 +29,12 @@ var buildConfig []byte
 var currentVersion = parseVersion(buildConfig)
 
 func parseVersion(data []byte) string {
-	re := regexp.MustCompile(`(?m)^\s*version:\s*"?([^"\n]+)"?`)
+	re := regexp.MustCompile(`(?m)^\s*version:\s*"?'?([0-9]+\.[0-9]+\.[0-9][^'"\n]*)'?"?`)
 	matches := re.FindSubmatch(data)
 	if len(matches) < 2 {
 		return "dev"
 	}
-	return string(matches[1])
+	return strings.TrimSpace(string(matches[1]))
 }
 
 func init() {
