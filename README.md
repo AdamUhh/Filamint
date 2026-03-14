@@ -55,6 +55,7 @@ Filamint/
 │   └── vite.config.ts                # Vite bundler configuration
 │
 ├── build/                           # Platform-specific build assets (Windows/Linux/macOS)
+│   └── config.yml                   # Central app metadata (app name, desc, version, etc.)
 ├── bin/                             # Compiled binaries
 └── README.md                        # This file
 ```

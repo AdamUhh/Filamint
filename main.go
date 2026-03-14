@@ -56,7 +56,7 @@ func main() {
 	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
 	// 'Mac' options tailor the application when running an macOS.
 	app := application.New(application.Options{
-		Name:        "filamint",
+		Name:        "Filamint",
 		Description: "A 3D printing filament manager to keep track of spools, usage, and prints",
 		Services: []application.Service{
 			application.NewService(logger),
@@ -86,7 +86,7 @@ func main() {
 	wm := internal.NewWindowManager(app, appDataDir)
 
 	wm.NewWindow("main", application.WebviewWindowOptions{
-		Title: "Filament Tracker",
+		Title: "Filamint",
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,

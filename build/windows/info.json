@@ -7,9 +7,9 @@
 			"ProductVersion": "0.1.0",
 			"CompanyName": "AdamUhh",
 			"FileDescription": "A 3D printing filament manager to keep track of spools, usage, and prints",
-			"LegalCopyright": "© 2026, AdamUhh",
+			"LegalCopyright": "(c) 2026, AdamUhh",
 			"ProductName": "Filamint",
-			"Comments": "..."
+			"Comments": "This is a comment"
 		}
 	}
 }

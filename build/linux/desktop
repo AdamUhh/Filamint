@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=My Product Description
+Name=Filamint
+Comment=A 3D printing filament manager to keep track of spools, usage, and prints
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/ %u
+Exec=/usr/local/bin/filamint %u
 Terminal=false
 Type=Application
-Icon=
+Icon=filamint
 Categories=Utility;
-StartupWMClass=
+StartupWMClass=filamint
 
  

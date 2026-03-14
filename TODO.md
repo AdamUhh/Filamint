@@ -15,6 +15,8 @@
 
 > QoL
 - [ ] Add updater (as of 5/Mar/2026, still not implemented by wails)
+- - [  ] https://github.com/AdguardTeam/AdGuardHome/blob/master/internal/updater/updater.go
+- - [  ] https://github.com/mouuff/go-rocket-update
 - [ ] Cleanup code
 
 > Final

@@ -3,15 +3,15 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleDisplayName</key>
-		<string>My Product</string>
+		<string>Filamint</string>
 		<key>CFBundleExecutable</key>
-		<string/>
+		<string>filamint</string>
 		<key>CFBundleGetInfoString</key>
 		<string>This is a comment</string>
 		<key>CFBundleIdentifier</key>
-		<string/>
+		<string>com.adamuhh.filamint</string>
 		<key>CFBundleName</key>
-		<string>My Product</string>
+		<string>Filamint</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -30,7 +30,7 @@
 			<true/>
 		</dict>
 		<key>NSHumanReadableCopyright</key>
-		<string>© now, My Company</string>
+		<string>(c) 2026, AdamUhh</string>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>
 		<key>UIRequiredDeviceCapabilities</key>

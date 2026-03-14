@@ -2,8 +2,8 @@
 set -e
 
 # Build configuration
-APP_NAME=""
-BUNDLE_ID=""
+APP_NAME="filamint"
+BUNDLE_ID="com.adamuhh.filamint"
 VERSION="0.1.0"
 BUILD_NUMBER="0.1.0"
 BUILD_DIR="build/ios"
