@@ -1,18 +1,42 @@
-# Filamint - A 3D Print & Filament Tracker
+<h1>
+  <img src="https://github.com/AdamUhh/Filamint/blob/19f5344a0a1132d18196c773dfeb4983d64c95cc/build/appicon-sm.png" width="32" />
+  Filamint - A 3D Print & Filament Tracker
+</h1>
 
-**Keep track of your spools and prints**
+**Keep track of your spools, and prints**
 
 ## Features
 
 - Create, edit, and delete spools and prints
-- Upload files to prints with duplicate-file prevention using hashing for storage optimization
-- Hotkey support for faster navigation and actions
-- Advanced search using qualifier-based queries
-- Customizable themes including dark, light, and more
-- Configurable autocomplete suggestions for fields such as vendors, materials, and more
+- Upload files to prints - if you've added the same file before, it won't be stored twice
+- Keyboard shortcuts for faster navigation and actions
+- Advanced search with qualifiers, like material:PLA or vendor:"Bambu Labs"
+- Preview models right in the app
+- Open prints directly in OrcaSlicer (or whatever slicer you use) (configurable)
+- Autocomplete suggestions for fields like vendor, material, etc. (configurable)
+- Light and dark themes, plus a few extras
 - Cross-platform support: Windows, Linux, and macOS
 
+## Installation
+
+### From Source
+
+Requires Go 1.25+ and Wails v3 - see the [Wails installation guide](https://v3alpha.wails.io/quick-start/installation/) to get set up.
+```bash
+git clone https://github.com/AdamUhh/Filamint.git
+cd Filamint
+wails3 build
+```
+Built files will be located in the project's `/bin` directory.
+
 ## Development
+
+Requires Go 1.25+ and Wails v3
+```bash
+git clone https://github.com/AdamUhh/Filamint.git
+cd Filamint
+wails3 dev
+```
 
 ### File Locations
 
@@ -67,7 +91,7 @@ Filamint/
 - `docs:` - Documentation 
 - `chore:` - Maintenance 
 - `refactor:` - Code restructuring without behavior change
-- `perf:` - Performance improvement
+- `perf:` - Performance improvements
 
 Examples:
 ```bash
@@ -78,3 +102,7 @@ git commit -m "chore(deps): upgrade React to 19.0.0"
 git commit -m "refactor(db): simplify spool query logic"
 git commit -m "perf(cache): memoize expensive layout calculations"
 ```
+
+License
+
+MIT - see [LICENSE](https://github.com/AdamUhh/Filamint/blob/main/LICENSE)
