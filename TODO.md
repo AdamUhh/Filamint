@@ -18,8 +18,3 @@
 - - [  ] https://github.com/AdguardTeam/AdGuardHome/blob/master/internal/updater/updater.go
 - - [  ] https://github.com/mouuff/go-rocket-update
 - [ ] Cleanup code
-
-> Final
-- [ ] App Name
-- [ ] App Image/Icon
-- [ ] Figure out how to fill the build configs with proper info about app, docs are bad currently
