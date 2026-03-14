@@ -59,6 +59,24 @@ func newTestDB(t *testing.T) *sqlx.DB {
 		FOREIGN KEY (spool_id) REFERENCES spools(id) ON DELETE CASCADE,
 		UNIQUE (print_id, spool_id)
 	);
+
+
+	CREATE TABLE IF NOT EXISTS models (
+	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+	    name TEXT NOT NULL,
+	    size INTEGER NOT NULL DEFAULT 0,
+	    ext TEXT NOT NULL,
+	    hash TEXT UNIQUE, 
+	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS print_models (
+	    print_id INTEGER NOT NULL,
+	    model_id INTEGER NOT NULL,
+	    PRIMARY KEY (print_id, model_id),
+	    FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE,
+	    FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE
+	);
 	`
 	if _, err := db.Exec(schema); err != nil {
 		t.Fatalf("failed to init schema: %v", err)
