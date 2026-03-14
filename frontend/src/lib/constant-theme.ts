@@ -3,10 +3,13 @@
 export const THEMES = [
     "light",
     "dark",
-    "beige",
+    "sand",
     "minimal",
-    "minimal-dark",
-    "nlan-dark",
+    "monolith",
+    "rewaff",
+    "rewaff-dark",
+    "tealish",
+    "tealish-dark",
     "brutalist",
 ] as const;
 

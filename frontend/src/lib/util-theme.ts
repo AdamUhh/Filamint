@@ -16,10 +16,13 @@ const code = function () {
     const THEMES: Theme[] = [
         "light",
         "dark",
-        "beige",
+        "sand",
         "minimal",
-        "minimal-dark",
-        "nlan-dark",
+        "monolith",
+        "rewaff",
+        "rewaff-dark",
+        "tealish",
+        "tealish-dark",
         "brutalist",
     ];
 
