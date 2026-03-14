@@ -22,6 +22,7 @@ import { PrintsPage } from "@/components/Prints";
 
 import { getThemeScript } from "@/lib/util-theme";
 
+import { Updater } from "./components/Updater";
 import "./index.css";
 
 const ViewerPage = lazy(() => import("./components/Viewer"));
@@ -55,6 +56,7 @@ const router = createHashRouter([
                 <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
                 <RouteTracker />
                 <AppEventHandler />
+                <Updater />
                 <Toaster />
                 <QueryClientProvider client={queryClient}>
                     <AppProvider>
@@ -68,7 +70,7 @@ const router = createHashRouter([
         children: [
             {
                 path: "/",
-                element: <Navigate to="/spools" replace />,
+                element: <Navigate to="/prints" replace />,
             },
             {
                 path: "/spools",

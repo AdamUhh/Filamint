@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "notes": "Release v0.1.0",
+  "pub_date": "2026-03-14T14:46:42Z",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/AdamUhh/filamint/releases/download/v0.1.0/filamint-windows-amd64.exe"
+    },
+    "darwin-x86_64": {
+      "url": "https://github.com/AdamUhh/filamint/releases/download/v0.1.0/filamint-darwin-amd64.dmg"
+    },
+    "darwin-aarch64": {
+      "url": "https://github.com/AdamUhh/filamint/releases/download/v0.1.0/filamint-darwin-arm64.dmg"
+    },
+    "linux-x86_64": {
+      "url": "https://github.com/AdamUhh/filamint/releases/download/v0.1.0/filamint-linux-amd64.AppImage"
+    }
+  }
+}

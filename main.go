@@ -28,10 +28,15 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
+const currentVersion = "dev"
+const manifestURL = "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
+	updaterSvc := services.NewUpdater(currentVersion, manifestURL)
+
 	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {
 		slog.Error("Failed to resolve app data path", "error", err)
@@ -61,6 +66,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(logger),
 			application.NewService(db),
+			application.NewService(updaterSvc),
 			application.NewService(services.NewSpoolService(db)),
 			application.NewService(services.NewPrintService(db)),
 			application.NewService(services.NewShortcutService(db)),
@@ -101,6 +107,27 @@ func main() {
 		X:                0,
 		Y:                0,
 	})
+
+	// Wire download progress to frontend events
+	updaterSvc.OnProgress = func(p services.DownloadProgress) {
+		app.Event.Emit("updater:progress", p)
+	}
+
+	// Optional: check for updates on startup in the background
+	go func() {
+		info, err := updaterSvc.CheckForUpdate()
+		if err != nil {
+			slog.Error("Error checking for update", "error", err)
+			return
+		}
+
+		if !info.Available {
+			slog.Info("No update found")
+			return
+		}
+
+		app.Event.Emit("updater:available", info)
+	}()
 
 	// Run the application. This blocks until the application has been exited.
 	err = app.Run()

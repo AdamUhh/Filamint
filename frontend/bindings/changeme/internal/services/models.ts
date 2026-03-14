@@ -473,6 +473,50 @@ export class SpoolQueryResult {
     }
 }
 
+/**
+ * UpdateInfo is what gets sent to the frontend
+ */
+export class UpdateInfo {
+    "available": boolean;
+    "currentVersion": string;
+    "newVersion": string;
+    "notes": string;
+    "pubDate": string;
+    "downloadUrl": string;
+
+    /** Creates a new UpdateInfo instance. */
+    constructor($$source: Partial<UpdateInfo> = {}) {
+        if (!("available" in $$source)) {
+            this["available"] = false;
+        }
+        if (!("currentVersion" in $$source)) {
+            this["currentVersion"] = "";
+        }
+        if (!("newVersion" in $$source)) {
+            this["newVersion"] = "";
+        }
+        if (!("notes" in $$source)) {
+            this["notes"] = "";
+        }
+        if (!("pubDate" in $$source)) {
+            this["pubDate"] = "";
+        }
+        if (!("downloadUrl" in $$source)) {
+            this["downloadUrl"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UpdateInfo instance from a string or object.
+     */
+    static createFrom($$source: any = {}): UpdateInfo {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new UpdateInfo($$parsedSource as Partial<UpdateInfo>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = PrintSpool.createFrom;
 const $$createType1 = $Create.Array($$createType0);

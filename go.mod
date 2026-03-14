@@ -3,6 +3,7 @@ module changeme
 go 1.25
 
 require (
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.61
 	modernc.org/sqlite v1.36.0
