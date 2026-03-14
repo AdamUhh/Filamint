@@ -220,8 +220,8 @@ export function PrintFormDialog({
                 if (!isOpen) handleClose();
             }}
         >
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-                <DialogHeader>
+            <DialogContent className="max-h-[90vh] px-0 py-3 sm:max-w-lg">
+                <DialogHeader className="px-3 pt-2">
                     <DialogTitle>
                         {editState.id > 0
                             ? "Edit Print"
@@ -238,8 +238,10 @@ export function PrintFormDialog({
                         form.handleSubmit();
                     }}
                 >
-                    <PrintForm form={form} editState={editState} />
-                    <DialogFooter>
+                    <div className="max-h-[70vh] overflow-y-auto px-3">
+                        <PrintForm form={form} editState={editState} />
+                    </div>
+                    <DialogFooter className="mx-0">
                         <Button
                             type="button"
                             variant="outline"

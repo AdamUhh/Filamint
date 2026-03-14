@@ -90,19 +90,15 @@ function DefaultSettings({
                 </Button>
             </div>
 
-            <InputGroup>
+            <InputGroup className="pt-2 pr-0.5">
                 <InputGroupTextarea
                     id={field}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder={placeholder}
-                    className="max-h-32 min-h-32 text-sm"
+                    className="max-h-32 min-h-32 py-0 text-sm"
                 />
-                <InputGroupAddon
-                    align="block-end"
-                    className="justify-end"
-                    // className="absolute bottom-0 justify-end"
-                >
+                <InputGroupAddon align="block-end" className="justify-end">
                     {isDirty && (
                         <>
                             <Button

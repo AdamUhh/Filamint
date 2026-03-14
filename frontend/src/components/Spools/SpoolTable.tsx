@@ -73,8 +73,8 @@ export function SpoolTable({
     const spoolArray = Array.from(spools.values());
 
     return (
-        <div className="rounded-lg border">
-            <Table className="table-fixed">
+        <div className="rounded-lg">
+            <Table className="table-fixed" stickyHeader>
                 <MyTableHeaders
                     sortBy={sortBy}
                     sortOrder={sortOrder}
@@ -384,7 +384,7 @@ function MyTableHeaders({
     onSort?: (column: string) => void;
 }) {
     return (
-        <TableHeader className="sticky top-0 z-10 bg-background">
+        <TableHeader className="sticky top-0 bg-background">
             <TableRow>
                 <SortableHeader
                     sortBy={sortBy}

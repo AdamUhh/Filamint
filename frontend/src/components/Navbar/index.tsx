@@ -65,11 +65,13 @@ export function Navbar() {
             </div>
 
             <Dialog open={settingsOpen} onOpenChange={handleDialogChange}>
-                <DialogContent className="max-h-[85vh] overflow-y-scroll p-6 sm:max-w-4xl">
-                    <DialogHeader>
+                <DialogContent className="px-0 py-6 sm:max-w-4xl">
+                    <DialogHeader className="px-6">
                         <DialogTitle>Settings</DialogTitle>
                     </DialogHeader>
-                    <AppSettings />
+                    <div className="max-h-[85vh] overflow-y-scroll px-6 [&::-webkit-scrollbar]:w-2">
+                        <AppSettings />
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

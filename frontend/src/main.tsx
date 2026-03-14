@@ -68,14 +68,14 @@ const router = createHashRouter([
         children: [
             {
                 path: "/",
-                element: <Navigate to="/prints" replace />,
+                element: <Navigate to="/spools" replace />,
             },
             {
                 path: "/spools",
                 element: (
                     <Suspense
                         fallback={
-                            <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-[#333]">
+                            <div className="flex h-screen w-screen flex-col items-center justify-center gap-3">
                                 <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
                                 <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">
                                     Loading...

@@ -71,8 +71,8 @@ export function SelectSpoolTable({
     };
 
     return (
-        <div className="h-[calc(90vh-150px)] rounded-lg border">
-            <Table>
+        <div className="h-[calc(90vh-150px)] rounded-lg">
+            <Table stickyHeader>
                 <MyTableHeaders
                     sortBy={sortBy}
                     sortOrder={sortOrder}

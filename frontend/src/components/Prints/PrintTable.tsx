@@ -102,8 +102,8 @@ export function PrintTable({
 
     return (
         <>
-            <div className="rounded-lg border">
-                <Table>
+            <div className="rounded-lg">
+                <Table stickyHeader>
                     <PrintTableHeaders
                         sortBy={sortBy}
                         sortOrder={sortOrder}
@@ -405,7 +405,7 @@ function PrintTableHeaders({
     onSort?: (column: string) => void;
 }) {
     return (
-        <TableHeader>
+        <TableHeader className="sticky top-0 bg-background">
             <TableRow>
                 <SortableHeader
                     sortBy={sortBy}

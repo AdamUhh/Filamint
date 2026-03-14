@@ -94,15 +94,17 @@ export const PrintForm = withForm({
                                                     + Select Spools
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
-                                                <DialogHeader>
+                                            <DialogContent className="max-h-[90vh] px-0 py-3 sm:max-w-6xl">
+                                                <DialogHeader className="px-3 pt-2">
                                                     <DialogTitle>
                                                         Select Spool
                                                     </DialogTitle>
                                                 </DialogHeader>
-                                                <field.PrintSpoolContainerFormField
-                                                    editingId={editState.id}
-                                                />
+                                                <div className="max-h-[70vh] overflow-y-auto px-3">
+                                                    <field.PrintSpoolContainerFormField
+                                                        editingId={editState.id}
+                                                    />
+                                                </div>
                                             </DialogContent>
                                         </Dialog>
                                     </div>
