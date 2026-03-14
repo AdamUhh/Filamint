@@ -83,9 +83,14 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Package
+      - name: Package (Unix)
+        if: matrix.platform != 'windows'
         run: wails3 package
-        shell: ${{ matrix.platform == 'windows' && 'pwsh' || 'bash' }}
+
+      - name: Package (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: wails3 package
 
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
