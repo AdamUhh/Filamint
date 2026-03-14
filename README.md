@@ -57,31 +57,31 @@ Filamint keeps its **database, window state, and models** in the following direc
 
 ```bash
 Filamint/
-├── backend/                        # Go backend source
-│   ├── main.go                     # App entry point
-│   ├── internal/                   # Internal logic & services
-│   │   ├── logger.go               # Logging utilities
-│   │   ├── utils.go                # General helper functions
-│   │   ├── windowstate.go          # Track window state (size, position)
-│   │   └── services/               # Domain-specific services
-│   │       ├── databaseservice.go  # DB access
-│   │       ├── printrepo.go        # Print data repository
-│   │       ├── printservice.go     # Print-related business logic
-│   │       ├── shortcutsservice.go # Hotkey management
-│   │       ├── spoolrepo.go        # Spool data repository
-│   │       └── spoolservice.go     # Spool-related business logic
+├── backend/                          # Go backend source
+│   ├── main.go                       # App entry point
+│   ├── internal/                     # Internal logic & services
+│   │   ├── logger.go                 # Logging utilities
+│   │   ├── utils.go                  # General helper functions
+│   │   ├── windowstate.go            # Track window state (size, position)
+│   │   └── services/                 # Domain-specific services
+│   │       ├── databaseservice.go    # DB access
+│   │       ├── printrepo.go          # Print data repository
+│   │       ├── printservice.go       # Print-related business logic
+│   │       ├── shortcutsservice.go   # Hotkey management
+│   │       ├── spoolrepo.go          # Spool data repository
+│   │       └── spoolservice.go       # Spool-related business logic
 │
-├── frontend/                        # Wails frontend (TypeScript + React)
-│   ├── src/                         # App source code (components, hooks, context, lib)
-│   ├── bindings/                    # Wails Go ↔ TS bindings
+├── frontend/                         # Wails frontend (TypeScript + React)
+│   ├── src/                          # App source code (components, hooks, context, lib)
+│   ├── bindings/                     # Wails Go ↔ TS bindings
 │   ├── package.json                  # NPM dependencies
 │   ├── tsconfig.json                 # TypeScript configuration
 │   └── vite.config.ts                # Vite bundler configuration
 │
-├── build/                           # Platform-specific build assets (Windows/Linux/macOS)
-│   └── config.yml                   # Central app metadata (app name, desc, version, etc.)
-├── bin/                             # Compiled binaries
-└── README.md                        # This file
+├── build/                            # Platform-specific build assets (Windows/Linux/macOS)
+│   └── config.yml                    # Central app metadata (app name, desc, version, etc.)
+├── bin/                              # Compiled binaries
+└── README.md                         # This file
 ```
 
 **Commit Message Convention**
