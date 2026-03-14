@@ -52,7 +52,9 @@ jobs:
       - name: Install Windows dependencies
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: choco install nsis -y
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
