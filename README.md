@@ -11,11 +11,11 @@
 - Upload files to prints - if you've added the same file before, it won't be stored twice
 - Keyboard shortcuts for faster navigation and actions
 - Advanced search with qualifiers, like material:PLA or vendor:"Bambu Labs"
-- Preview models right in the app
+- Preview models directly in the app
 - Open prints directly in OrcaSlicer (or whatever slicer you use) (configurable)
 - Autocomplete suggestions for fields like vendor, material, etc. (configurable)
 - Light and dark themes, plus a few extras
-- Cross-platform support: Windows, Linux, and macOS
+- Cross-platform support: Windows and Linux - macOS should work but hasn't been tested
 
 ## Installation
 
@@ -31,11 +31,18 @@ Built files will be located in the project's `/bin` directory.
 
 ## Development
 
-Requires Go 1.25+ and Wails v3
+Requires Go 1.25+ and [Wails v3](https://v3alpha.wails.io/quick-start/installation/)
 ```bash
 git clone https://github.com/AdamUhh/Filamint.git
 cd Filamint
 wails3 dev
+```
+
+### Testing
+
+Basic unit tests for spool and print services (generated with Claude)
+```bash
+go test ./internal/services/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
 ```
 
 ### File Locations
@@ -53,7 +60,7 @@ Filamint keeps its **database, window state, and models** in the following direc
   *(Will respect `XDG_DATA_HOME` if you have it set.)*
 
 
-#### Project Structure
+### Project Structure
 
 ```bash
 Filamint/
@@ -73,6 +80,7 @@ Filamint/
 │
 ├── frontend/                         # Wails frontend (TypeScript + React)
 │   ├── src/                          # App source code (components, hooks, context, lib)
+│   │   └── main.tsx                  # Frontend app entry point
 │   ├── bindings/                     # Wails Go ↔ TS bindings
 │   ├── package.json                  # NPM dependencies
 │   ├── tsconfig.json                 # TypeScript configuration
@@ -84,7 +92,7 @@ Filamint/
 └── README.md                         # This file
 ```
 
-**Commit Message Convention**
+### Commit Message Convention
 
 - `feat:` - New features 
 - `fix:` - Bug fixes 
