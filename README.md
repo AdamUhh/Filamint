@@ -103,6 +103,6 @@ git commit -m "refactor(db): simplify spool query logic"
 git commit -m "perf(cache): memoize expensive layout calculations"
 ```
 
-License
+## License
 
 MIT - see [LICENSE](https://github.com/AdamUhh/Filamint/blob/main/LICENSE)
