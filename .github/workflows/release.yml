@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -38,12 +38,12 @@ jobs:
           go-version: 'stable'
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
 
       - name: Cache Go modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/go-build
@@ -52,7 +52,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
 
       - name: Cache Node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
@@ -83,18 +83,12 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Package (Unix)
-        if: matrix.platform != 'windows'
-        run: wails3 package
-
-      - name: Package (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
+      - name: Package
         run: wails3 package
 
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-artifacts
           path: |
@@ -103,7 +97,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-artifacts
           path: bin/filamint*.exe
@@ -114,7 +108,7 @@ jobs:
 
       - name: Upload macOS artifacts
         if: matrix.platform == 'darwin'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: darwin-artifacts
           path: bin/filamint.dmg
@@ -127,10 +121,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -143,27 +137,21 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           REPO="${{ github.repository }}"
-          cat > latest.json << EOF
-          {
-            "version": "$VERSION",
-            "notes": "Release v$VERSION",
-            "pub_date": "$DATE",
-            "platforms": {
-              "windows-x86_64": {
-                "url": "https://github.com/$REPO/releases/download/v$VERSION/filamint-windows-amd64.exe"
-              },
-              "darwin-aarch64": {
-                "url": "https://github.com/$REPO/releases/download/v$VERSION/filamint.dmg"
-              },
-              "linux-x86_64": {
-                "url": "https://github.com/$REPO/releases/download/v$VERSION/filamint"
-              },
-              "linux-x86_64-deb": {
-                "url": "https://github.com/$REPO/releases/download/v$VERSION/filamint.deb"
+          jq -n \
+            --arg version "$VERSION" \
+            --arg date "$DATE" \
+            --arg repo "$REPO" \
+            '{
+              version: $version,
+              notes: ("Release v" + $version),
+              pub_date: $date,
+              platforms: {
+                "windows-x86_64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint-windows-amd64.exe") },
+                "darwin-aarch64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint.dmg") },
+                "linux-x86_64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint") },
+                "linux-x86_64-deb": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint.deb") }
               }
-            }
-          }
-          EOF
+            }' > latest.json
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
