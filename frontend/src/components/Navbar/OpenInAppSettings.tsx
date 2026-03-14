@@ -100,7 +100,7 @@ export function OpenInAppSettings() {
                     <InputGroupTextarea
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        className={`max-h-96 min-h-64 max-w-152 overflow-scroll font-mono text-xs whitespace-pre-wrap ${
+                        className={`max-h-96 min-h-64 overflow-scroll font-mono text-xs break-all whitespace-pre-wrap ${
                             !isJsonValid
                                 ? "border-destructive focus-visible:ring-destructive"
                                 : ""

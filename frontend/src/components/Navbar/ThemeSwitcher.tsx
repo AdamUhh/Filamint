@@ -1,5 +1,3 @@
-import { useThemeSettings } from "@/hooks/useTheme";
-
 import { Label } from "@/shadcn/label";
 import {
     Select,
@@ -10,6 +8,8 @@ import {
 } from "@/shadcn/select";
 
 import { THEMES, type Theme } from "@/lib/constant-theme";
+
+import { useThemeSettings } from "@/hooks/useTheme";
 
 export function ThemeSwitcher() {
     const { theme, setTheme } = useThemeSettings();

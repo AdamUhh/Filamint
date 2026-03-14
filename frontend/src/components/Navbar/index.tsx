@@ -1,4 +1,3 @@
-import { useKeyCombo } from "@/hooks/useKeyCombo";
 import { Events } from "@wailsio/runtime";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +11,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/shadcn/dialog";
+
+import { useKeyCombo } from "@/hooks/useKeyCombo";
 
 import { AppSettings } from "./Settings";
 

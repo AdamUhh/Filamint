@@ -10,9 +10,11 @@ import { LazyTooltip } from "./ui/custom/lazy-tooltip";
 export function CopyToClipboard({
     textToCopy,
     tooltipContent,
+    disabled = false,
 }: {
     textToCopy: string;
     tooltipContent: string;
+    disabled?: boolean;
 }) {
     const [copied, setCopied] = useState(false);
     const [open, setOpen] = useState(false);
@@ -42,7 +44,8 @@ export function CopyToClipboard({
                 onClick={handleCopy}
                 className={cn(
                     "pointer-events-none opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100",
-                    copied && "bg-green-500 hover:bg-green-500"
+                    copied && "bg-green-500 hover:bg-green-500",
+                    !disabled && "pointer-events-none!"
                 )}
             >
                 {copied ? (
@@ -60,11 +63,13 @@ export function CopyOnClick({
     tooltipContent,
     copiedContent,
     children,
+    disabled = false,
 }: {
     textToCopy: string;
     tooltipContent: React.ReactNode;
     copiedContent?: React.ReactNode;
     children: React.ReactNode;
+    disabled?: boolean;
 }) {
     const [copied, setCopied] = useState(false);
     const [open, setOpen] = useState(false);
@@ -96,7 +101,13 @@ export function CopyOnClick({
                     : tooltipContent
             }
         >
-            <div className="hover:cursor-pointer" onClick={handleCopy}>
+            <div
+                className={cn(
+                    "hover:cursor-pointer",
+                    disabled && "pointer-events-none!"
+                )}
+                onClick={handleCopy}
+            >
                 {children}
             </div>
         </LazyTooltip>
