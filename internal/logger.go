@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -20,7 +19,7 @@ type Logger struct {
 }
 
 type prettyHandler struct {
-	writer io.Writer
+	file   *os.File
 	level  slog.Level
 	source bool
 }
@@ -31,30 +30,35 @@ func (h *prettyHandler) Enabled(_ context.Context, level slog.Level) bool {
 
 func (h *prettyHandler) Handle(_ context.Context, r slog.Record) error {
 	level := fmt.Sprintf("%-5s", r.Level.String())
-
 	var source string
 	if h.source && r.PC != 0 {
 		frames := runtime.CallersFrames([]uintptr{r.PC})
 		f, _ := frames.Next()
 		source = fmt.Sprintf(" (%s:%d)", filepath.Base(f.File), f.Line)
 	}
-
 	timestamp := r.Time.Format("2006/01/02 15:04:05")
-
 	var attrs strings.Builder
 	r.Attrs(func(a slog.Attr) bool {
 		fmt.Fprintf(&attrs, " %s=%v", a.Key, a.Value)
 		return true
 	})
-
-	_, err := fmt.Fprintf(h.writer, "%s %s %s%s%s\n",
+	line := fmt.Sprintf("%s %s %s%s%s\n",
 		timestamp,
 		level,
 		r.Message,
 		attrs.String(),
 		source,
 	)
-	return err
+
+	// Always write to file — this must never be skipped
+	if h.file != nil {
+		h.file.WriteString(line)
+	}
+
+	// Best-effort write to stdout; ignore errors (stdout may not exist in GUI builds)
+	fmt.Fprint(os.Stdout, line)
+
+	return nil
 }
 
 func (h *prettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
@@ -69,10 +73,9 @@ func NewLogger(appDataDir string) (*Logger, error) {
 	logPath := filepath.Join(appDataDir, "logs.txt")
 	oldLogPath := filepath.Join(appDataDir, "logs.old.txt")
 
-	// Rotate if logs.txt exceeds 10MB
 	if info, err := os.Stat(logPath); err == nil && info.Size() > 10*1024*1024 {
 		if err := os.Rename(logPath, oldLogPath); err != nil {
-			slog.Warn("Failed to rotate log file", "error", err)
+			// can't use slog here yet, just ignore
 		}
 	}
 
@@ -83,10 +86,8 @@ func NewLogger(appDataDir string) (*Logger, error) {
 
 	fmt.Fprintf(logFile, "\n--- Session started: %s ---\n", time.Now().Format("2006-01-02 15:04:05"))
 
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-
 	handler := &prettyHandler{
-		writer: multiWriter,
+		file:   logFile, // pass the file directly
 		level:  slog.LevelInfo,
 		source: false,
 	}

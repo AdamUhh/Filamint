@@ -56,13 +56,11 @@ func main() {
 
 	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {
-		slog.Error("Failed to resolve app data path", "error", err)
 		os.Exit(1)
 	}
 
 	logger, err := internal.NewLogger(appDataDir)
 	if err != nil {
-		slog.Error("Failed to initialize logger", "error", err)
 		os.Exit(1)
 	}
 
@@ -103,7 +101,6 @@ func main() {
 				}
 			},
 		},
-		Logger: logger.Logger,
 	})
 
 	wm := internal.NewWindowManager(app, appDataDir)
