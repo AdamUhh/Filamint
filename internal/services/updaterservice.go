@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // Manifest matches the JSON structure hosted on your update server / GitHub Releases
@@ -315,8 +316,8 @@ func platformKey() string {
 	return runtime.GOOS + "-" + archKey()
 }
 
-func (s *UpdateService) ServiceStartup(ctx context.Context, options any) error {
-	slog.Info("Updater service shutting down")
+func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	slog.Info("Updater service started")
 	return nil
 }
 
