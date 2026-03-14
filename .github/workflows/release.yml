@@ -37,14 +37,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
+      # Linux deps MUST come before installing Wails CLI
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev nsis libfuse2
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            nsis \
+            libfuse2 \
+            pkg-config \
+            build-essential
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: Install frontend dependencies
         run: |
