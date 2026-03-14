@@ -37,7 +37,6 @@ jobs:
         with:
           node-version: '20'
 
-      # Linux deps MUST come before installing Wails CLI
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -58,33 +57,18 @@ jobs:
           cd frontend
           npm install
 
-      - name: Extract version from config (Linux/macOS)
-        if: matrix.platform != 'windows'
-        id: version_unix
-        run: |
-          VERSION=$(grep 'version:' build/config.yml | head -1 | awk '{print $2}' | tr -d '"')
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Extract version from config (Windows)
-        if: matrix.platform == 'windows'
-        id: version_windows
-        shell: pwsh
-        run: |
-          $version = (Get-Content build/config.yml | Select-String 'version:' | Select-Object -First 1).ToString().Split(':')[1].Trim().Trim('"')
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-
       - name: Package (Linux)
         if: matrix.platform == 'linux'
-        run: wails3 package -ldflags "-X main.currentVersion=${{ steps.version_unix.outputs.VERSION }}"
+        run: wails3 package
 
       - name: Package (macOS)
         if: matrix.platform == 'darwin'
-        run: wails3 package -ldflags "-X main.currentVersion=${{ steps.version_unix.outputs.VERSION }}"
+        run: wails3 package
 
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: wails3 package -ldflags "-X main.currentVersion=${{ steps.version_windows.outputs.VERSION }}"
+        run: wails3 package
 
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'

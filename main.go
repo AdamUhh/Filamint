@@ -3,6 +3,7 @@ package main
 import (
 	internal "changeme/internal"
 	services "changeme/internal/services"
+	"regexp"
 
 	"embed"
 	"log"
@@ -21,6 +22,20 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed build/config.yml
+var buildConfig []byte
+
+var currentVersion = parseVersion(buildConfig)
+
+func parseVersion(data []byte) string {
+	re := regexp.MustCompile(`(?m)^\s*version:\s*"?([^"\n]+)"?`)
+	matches := re.FindSubmatch(data)
+	if len(matches) < 2 {
+		return "dev"
+	}
+	return string(matches[1])
+}
+
 func init() {
 	// Register a custom event whose associated data type is string.
 	// This is not required, but the binding generator will pick up registered events
@@ -28,7 +43,6 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
-const currentVersion = "dev"
 const manifestURL = "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
 
 // main function serves as the application's entry point. It initializes the application, creates a window,
