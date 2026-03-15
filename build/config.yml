@@ -11,7 +11,7 @@ info:
   description: "A 3D printing filament manager to keep track of spools, usage, and prints" # The application description
   copyright: "(c) 2026, AdamUhh" # Copyright text
   comments: "" # Comments
-  version: "0.1.1" # The application version
+  version: "0.1.0" # The application version
 
 # iOS build configuration (uncomment to customise iOS project generation)
 # Note: Keys under `ios` OVERRIDE values under `info` when set.

@@ -6,7 +6,7 @@ import { Separator } from "@/shadcn/separator";
 
 import { cn } from "@/lib/utils";
 
-import { UpdateService } from "@bindings";
+import { UpdateService } from "@bindings/updater";
 
 type UpdateState =
     | { status: "idle" }
@@ -28,15 +28,6 @@ interface DownloadProgress {
     percent: number;
 }
 
-interface UpdateInfo {
-    available: boolean;
-    currentVersion: string;
-    newVersion: string;
-    notes: string;
-    pubDate: string;
-    downloadUrl: string;
-}
-
 export function UpdateSettings() {
     const [state, setState] = useState<UpdateState>({ status: "idle" });
 
@@ -47,21 +38,8 @@ export function UpdateSettings() {
             setState({ status: "downloading", percent: p.percent });
         });
 
-        // Background startup check result → app.Event.Emit("updater:available", info)
-        const offAvailable = Events.On("updater:available", (event) => {
-            const info = event.data as UpdateInfo;
-            setState({
-                status: "available",
-                newVersion: info.newVersion,
-                notes: info.notes,
-                pubDate: info.pubDate,
-                downloadUrl: info.downloadUrl,
-            });
-        });
-
         return () => {
             offProgress();
-            offAvailable();
         };
     }, []);
 

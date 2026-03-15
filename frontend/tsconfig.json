@@ -36,6 +36,9 @@
       ],
       "@bindings": [
 	"./bindings/changeme/internal/services"
+      ],
+      "@bindings/updater": [
+	"./bindings/changeme/internal/updater"
       ]
     }
   }

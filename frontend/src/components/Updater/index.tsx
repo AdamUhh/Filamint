@@ -1,25 +1,32 @@
-import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-import { type UpdateInfo, UpdateService } from "@bindings";
+import { UpdateService } from "@bindings/updater";
 
 export function Updater() {
     useEffect(() => {
-        const unsubscribe = Events.On("updater:available", (event) => {
-            const info = event.data as UpdateInfo;
-            toast.success(`Update available — v${info.newVersion}`, {
-                description: info.notes,
-                duration: Infinity,
-                action: {
-                    label: "Update",
-                    onClick: () =>
-                        UpdateService.DownloadAndInstall(info.downloadUrl),
-                },
-            });
-        });
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const info = await UpdateService.CheckForUpdate();
+                if (cancelled || !info?.available) return;
+
+                toast.success(`New update available - v${info.newVersion}`, {
+                    duration: Infinity,
+                    action: {
+                        label: "Update",
+                        onClick: () =>
+                            UpdateService.DownloadAndInstall(info.downloadUrl),
+                    },
+                });
+            } catch (err) {
+                console.error("Update check failed", err);
+            }
+        })();
+
         return () => {
-            unsubscribe();
+            cancelled = true;
         };
     }, []);
 

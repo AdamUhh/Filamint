@@ -19,10 +19,10 @@ import { AppEventHandler, RouteTracker } from "@/components/AppEventHandler";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { Navbar } from "@/components/Navbar";
 import { PrintsPage } from "@/components/Prints";
+import { Updater } from "@/components/Updater";
 
 import { getThemeScript } from "@/lib/util-theme";
 
-import { Updater } from "./components/Updater";
 import "./index.css";
 
 const ViewerPage = lazy(() => import("./components/Viewer"));
@@ -49,23 +49,27 @@ const queryClient = new QueryClient({
     },
 });
 
+function RootLayout() {
+    return (
+        <>
+            <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
+            <RouteTracker />
+            <AppEventHandler />
+            <Updater />
+            <Toaster />
+            <QueryClientProvider client={queryClient}>
+                <AppProvider>
+                    <Outlet />
+                    <Navbar />
+                </AppProvider>
+            </QueryClientProvider>
+        </>
+    );
+}
+
 const router = createHashRouter([
     {
-        element: (
-            <>
-                <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
-                <RouteTracker />
-                <AppEventHandler />
-                <Updater />
-                <Toaster />
-                <QueryClientProvider client={queryClient}>
-                    <AppProvider>
-                        <Outlet />
-                        <Navbar />
-                    </AppProvider>
-                </QueryClientProvider>
-            </>
-        ),
+        element: <RootLayout />,
         errorElement: <RouteError />,
         children: [
             {

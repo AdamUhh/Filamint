@@ -7,6 +7,7 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react(), wails("./bindings"), tailwindcss()],
+
     resolve: {
         alias: {
             "@/shadcn": path.resolve(__dirname, "src/components/ui"),
@@ -18,12 +19,17 @@ export default defineConfig({
             "@/constants": path.resolve(__dirname, "src/constants"),
             "@/hooks": path.resolve(__dirname, "src/hooks"),
             "@": path.resolve(__dirname, "src"),
+            "@bindings/updater": path.resolve(
+                __dirname,
+                "bindings/changeme/internal/updater"
+            ),
             "@bindings": path.resolve(
                 __dirname,
                 "bindings/changeme/internal/services"
             ),
         },
     },
+
     build: {
         minify: "terser",
         terserOptions: {

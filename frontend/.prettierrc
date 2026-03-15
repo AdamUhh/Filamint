@@ -13,6 +13,7 @@
 		"^@/constants/(.*)$",
 		"^@/hooks/(.*)$",
   		"^@bindings$",   
+  		"^@bindings/updater$",   
 		"^[./]"
 	],
 	"importOrderSeparation": true,

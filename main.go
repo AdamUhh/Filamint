@@ -3,6 +3,8 @@ package main
 import (
 	internal "changeme/internal"
 	services "changeme/internal/services"
+	updater "changeme/internal/updater"
+
 	"regexp"
 	"strings"
 
@@ -28,6 +30,7 @@ var buildConfig []byte
 
 var currentVersion = parseVersion(buildConfig)
 
+// get the second instance of 'version'
 func parseVersion(data []byte) string {
 	re := regexp.MustCompile(`(?m)^\s*version:\s*"?'?([0-9]+\.[0-9]+\.[0-9][^'"\n]*)'?"?`)
 	matches := re.FindSubmatch(data)
@@ -46,8 +49,6 @@ func init() {
 
 const manifestURL = "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
 
-// const manifestURL = "http://localhost:8080/latest.json"
-
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
@@ -61,6 +62,8 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+
+	slog.Info("Running", "version", currentVersion)
 
 	db, err := services.NewDatabase(filepath.Join(appDataDir, "db.db"))
 	if err != nil {
@@ -79,7 +82,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(logger),
 			application.NewService(db),
-			application.NewService(services.NewUpdater(currentVersion, manifestURL)),
+			application.NewService(updater.NewUpdater(currentVersion, manifestURL)),
 			application.NewService(services.NewSpoolService(db)),
 			application.NewService(services.NewPrintService(db)),
 			application.NewService(services.NewShortcutService(db)),

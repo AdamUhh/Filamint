@@ -5,13 +5,11 @@ import * as Database from "./database.js";
 import * as PrintService from "./printservice.js";
 import * as ShortcutService from "./shortcutservice.js";
 import * as SpoolService from "./spoolservice.js";
-import * as UpdateService from "./updateservice.js";
 export {
     Database,
     PrintService,
     ShortcutService,
-    SpoolService,
-    UpdateService
+    SpoolService
 };
 
 export {
@@ -24,6 +22,5 @@ export {
     Spool,
     SpoolPrint,
     SpoolQueryParams,
-    SpoolQueryResult,
-    UpdateInfo
+    SpoolQueryResult
 } from "./models.js";

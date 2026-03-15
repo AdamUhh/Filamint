@@ -109,7 +109,7 @@ jobs:
           name: windows-artifacts
           path: bin/filamint*.exe
 
-      - name: Create DMG (universal)
+      - name: Create DMG 
         if: matrix.platform == 'darwin'
         run: hdiutil create -volname "Filamint" -srcfolder bin/filamint.app -ov -format UDZO bin/filamint.dmg
 
@@ -154,21 +154,12 @@ jobs:
               notes: ("Release v" + $version),
               pub_date: $date,
               platforms: {
-                "windows-x86_64": {
-                  url: ($base + "/filamint-amd64-installer.exe")
-                },
-                "darwin-aarch64": {
-                  url: ($base + "/filamint.dmg")
-                },
-                "darwin-x86_64": {
-                  url: ($base + "/filamint.dmg")
-                },
-                "linux-x86_64": {
-                  url: ($base + "/filamint")
-                },
-                "linux-x86_64-deb": {
-                  url: ($base + "/filamint.deb")
-                }
+                "windows-x86_64-installer": { url: ($base + "/filamint-amd64-installer.exe") },
+                "windows-x86_64-portable":  { url: ($base + "/filamint.exe") },
+                "darwin-aarch64":           { url: ($base + "/filamint.dmg") },
+                "darwin-x86_64":            { url: ($base + "/filamint.dmg") },
+                "linux-x86_64":             { url: ($base + "/filamint") },
+                "linux-x86_64-deb":         { url: ($base + "/filamint.deb") }
               }
             }' > latest.json
 
