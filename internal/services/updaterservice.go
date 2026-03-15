@@ -11,13 +11,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Manifest matches the JSON structure hosted on your update server / GitHub Releases
+// Matches the JSON structure hosted on your update server / GitHub Releases
 type Manifest struct {
 	Version   string                      `json:"version"`
 	Notes     string                      `json:"notes"`
@@ -30,7 +31,6 @@ type PlatformManifest struct {
 	Signature string `json:"signature,omitempty"`
 }
 
-// UpdateInfo is what gets sent to the frontend
 type UpdateInfo struct {
 	Available      bool   `json:"available"`
 	CurrentVersion string `json:"currentVersion"`
@@ -40,7 +40,6 @@ type UpdateInfo struct {
 	DownloadURL    string `json:"downloadUrl"`
 }
 
-// DownloadProgress is emitted during download
 type DownloadProgress struct {
 	BytesDownloaded int64 `json:"bytesDownloaded"`
 	TotalBytes      int64 `json:"totalBytes"`
@@ -51,7 +50,7 @@ type UpdateService struct {
 	currentVersion string
 	manifestURL    string
 	httpClient     *http.Client
-	// OnProgress is called during download; wire this to app.Event.Emit
+	app            *application.App
 	OnProgress func(p DownloadProgress)
 }
 
@@ -74,30 +73,38 @@ func archKey() string {
 	}
 }
 
-// CheckForUpdate fetches the manifest and returns update info.
-// Called from the frontend via Wails bindings.
+func platformKey() string {
+	return runtime.GOOS + "-" + archKey()
+}
+
+// Fetches the manifest and returns update info
 func (s *UpdateService) CheckForUpdate() (*UpdateInfo, error) {
 	resp, err := s.httpClient.Get(s.manifestURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch update manifest: %w", err)
+		slog.Error("failed to fetch update manifest", "error", err, "url", s.manifestURL)
+		return nil, fmt.Errorf("fetching update manifest: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("update server returned status %d", resp.StatusCode)
+		slog.Error("update server returned unexpected status", "status", resp.StatusCode)
+		return nil, fmt.Errorf("update server status: %d", resp.StatusCode)
 	}
 
 	var manifest Manifest
 	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
-		return nil, fmt.Errorf("failed to parse update manifest: %w", err)
+		slog.Error("failed to parse update manifest", "error", err)
+		return nil, fmt.Errorf("parsing update manifest: %w", err)
 	}
 
 	current, err := semver.NewVersion(s.currentVersion)
 	if err != nil {
+		slog.Error("invalid current version", "version", s.currentVersion, "error", err)
 		return nil, fmt.Errorf("invalid current version %q: %w", s.currentVersion, err)
 	}
 	latest, err := semver.NewVersion(manifest.Version)
 	if err != nil {
+		slog.Error("invalid manifest version", "version", manifest.Version, "error", err)
 		return nil, fmt.Errorf("invalid manifest version %q: %w", manifest.Version, err)
 	}
 
@@ -110,6 +117,10 @@ func (s *UpdateService) CheckForUpdate() (*UpdateInfo, error) {
 	}
 
 	if info.Available {
+		slog.Info("update available",
+			"current", s.currentVersion,
+			"latest", manifest.Version,
+		)
 		url, err := resolvePlatformURL(manifest.Platforms)
 		if err != nil {
 			return nil, err
@@ -120,34 +131,68 @@ func (s *UpdateService) CheckForUpdate() (*UpdateInfo, error) {
 	return info, nil
 }
 
-// resolvePlatformURL picks the best URL for the current platform.
-// On Linux: prefers the raw binary, falls back to AppImage.
+// isPortableWindows returns true when the running executable is not located
+// inside Program Files — the conventional signal that it is a portable build.
+func isPortableWindows() bool {
+	self, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	self, err = filepath.EvalSymlinks(self)
+	if err != nil {
+		return false
+	}
+	for _, env := range []string{"PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432"} {
+		pf := os.Getenv(env)
+		if pf != "" && len(self) >= len(pf) && strings.EqualFold(self[:len(pf)], pf) {
+			return false
+		}
+	}
+	return true
+}
+
+// Picks the best URL for the current platform
 func resolvePlatformURL(platforms map[string]PlatformManifest) (string, error) {
 	if runtime.GOOS == "linux" {
 		arch := archKey()
-		// Prefer raw binary
+		// Prefer raw binary, then .deb, then AppImage
 		if p, ok := platforms["linux-"+arch+"-binary"]; ok && p.URL != "" {
 			return p.URL, nil
 		}
-		// Fall back to AppImage
+		if p, ok := platforms["linux-"+arch+"-deb"]; ok && p.URL != "" {
+			return p.URL, nil
+		}
 		if p, ok := platforms["linux-"+arch]; ok && p.URL != "" {
 			return p.URL, nil
 		}
+		slog.Error("no linux update url found", "arch", arch)
 		return "", fmt.Errorf("no Linux update URL found for arch %q", arch)
+	}
+
+	if runtime.GOOS == "windows" && isPortableWindows() {
+		key := platformKey() + "-portable"
+		if p, ok := platforms[key]; ok && p.URL != "" {
+			slog.Info("portable mode detected, using portable update URL", "key", key)
+			return p.URL, nil
+		}
+		// No portable artifact available — refuse rather than silently install
+		slog.Error("no portable update available for platform", "platform", key)
+		return "", fmt.Errorf("no portable update available for platform %q; download manually from the releases page", key)
 	}
 
 	key := platformKey()
 	p, ok := platforms[key]
 	if !ok || p.URL == "" {
+		slog.Error("no update available for platform", "platform", key)
 		return "", fmt.Errorf("no update available for platform %q", key)
 	}
 	return p.URL, nil
 }
 
-// DownloadAndInstall downloads the update and launches the installer / replaces the binary.
-// On Windows: downloads .exe installer and runs it (NSIS/Inno Setup style).
-// On macOS: downloads .dmg and opens it.
-// On Linux: downloads binary, else AppImage, makes it executable, replaces current binary.
+// Downloads the update and replaces the binary
+// On Windows: downloads .exe installer and runs it (NSIS/Inno Setup style)
+// On macOS: downloads .dmg and opens it
+// On Linux: downloads binary, else AppImage, makes it executable, replaces current binary
 func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 	ext := filepath.Ext(downloadURL)
 	// Linux raw binary has no extension — label it explicitly
@@ -157,30 +202,61 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 
 	tmpFile, err := os.CreateTemp("", "app-update-*"+ext)
 	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+		slog.Error("failed to create temp update file", "error", err)
+		return fmt.Errorf("creating temp update file: %w", err)
 	}
 	defer tmpFile.Close()
 	tmpPath := tmpFile.Name()
 
+	// Clean up the temp file on any error return.
+	// Not deferred unconditionally: on Windows and Linux the process calls
+	// os.Exit(0) as part of a successful install, so this closure never runs
+	// in the happy path there. On macOS, installDarwin returns normally and
+	// the DMG is still needed by the Finder mount — so we leave it alone on
+	// success and only remove it if we're returning an error.
+	var installErr error
+	defer func() {
+		if installErr != nil {
+			os.Remove(tmpPath)
+		}
+	}()
+
+	slog.Info("starting update download",
+		"url", downloadURL,
+		"os", runtime.GOOS,
+		"arch", runtime.GOARCH,
+		"temp_path", tmpPath,
+	)
+
 	if err := s.downloadWithProgress(downloadURL, tmpFile); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("download failed: %w", err)
+		slog.Error("update download failed", "error", err, "url", downloadURL)
+		installErr = fmt.Errorf("downloading update: %w", err)
+		return installErr
 	}
 
 	switch runtime.GOOS {
 	case "windows":
-		return s.installWindows(tmpPath)
+		if isPortableWindows() {
+			installErr = s.installWindowsPortable(tmpPath)
+		} else {
+			installErr = s.installWindows(tmpPath)
+		}
 	case "darwin":
-		return s.installDarwin(tmpPath)
+		installErr = s.installDarwin(tmpPath)
 	case "linux":
 		// Route by what we actually downloaded
-		if ext == ".AppImage" {
-			return s.installLinuxAppImage(tmpPath)
+		switch ext {
+		case ".AppImage":
+			installErr = s.installLinuxAppImage(tmpPath)
+		case ".deb":
+			installErr = s.installLinuxDeb(tmpPath)
+		default:
+			installErr = s.installLinuxBinary(tmpPath) // raw binary (.bin temp file)
 		}
-		return s.installLinuxBinary(tmpPath) // raw binary (.bin temp file)
 	default:
-		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+		installErr = fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
+	return installErr
 }
 
 func (s *UpdateService) downloadWithProgress(url string, dest io.Writer) error {
@@ -234,11 +310,69 @@ func (s *UpdateService) installWindows(path string) error {
 	return nil
 }
 
+// installWindowsPortable replaces the running portable .exe in-place using a
+// small helper batch script, then relaunches the updated binary.
+func (s *UpdateService) installWindowsPortable(tmpPath string) error {
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	self, err = filepath.EvalSymlinks(self)
+	if err != nil {
+		return err
+	}
+
+	// Batch script: wait for our process to exit, copy the new binary over, relaunch
+	script := fmt.Sprintf(`@echo off
+	timeout /t 1 /nobreak >nul
+	copy /y "%s" "%s"
+	start "" "%s"
+`, tmpPath, self, self)
+
+	scriptFile, err := os.CreateTemp("", "filamint-update-*.bat")
+	if err != nil {
+		return err
+	}
+	scriptFile.WriteString(script)
+	scriptFile.Close()
+
+	exec.Command("cmd", "/C", scriptFile.Name()).Start()
+	time.Sleep(200 * time.Millisecond)
+	os.Exit(0)
+	return nil
+}
+
 func (s *UpdateService) installDarwin(path string) error {
 	// Open the .dmg — user drags to Applications (standard macOS UX)
 	if err := exec.Command("open", path).Run(); err != nil {
-		return fmt.Errorf("failed to open dmg: %w", err)
+		slog.Error("failed to open dmg installer", "error", err, "path", path)
+		return fmt.Errorf("opening dmg installer: %w", err)
 	}
+	return nil
+}
+
+// installLinuxDeb installs a .deb package via dpkg, then relaunches the app.
+func (s *UpdateService) installLinuxDeb(tmpPath string) error {
+	cmd := exec.Command("dpkg", "-i", tmpPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		slog.Error("dpkg install failed", "error", err, "path", tmpPath)
+		return fmt.Errorf("dpkg install failed: %w", err)
+	}
+
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	self, err = filepath.EvalSymlinks(self)
+	if err != nil {
+		return err
+	}
+
+	exec.Command(self).Start()
+	time.Sleep(200 * time.Millisecond)
+	os.Exit(0)
 	return nil
 }
 
@@ -312,12 +446,30 @@ chmod +x "%s"
 	return nil
 }
 
-func platformKey() string {
-	return runtime.GOOS + "-" + archKey()
-}
-
 func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	slog.Info("Updater service started")
+
+	s.app = application.Get()
+
+	// Wire download progress to frontend events
+	s.OnProgress = func(p DownloadProgress) {
+		s.app.Event.Emit("updater:progress", p)
+	}
+
+	// Check for updates on startup in the background
+	go func() {
+		info, err := s.CheckForUpdate()
+		if err != nil {
+			slog.Error("Error checking for update", "error", err)
+			return
+		}
+		if !info.Available {
+			slog.Info("No update found")
+			return
+		}
+		s.app.Event.Emit("updater:available", info)
+	}()
+
 	return nil
 }
 

@@ -83,8 +83,15 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Package
+      # Linux and Windows use the standard package command (x86_64 only)
+      - name: Package (Linux / Windows)
+        if: matrix.platform != 'darwin'
         run: wails3 package
+
+      # macOS builds a universal binary covering both arm64 and x86_64 in one .app
+      - name: Package (macOS universal)
+        if: matrix.platform == 'darwin'
+        run: wails3 task darwin:package:universal
 
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
@@ -102,7 +109,7 @@ jobs:
           name: windows-artifacts
           path: bin/filamint*.exe
 
-      - name: Create DMG
+      - name: Create DMG (universal)
         if: matrix.platform == 'darwin'
         run: hdiutil create -volname "Filamint" -srcfolder bin/filamint.app -ov -format UDZO bin/filamint.dmg
 
@@ -137,19 +144,31 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           REPO="${{ github.repository }}"
+          BASE="https://github.com/${REPO}/releases/download/v${VERSION}"
           jq -n \
             --arg version "$VERSION" \
             --arg date "$DATE" \
-            --arg repo "$REPO" \
+            --arg base "$BASE" \
             '{
               version: $version,
               notes: ("Release v" + $version),
               pub_date: $date,
               platforms: {
-                "windows-x86_64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint-windows-amd64.exe") },
-                "darwin-aarch64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint.dmg") },
-                "linux-x86_64": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint") },
-                "linux-x86_64-deb": { url: ("https://github.com/" + $repo + "/releases/download/v" + $version + "/filamint.deb") }
+                "windows-x86_64": {
+                  url: ($base + "/filamint-amd64-installer.exe")
+                },
+                "darwin-aarch64": {
+                  url: ($base + "/filamint.dmg")
+                },
+                "darwin-x86_64": {
+                  url: ($base + "/filamint.dmg")
+                },
+                "linux-x86_64": {
+                  url: ($base + "/filamint")
+                },
+                "linux-x86_64-deb": {
+                  url: ($base + "/filamint.deb")
+                }
               }
             }' > latest.json
 

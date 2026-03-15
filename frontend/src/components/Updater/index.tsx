@@ -2,27 +2,25 @@ import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-// Check on demand
-// async function checkForUpdates() {
-//     const info = await UpdateService.CheckForUpdate();
-//     if (info.available) {
-//         // Show dialog to user
-//         showUpdateDialog(info);
-//     }
-// }
-
-// // Start download+install
-// async function applyUpdate(downloadUrl: string) {
-//     await UpdateService.DownloadAndInstall(downloadUrl);
-// }
+import { type UpdateInfo, UpdateService } from "@bindings";
 
 export function Updater() {
     useEffect(() => {
-        // Listen for background check result
-        Events.On("updater:available", (info) => {
-            console.log("update available", info.data);
-            toast.success("Update Available", info.data);
+        const unsubscribe = Events.On("updater:available", (event) => {
+            const info = event.data as UpdateInfo;
+            toast.success(`Update available — v${info.newVersion}`, {
+                description: info.notes,
+                duration: Infinity,
+                action: {
+                    label: "Update",
+                    onClick: () =>
+                        UpdateService.DownloadAndInstall(info.downloadUrl),
+                },
+            });
         });
+        return () => {
+            unsubscribe();
+        };
     }, []);
 
     return null;

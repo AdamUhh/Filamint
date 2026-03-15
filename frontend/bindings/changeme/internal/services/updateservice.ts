@@ -10,8 +10,7 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
- * CheckForUpdate fetches the manifest and returns update info.
- * Called from the frontend via Wails bindings.
+ * Fetches the manifest and returns update info
  */
 export function CheckForUpdate(): $CancellablePromise<$models.UpdateInfo | null> {
     return $Call.ByID(734489184).then(($result: any) => {
@@ -20,10 +19,10 @@ export function CheckForUpdate(): $CancellablePromise<$models.UpdateInfo | null>
 }
 
 /**
- * DownloadAndInstall downloads the update and launches the installer / replaces the binary.
- * On Windows: downloads .exe installer and runs it (NSIS/Inno Setup style).
- * On macOS: downloads .dmg and opens it.
- * On Linux: downloads binary, else AppImage, makes it executable, replaces current binary.
+ * Downloads the update and replaces the binary
+ * On Windows: downloads .exe installer and runs it (NSIS/Inno Setup style)
+ * On macOS: downloads .dmg and opens it
+ * On Linux: downloads binary, else AppImage, makes it executable, replaces current binary
  */
 export function DownloadAndInstall(downloadURL: string): $CancellablePromise<void> {
     return $Call.ByID(744075698, downloadURL);

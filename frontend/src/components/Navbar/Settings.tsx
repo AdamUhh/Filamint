@@ -6,10 +6,12 @@ import { DefaultSpoolSettings } from "./MaterialSettings";
 import { OpenInAppSettings } from "./OpenInAppSettings";
 import { ShortcutsSettings } from "./ShortcutSettings";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { UpdateSettings } from "./UpdateSettings";
 
 export function AppSettings() {
     return (
         <div className="space-y-6">
+            <UpdateSettings />
             <div className="flex gap-4">
                 <ThemeSwitcher />
                 <Separator orientation="vertical" className="mx-auto" />
