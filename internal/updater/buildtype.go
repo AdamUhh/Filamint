@@ -1,4 +1,4 @@
 package updater
 
-var buildType = "portable"
-var linuxPackage = "raw"
+var buildType = "portable" // for windows
+var linuxPackage = "raw" // for linux

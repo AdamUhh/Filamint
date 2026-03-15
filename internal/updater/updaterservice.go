@@ -123,7 +123,6 @@ func manifestKey() (string, error) {
 		return "linux-" + arch, nil
 
 	default:
-
 		slog.Error("unsupported platform", "os", runtime.GOOS, "arch", arch)
 		return "", fmt.Errorf("unsupported platform: %s/%s", runtime.GOOS, arch)
 	}
