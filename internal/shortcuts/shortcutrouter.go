@@ -58,15 +58,18 @@ func (r *ShortcutRouter) categoriesForRoute(route string) []string {
 	}
 	// Prefix match (longest wins).
 	var best string
-	for prefix, cats := range r.routes {
+	for prefix := range r.routes {
 		if prefix != "/" && strings.HasPrefix(route, prefix) && len(prefix) > len(best) {
 			best = prefix
-			_ = cats
 		}
 	}
 	if best != "" {
 		return r.routes[best]
 	}
-	// Fallback to root.
-	return r.routes["/"]
+	// Fallback to root if it exists.
+	if cats, ok := r.routes["/"]; ok {
+		return cats
+	}
+	// No root entry - return the safe default.
+	return []string{"window"}
 }

@@ -3,6 +3,7 @@ package shortcuts
 import (
 	"fmt"
 	"maps"
+	"strings"
 	"sync"
 	"time"
 
@@ -130,6 +131,11 @@ func (s *ShortcutStore) CheckDuplicate(newKeyCombo, excludeAction, currentCatego
 // Update changes a shortcut's key combo in cache and DB atomically.
 // On DB failure, the cache is rolled back.
 func (s *ShortcutStore) Update(action, newKeyCombo string) error {
+	newKeyCombo = strings.TrimSpace(newKeyCombo)
+	if newKeyCombo == "" {
+		return fmt.Errorf("key combo cannot be empty")
+	}
+
 	s.mu.RLock()
 	cur, ok := s.cache[action]
 	s.mu.RUnlock()
