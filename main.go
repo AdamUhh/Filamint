@@ -47,12 +47,16 @@ func init() {
 	application.RegisterEvent[string]("time")
 }
 
-const manifestURL = "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
-
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
+	// manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+	manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+	if localURL := os.Getenv("UPDATE_MANIFEST_URL"); localURL != "" {
+		manifestURL = localURL
+	}
+
 	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {
 		os.Exit(1)
