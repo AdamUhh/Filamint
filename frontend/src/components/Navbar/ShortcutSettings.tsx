@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ShortcutService } from "@bindings/shortcuts";
 import { CheckIcon, PencilIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -20,8 +21,6 @@ import {
 } from "@/lib/constant-mod-keys";
 import { tryParseJson } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
-
-import { ShortcutService } from "@bindings";
 
 interface Shortcut {
     id: number;

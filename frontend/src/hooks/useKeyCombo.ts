@@ -1,4 +1,4 @@
-import { ShortcutService } from "@bindings/index.ts";
+import { ShortcutService } from "@bindings/shortcuts";
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo, useState } from "react";
 

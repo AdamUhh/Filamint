@@ -3,6 +3,7 @@ package main
 import (
 	internal "changeme/internal"
 	services "changeme/internal/services"
+	"changeme/internal/shortcuts"
 	updater "changeme/internal/updater"
 
 	"regexp"
@@ -51,8 +52,8 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-	// manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
 	manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+	// testing manifest locally
 	if localURL := os.Getenv("UPDATE_MANIFEST_URL"); localURL != "" {
 		manifestURL = localURL
 	}
@@ -89,7 +90,7 @@ func main() {
 			application.NewService(updater.NewUpdater(currentVersion, manifestURL)),
 			application.NewService(services.NewSpoolService(db)),
 			application.NewService(services.NewPrintService(db)),
-			application.NewService(services.NewShortcutService(db)),
+			application.NewService(shortcuts.NewShortcutService(db)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

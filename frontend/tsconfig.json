@@ -34,12 +34,9 @@
       "@/*": [
         "./src/*"
       ],
-      "@bindings": [
-	"./bindings/changeme/internal/services"
+      "@bindings/*": [
+	"./bindings/changeme/internal/*"
       ],
-      "@bindings/updater": [
-	"./bindings/changeme/internal/updater"
-      ]
     }
   }
 }

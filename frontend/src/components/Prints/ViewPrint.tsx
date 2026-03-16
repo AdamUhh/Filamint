@@ -1,3 +1,4 @@
+import { PrintModel, PrintService } from "@bindings/services";
 import { AlertCircleIcon, ExternalLinkIcon, FileIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -21,8 +22,6 @@ import {
 } from "@/shadcn/table";
 
 import { formatBytesToMB, tryParseJson } from "@/lib/util-format";
-
-import { PrintModel, PrintService } from "@bindings";
 
 export function ViewPrintDialog({
     viewState,

@@ -7,7 +7,7 @@ import { Separator } from "@/shadcn/separator";
 
 import { cn } from "@/lib/utils";
 
-import { SpoolService } from "@bindings";
+import { SpoolService } from "@bindings/services";
 
 import { CopyOnClick } from "../CopyToClipboard";
 

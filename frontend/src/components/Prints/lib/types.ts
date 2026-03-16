@@ -1,4 +1,4 @@
-import type { Print } from "@bindings";
+import type { Print } from "@bindings/services";
 
 export type EditState = {
     isOpen: boolean;

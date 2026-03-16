@@ -1,3 +1,4 @@
+import type { Spool } from "@bindings/services";
 import { Loader2Icon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect } from "react";
 
@@ -18,8 +19,6 @@ import {
 } from "@/components/Spools/lib/fetch-hooks";
 import { useAppForm } from "@/components/Spools/lib/hooks";
 import { spoolSchema } from "@/components/Spools/lib/schema";
-
-import type { Spool } from "@bindings";
 
 import type { EditState } from "./lib/types";
 

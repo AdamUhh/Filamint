@@ -19,14 +19,7 @@ export default defineConfig({
             "@/constants": path.resolve(__dirname, "src/constants"),
             "@/hooks": path.resolve(__dirname, "src/hooks"),
             "@": path.resolve(__dirname, "src"),
-            "@bindings/updater": path.resolve(
-                __dirname,
-                "bindings/changeme/internal/updater"
-            ),
-            "@bindings": path.resolve(
-                __dirname,
-                "bindings/changeme/internal/services"
-            ),
+            "@bindings": path.resolve(__dirname, "bindings/changeme/internal"),
         },
     },
 

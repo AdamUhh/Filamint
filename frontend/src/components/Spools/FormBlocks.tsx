@@ -1,4 +1,5 @@
 import { useApp } from "@/context/useContext";
+import type { Spool } from "@bindings/services";
 import { useStore } from "@tanstack/react-form";
 
 import { Button } from "@/shadcn/button";
@@ -30,8 +31,6 @@ import {
 } from "@/shadcn/input-group";
 
 import { useFieldContext, useFormContext } from "@/components/Spools/lib/hooks";
-
-import type { Spool } from "@bindings";
 
 export function SpoolVendorFormField({
     editingId,

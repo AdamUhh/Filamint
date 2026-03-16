@@ -1,3 +1,4 @@
+import { PrintService } from "@bindings/services";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Loader2Icon } from "lucide-react";
@@ -5,8 +6,6 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 
 import { PLATE_GAP, PLATE_SIZE } from "@/lib/constant-three";
-
-import { PrintService } from "@bindings";
 
 import { STLScene } from "./STLMesh";
 import { ThreeMFScene } from "./ThreeMFScene";

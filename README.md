@@ -43,6 +43,7 @@ wails3 dev
 Basic unit tests for spool and print services (generated with Claude)
 ```bash
 go test ./internal/services/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
+go test ./internal/updater/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
 ```
 
 ### File Locations

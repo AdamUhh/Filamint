@@ -1,4 +1,4 @@
-import { useKeyCombo } from "@/hooks/useKeyCombo";
+import type { PrintQueryParams } from "@bindings/services";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -22,7 +22,7 @@ import {
 } from "@/components/Prints/lib/fetch-hooks";
 import { AppSearch } from "@/components/Search";
 
-import type { PrintQueryParams } from "@bindings";
+import { useKeyCombo } from "@/hooks/useKeyCombo";
 
 import type { EditState } from "./lib/types";
 

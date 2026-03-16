@@ -1,4 +1,5 @@
 import { useApp } from "@/context/useContext";
+import type { Spool } from "@bindings/services";
 import { format } from "date-fns/format";
 import {
     ArrowDownIcon,
@@ -40,8 +41,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/shadcn/table";
-
-import type { Spool } from "@bindings";
 
 import { CopyToClipboard } from "../CopyToClipboard";
 import { useInvalidateSpools } from "./lib/fetch-hooks";

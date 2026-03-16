@@ -1,3 +1,4 @@
+import type { Print } from "@bindings/services";
 import { Loader2Icon } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
@@ -21,8 +22,6 @@ import {
 } from "@/components/Prints/lib/fetch-hooks";
 import { useAppForm } from "@/components/Prints/lib/hooks";
 import { type TModelSchema, printSchema } from "@/components/Prints/lib/schema";
-
-import type { Print } from "@bindings";
 
 import type { EditState } from "./lib/types";
 

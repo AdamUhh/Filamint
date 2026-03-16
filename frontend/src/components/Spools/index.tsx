@@ -1,4 +1,4 @@
-import { useKeyCombos } from "@/hooks/useKeyCombo";
+import type { Spool, SpoolQueryParams } from "@bindings/services";
 import { MenuIcon, PlusIcon, StarIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -21,7 +21,7 @@ import {
     useSpools,
 } from "@/components/Spools/lib/fetch-hooks";
 
-import type { Spool, SpoolQueryParams } from "@bindings";
+import { useKeyCombos } from "@/hooks/useKeyCombo";
 
 import { SpoolFormDialog } from "./Form";
 import type { EditState } from "./lib/types";

@@ -1,4 +1,4 @@
-import type { Spool } from "@bindings";
+import type { Spool } from "@bindings/services";
 
 export type EditState = {
     isOpen: boolean;

@@ -9,32 +9,35 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+/**
+ * Public
+ */
 export function GetAllShortcuts(): $CancellablePromise<$models.Shortcut[]> {
-    return $Call.ByID(2338717541).then(($result: any) => {
+    return $Call.ByID(3692551782).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
 export function GetShortcutCombo(action: string): $CancellablePromise<string> {
-    return $Call.ByID(2567274793, action);
+    return $Call.ByID(3957169132, action);
 }
 
 export function GetShortcutCombos(actions: string[]): $CancellablePromise<string[]> {
-    return $Call.ByID(1034592430, actions).then(($result: any) => {
+    return $Call.ByID(3973839693, actions).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function ResetAllShortcuts(): $CancellablePromise<void> {
-    return $Call.ByID(3964435774);
+    return $Call.ByID(3475915305);
 }
 
 export function ResetShortcut(action: string): $CancellablePromise<void> {
-    return $Call.ByID(1872812362, action);
+    return $Call.ByID(55329345, action);
 }
 
 export function UpdateShortcut(action: string, newKeyCombo: string): $CancellablePromise<void> {
-    return $Call.ByID(2483449134, action, newKeyCombo);
+    return $Call.ByID(1392324355, action, newKeyCombo);
 }
 
 // Private type creation functions

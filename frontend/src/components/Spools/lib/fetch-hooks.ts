@@ -1,4 +1,9 @@
 import {
+    type Spool,
+    type SpoolQueryParams,
+    SpoolService,
+} from "@bindings/services";
+import {
     useIsFetching,
     useMutation,
     useQuery,
@@ -6,8 +11,6 @@ import {
 } from "@tanstack/react-query";
 import { Events } from "@wailsio/runtime";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-import { type Spool, type SpoolQueryParams, SpoolService } from "@bindings";
 
 import { PAGE_SIZE } from "./defaults";
 

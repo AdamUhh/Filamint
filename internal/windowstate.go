@@ -196,13 +196,3 @@ func (wm *WindowManager) RestoreAndFocus(key string) {
 		}
 	}
 }
-
-// func (wm *WindowManager) SaveAll() {
-// 	wm.mu.Lock()
-// 	defer wm.mu.Unlock()
-// 	for _, mw := range wm.windows {
-// 		if mw.dirty {
-// 			mw.saveState()
-// 		}
-// 	}
-// }

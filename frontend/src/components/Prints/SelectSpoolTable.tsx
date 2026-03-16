@@ -1,4 +1,5 @@
 import { useApp } from "@/context/useContext";
+import type { PrintSpool, Spool } from "@bindings/services";
 import type { UpdateMetaOptions } from "@tanstack/react-form";
 import { format } from "date-fns/format";
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
@@ -15,8 +16,6 @@ import {
 } from "@/shadcn/table";
 
 import { cn } from "@/lib/utils";
-
-import type { PrintSpool, Spool } from "@bindings";
 
 import { CopyToClipboard } from "../CopyToClipboard";
 

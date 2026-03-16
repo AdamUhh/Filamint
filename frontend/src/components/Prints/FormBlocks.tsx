@@ -1,3 +1,4 @@
+import type { Print, SpoolQueryParams } from "@bindings/services";
 import { format } from "date-fns/format";
 import { CalendarIcon, ChevronDownIcon, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -29,8 +30,6 @@ import {
 import { useFieldContext } from "@/components/Prints/lib/hooks";
 
 import { tryParseJson } from "@/lib/util-format";
-
-import type { Print, SpoolQueryParams } from "@bindings";
 
 import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";

@@ -9,6 +9,11 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+/**
+ * Returns cached results when fresh; otherwise fetches the manifest.
+ * Concurrent callers wait for the single in-flight request to
+ * finish before reading from the cache.
+ */
 export function CheckForUpdate(): $CancellablePromise<$models.UpdateInfo | null> {
     return $Call.ByID(3866282951).then(($result: any) => {
         return $$createType1($result);
@@ -16,7 +21,7 @@ export function CheckForUpdate(): $CancellablePromise<$models.UpdateInfo | null>
 }
 
 /**
- * Downloads the update artifact and hands off to the platform-specific installer
+ * Downloads the artifact and runs the platform installer
  */
 export function DownloadAndInstall(downloadURL: string): $CancellablePromise<void> {
     return $Call.ByID(1729477037, downloadURL);

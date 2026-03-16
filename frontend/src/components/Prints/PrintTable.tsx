@@ -1,3 +1,4 @@
+import type { Print } from "@bindings/services";
 import { format } from "date-fns/format";
 import {
     ArrowDownIcon,
@@ -41,8 +42,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/shadcn/table";
-
-import type { Print } from "@bindings";
 
 import { CopyOnClick } from "../CopyToClipboard";
 import { OpenInAppDialog } from "./OpenInApp";
