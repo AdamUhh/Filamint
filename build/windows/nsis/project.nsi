@@ -56,9 +56,21 @@ ManifestDPIAware true
 !define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
 !define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
 
+
+Var IsUpgrade
+
+Function SkipDirIfUpgrade
+    ${If} $IsUpgrade == "1"
+        Abort ; skips the directory page
+    ${EndIf}
+FunctionEnd
+
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 # !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
+#
+!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipDirIfUpgrade
 !insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
+
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
@@ -75,17 +87,26 @@ OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the i
 InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
+
 Function .onInit
    !insertmacro wails.checkArchitecture
+   
+   SetRegView 64
+   ReadRegStr $R0 HKLM "${UNINST_KEY}" "InstallLocation"
+   ${If} $R0 != ""
+       StrCpy $INSTDIR $R0
+       StrCpy $IsUpgrade "1"
+   ${Else}
+       StrCpy $IsUpgrade "0"
+   ${EndIf}
 FunctionEnd
 
 Section
     !insertmacro wails.setShellContext
-
     !insertmacro wails.webview2runtime
 
     SetOutPath $INSTDIR
-    
+
     !insertmacro wails.files
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -93,8 +114,11 @@ Section
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
-    
     !insertmacro wails.writeUninstaller
+
+    ; Save the install location so upgrades reuse it
+    SetRegView 64
+    WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
 SectionEnd
 
 Section "uninstall" 
@@ -102,7 +126,7 @@ Section "uninstall"
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
-    RMDir /r $INSTDIR
+    MDir /r $INSTDIR
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
