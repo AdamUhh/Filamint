@@ -1,3 +1,4 @@
+import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +29,18 @@ export function Updater() {
         return () => {
             cancelled = true;
         };
+    }, []);
+
+    useEffect(() => {
+        Events.On("updater:restart", () =>
+            toast.success(`Restart to update`, {
+                duration: Infinity,
+                action: {
+                    label: "Restart",
+                    onClick: () => UpdateService.RestartApp(),
+                },
+            })
+        );
     }, []);
 
     return null;

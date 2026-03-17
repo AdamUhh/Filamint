@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -85,6 +84,15 @@ func NewUpdater(currentVersion, manifestURL string) *UpdateService {
 	}
 	s.cond = sync.NewCond(&s.mu)
 	return s
+}
+
+func (s *UpdateService) RestartApp() error {
+	err := restartApp()
+	if err != nil {
+		slog.Error("Failed to restart app", "error", err)
+		return fmt.Errorf("Failed to restart app: %w", err)
+	}
+	return nil
 }
 
 // Returns cached results when fresh; otherwise fetches the manifest.
@@ -191,6 +199,9 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 		slog.Error("install failed, cleaning up", "path", tmpDir, "error", installErr)
 		os.RemoveAll(tmpDir)
 	}
+
+	s.app.Event.Emit("updater:restart")
+
 	return installErr
 }
 
@@ -215,32 +226,6 @@ func (s *UpdateService) downloadToFile(url, dst string) error {
 		return fmt.Errorf("writing update file: %w", err)
 	}
 	return nil
-}
-
-// Picks the right install strategy for the given manifest key
-func runInstaller(key, tmpPath string, p Platform) error {
-	switch {
-	case strings.HasPrefix(key, "windows") && p.IsPortableWindows():
-		slog.Info("windows portable install", "key", key)
-		return installWindowsPortable(tmpPath)
-	case strings.HasPrefix(key, "windows"):
-		slog.Info("windows installer", "key", key)
-		return installWindows(tmpPath)
-
-	case strings.HasPrefix(key, "darwin"):
-		slog.Info("darwin install", "key", key)
-		return installDarwin(tmpPath)
-
-	case strings.HasSuffix(key, "linux") && p.IsBinaryLinux():
-		slog.Info("linux binary install", "key", key)
-		return installLinuxExecutable(tmpPath)
-	case strings.HasPrefix(key, "linux"):
-		slog.Info("linux deb install", "key", key)
-		return installLinuxDeb(tmpPath)
-	default:
-		slog.Error("unsupported manifest key, aborting install", "key", key)
-		return fmt.Errorf("unsupported manifest key: %s", key)
-	}
 }
 
 // Helpers

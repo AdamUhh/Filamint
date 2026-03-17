@@ -27,6 +27,10 @@ export function DownloadAndInstall(downloadURL: string): $CancellablePromise<voi
     return $Call.ByID(1729477037, downloadURL);
 }
 
+export function RestartApp(): $CancellablePromise<void> {
+    return $Call.ByID(549130507);
+}
+
 // Private type creation functions
 const $$createType0 = $models.UpdateInfo.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);

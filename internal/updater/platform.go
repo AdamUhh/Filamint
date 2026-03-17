@@ -22,6 +22,7 @@ type Platform struct {
 // Reads runtime.GOOS/GOARCH and the link-time vars to build the Platform for the current process.
 func DetectPlatform() Platform {
 	slog.Info("BuildType", "type", buildType)
+	slog.Info("LinuxPackage", "type", linuxPackage)
 	return Platform{
 		OS:      runtime.GOOS,
 		Arch:    normaliseArch(runtime.GOARCH),

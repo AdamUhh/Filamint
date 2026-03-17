@@ -1,6 +1,9 @@
 import { Events, Window } from "@wailsio/runtime";
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
+
+import { UpdateService } from "@bindings/updater";
 
 export function AppEventHandler() {
     const navigate = useNavigate();
