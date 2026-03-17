@@ -12,6 +12,10 @@ import (
 	"syscall"
 )
 
+func RunWatchdogIfRequested() bool {
+	return false
+}
+
 // RestartApp re-execs the current binary in-place.
 // The OS replaces the current process image - PID stays the same,
 // so no orphan processes and no need to manage child PIDs.
@@ -23,14 +27,14 @@ func restartApp() error {
 	return syscall.Exec(self, os.Args, os.Environ())
 }
 
-func runInstaller(key, tmpPath string, p Platform) error {
+func runInstaller(key, tmpPath string, p Platform) (string, error) {
 	switch {
 	case strings.HasPrefix(key, "darwin"):
 		slog.Info("darwin install", "key", key)
-		return installDarwin(tmpPath)
+		return "", installDarwin(tmpPath)
 	default:
 		slog.Error("unsupported manifest key", "key", key)
-		return fmt.Errorf("unsupported manifest key: %s", key)
+		return "", fmt.Errorf("unsupported manifest key: %s", key)
 	}
 }
 

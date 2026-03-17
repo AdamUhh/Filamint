@@ -13,6 +13,10 @@ import (
 	"syscall"
 )
 
+func RunWatchdogIfRequested() bool {
+	return false
+}
+
 // WHY NOT os.Executable()?
 // On Linux, os.Executable() reads /proc/self/exe, which is a kernel symlink
 // to the inode the process was started from.  After applyUpdate renames the
@@ -56,17 +60,17 @@ func executableFromArgs() (string, error) {
 	return filepath.Clean(resolved), nil
 }
 
-func runInstaller(key, tmpPath string, p Platform) error {
+func runInstaller(key, tmpPath string, p Platform) (string, error) {
 	switch p.Variant {
 	case "raw":
 		slog.Info("linux binary install", "key", key)
-		return installLinuxExecutable(tmpPath)
+		return "", installLinuxExecutable(tmpPath)
 	case "deb":
 		slog.Info("linux deb install", "key", key)
-		return installLinuxDeb(tmpPath)
+		return "", installLinuxDeb(tmpPath)
 	default:
 		slog.Error("unsupported linux variant", "variant", p.Variant)
-		return fmt.Errorf("unsupported linux variant: %s", p.Variant)
+		return "", fmt.Errorf("unsupported linux variant: %s", p.Variant)
 	}
 }
 

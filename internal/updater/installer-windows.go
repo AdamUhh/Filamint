@@ -9,69 +9,181 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"syscall"
+	"time"
 
 	"golang.org/x/sys/windows"
 )
 
-// RestartApp spawns a new process and exits the current one.
-// Windows has no exec(2) equivalent — a new process must be spawned.
-func restartApp() error {
+// restartApp spawns a detached watchdog (ourselves with a special flag) that
+// waits for this process to exit, then takes over:
+//   - installer variant: launches the NSIS installer with UAC elevation.
+//     NSIS handles relaunching the app via its "Launch app" finish-page checkbox.
+//   - portable variant: applyUpdate has already replaced the binary in-place,
+//     so the watchdog just relaunches the new binary directly.
+func restartApp(installerPath string) error {
+	p := DetectPlatform()
+
 	self, err := resolveExecutable()
 	if err != nil {
 		return fmt.Errorf("resolving executable: %w", err)
 	}
-	cmd := exec.Command(self, os.Args[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting new process: %w", err)
+
+	pid := os.Getpid()
+	slog.Info("spawning restart watchdog", "pid", pid, "path", self, "variant", p.Variant)
+
+	watchdogArgs := []string{
+		"--updater-watchdog-restart",
+		strconv.Itoa(pid),
+		p.Variant,
+		installerPath, // empty string for portable
 	}
+
+	// For portable, forward app args so the relaunched binary gets them.
+	// For installer, NSIS handles the relaunch — no need to forward args.
+	if p.Variant == "portable" {
+		watchdogArgs = append(watchdogArgs, os.Args[1:]...)
+	}
+
+	cmd := exec.Command(self, watchdogArgs...)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Stdin = nil
+	cmd.SysProcAttr = detachedProcAttr()
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("starting watchdog process: %w", err)
+	}
+
+	// Give the watchdog time to call OpenProcess before we exit and release our handle.
+	time.Sleep(500 * time.Millisecond)
 	os.Exit(0)
-	return nil
+	return nil // unreachable
 }
 
-func runInstaller(key, tmpPath string, p Platform) error {
+// RunWatchdogIfRequested checks os.Args for the watchdog flag injected by
+// restartApp. Call this at the very top of main(), before any other init.
+// Returns true if we are the watchdog (caller should exit after this returns).
+func RunWatchdogIfRequested() bool {
+	args := os.Args
+	if len(args) < 5 || args[1] != "--updater-watchdog-restart" {
+		return false
+	}
+
+	parentPID, err := strconv.Atoi(args[2])
+	if err != nil {
+		slog.Error("watchdog: invalid parent PID", "arg", args[2])
+		return true
+	}
+	variant := args[3]
+	installerPath := args[4]
+
+	logPath := filepath.Join(os.TempDir(), "filamint-watchdog.log")
+	if logFile, logErr := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600); logErr == nil {
+		slog.SetDefault(slog.New(slog.NewTextHandler(logFile, nil)))
+		defer logFile.Close()
+	}
+
+	slog.Info("watchdog: waiting for parent to exit", "parentPID", parentPID, "variant", variant)
+	waitForPID(parentPID)
+
+	switch variant {
+	case "installer":
+		// Launch the NSIS installer with elevation. The UAC prompt will appear,
+		// and NSIS's finish-page checkbox handles relaunching the app.
+		slog.Info("watchdog: launching NSIS installer", "path", installerPath)
+		script := fmt.Sprintf(`Start-Process -FilePath '%s' -Verb RunAs`, installerPath)
+		cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: windows.CREATE_NO_WINDOW,
+		}
+		if err := cmd.Run(); err != nil {
+			slog.Error("watchdog: NSIS installer failed", "error", err)
+		}
+
+	case "portable":
+		// Binary was already replaced in-place by applyUpdate. Just relaunch it.
+		launchPath, err := resolveExecutable()
+		if err != nil {
+			slog.Error("watchdog: could not resolve executable", "error", err)
+			return true
+		}
+
+		forwardedArgs := args[5:]
+		for _, a := range forwardedArgs {
+			if a == "--updater-watchdog-restart" {
+				slog.Error("watchdog: forwarded args contain watchdog flag — dropping all forwarded args")
+				forwardedArgs = nil
+				break
+			}
+		}
+
+		slog.Info("watchdog: launching updated binary", "path", launchPath, "args", forwardedArgs)
+		cmd := exec.Command(launchPath, forwardedArgs...)
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		cmd.Stdin = nil
+		if err := cmd.Start(); err != nil {
+			slog.Error("watchdog: failed to launch updated binary", "error", err)
+		}
+
+	default:
+		slog.Error("watchdog: unknown variant", "variant", variant)
+	}
+
+	return true
+}
+
+// waitForPID blocks until the process with the given PID exits.
+func waitForPID(pid int) {
+	handle, err := windows.OpenProcess(windows.SYNCHRONIZE, false, uint32(pid))
+	if err != nil {
+		slog.Warn("watchdog: could not open parent process, assuming already exited", "error", err)
+		return
+	}
+	defer windows.CloseHandle(handle)
+
+	result, _ := windows.WaitForSingleObject(handle, 30_000)
+	if result != windows.WAIT_OBJECT_0 {
+		slog.Warn("watchdog: parent did not exit cleanly in time", "result", result)
+	}
+}
+
+// detachedProcAttr creates the child in a new process group, fully detached
+// from the current console session.
+func detachedProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS | windows.CREATE_NO_WINDOW,
+	}
+}
+
+// --- installer logic ---
+
+func runInstaller(key, tmpPath string, p Platform) (string, error) {
 	switch p.Variant {
 	case "portable":
 		slog.Info("windows portable install", "key", key)
-		return installWindowsPortable(tmpPath)
+		return "", installWindowsPortable(tmpPath)
 	case "installer":
 		slog.Info("windows installer install", "key", key)
 		return installWindows(tmpPath)
 	default:
-		slog.Error("unsupported windows variant", "variant", p.Variant)
-		return fmt.Errorf("unsupported windows variant: %s", p.Variant)
+		return "", fmt.Errorf("unsupported windows variant: %s", p.Variant)
 	}
 }
 
-func installWindows(path string) error {
+// installWindows renames the downloaded file to .exe and returns its path.
+// The caller stores this path and passes it to restartApp.
+func installWindows(path string) (string, error) {
 	exePath := path + ".exe"
 	if err := os.Rename(path, exePath); err != nil {
-		slog.Error("failed to rename installer", "path", path, "error", err)
-		return fmt.Errorf("renaming installer: %w", err)
+		return "", fmt.Errorf("renaming installer: %w", err)
 	}
-
-	verb, err := windows.UTF16PtrFromString("runas")
-	if err != nil {
-		return fmt.Errorf("encoding verb: %w", err)
-	}
-	file, err := windows.UTF16PtrFromString(exePath)
-	if err != nil {
-		return fmt.Errorf("encoding installer path: %w", err)
-	}
-	args, err := windows.UTF16PtrFromString("/S")
-	if err != nil {
-		return fmt.Errorf("encoding installer args: %w", err)
-	}
-
-	slog.Info("launching elevated installer", "path", exePath)
-	if err := windows.ShellExecute(0, verb, file, args, nil, windows.SW_SHOWNORMAL); err != nil {
-		slog.Error("failed to launch installer", "path", exePath, "error", err)
-		return fmt.Errorf("launching installer: %w", err)
-	}
-
-	return nil
+	slog.Info("installer staged, waiting for user restart", "path", exePath)
+	return exePath, nil
 }
 
 func installWindowsPortable(tmpPath string) error {
@@ -82,12 +194,7 @@ func installWindowsPortable(tmpPath string) error {
 	return applyUpdate(tmpPath, self)
 }
 
-// applyUpdate is the go-update-style in-process swap:
-//
-//  1. sync tmpPath to disk
-//  2. rename target     → .old
-//  3. rename tmpPath    → target
-//  4. try to remove .old; if that fails (always on Windows), hide it
+// applyUpdate: sync → rename target→.old → rename tmp→target → hide .old
 func applyUpdate(tmpPath, target string) error {
 	if err := syncFile(tmpPath); err != nil {
 		return fmt.Errorf("syncing update file: %w", err)
@@ -97,32 +204,72 @@ func applyUpdate(tmpPath, target string) error {
 	base := filepath.Base(target)
 	oldPath := filepath.Join(dir, "."+base+".old")
 
-	// Remove any leftover .old from a previous update attempt.
-	// On Windows this is necessary because rename fails if dst exists.
-	_ = os.Remove(oldPath)
+	_ = os.Remove(oldPath) // clear any leftover from a previous update
 
 	if err := os.Rename(target, oldPath); err != nil {
-		slog.Error("failed to move target to .old", "error", err)
 		return fmt.Errorf("moving target to .old: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, target); err != nil {
-		// Rollback
-		if rerr := os.Rename(oldPath, target); rerr != nil {
-			slog.Error("rollback failed", "error", rerr)
+		if isErrCrossDevice(err) {
+			// Temp dir is on a different drive — fall back to copy+sync.
+			slog.Warn("cross-device rename, falling back to copy", "src", tmpPath, "dst", target)
+			if cerr := copyFile(tmpPath, target); cerr != nil {
+				_ = os.Rename(oldPath, target) // rollback
+				return fmt.Errorf("copying new binary into place: %w", cerr)
+			}
+			_ = os.Remove(tmpPath)
+		} else {
+			_ = os.Rename(oldPath, target) // rollback
+			return fmt.Errorf("moving new binary into place: %w", err)
 		}
-		slog.Error("failed to move new binary into place", "error", err)
-		return fmt.Errorf("moving new binary into place: %w", err)
 	}
 
-	// Remove .old — on Windows this will fail because the process is
-	// still running, so hide it instead (identical to go-update).
+	// .old is still locked by the running process; hide it for cleanup on next launch.
 	if err := os.Remove(oldPath); err != nil {
 		_ = hideFile(oldPath)
 	}
 
 	slog.Info("update applied, waiting for user restart")
 	return nil
+}
+
+// isErrCrossDevice detects ERROR_NOT_SAME_DEVICE (win32: 0x11 / errno: EXDEV).
+func isErrCrossDevice(err error) bool {
+	if le, ok := err.(*os.LinkError); ok {
+		if errno, ok := le.Err.(syscall.Errno); ok {
+			return errno == 0x11
+		}
+	}
+	return false
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	tmp := dst + ".tmp"
+	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(tmp) }() // no-op if rename succeeds
+
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return fmt.Errorf("copying data: %w", err)
+	}
+	if err := out.Sync(); err != nil {
+		out.Close()
+		return fmt.Errorf("syncing copy: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("closing copy: %w", err)
+	}
+	return os.Rename(tmp, dst)
 }
 
 func hideFile(path string) error {
@@ -134,10 +281,7 @@ func hideFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("getting file attributes: %w", err)
 	}
-	if err := windows.SetFileAttributes(ptr, attrs|windows.FILE_ATTRIBUTE_HIDDEN); err != nil {
-		return fmt.Errorf("setting hidden attribute: %w", err)
-	}
-	return nil
+	return windows.SetFileAttributes(ptr, attrs|windows.FILE_ATTRIBUTE_HIDDEN)
 }
 
 func syncFile(path string) error {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,12 +51,13 @@ type HTTPClient interface {
 }
 
 type UpdateService struct {
-	currentVersion string
-	manifestURL    string
-	client         HTTPClient
-	platform       Platform
-	app            *application.App
-	OnProgress     func(DownloadProgress)
+	currentVersion  string
+	manifestURL     string
+	client          HTTPClient
+	platform        Platform
+	app             *application.App
+	OnProgress      func(DownloadProgress)
+	stagedInstaller string // path to staged NSIS .exe (installer variant only)
 
 	mu       sync.Mutex
 	cond     *sync.Cond
@@ -87,7 +89,7 @@ func NewUpdater(currentVersion, manifestURL string) *UpdateService {
 }
 
 func (s *UpdateService) RestartApp() error {
-	err := restartApp()
+	err := restartApp(s.stagedInstaller)
 	if err != nil {
 		slog.Error("Failed to restart app", "error", err)
 		return fmt.Errorf("Failed to restart app: %w", err)
@@ -175,11 +177,12 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 		return err
 	}
 
-	tmpDir, err := os.MkdirTemp("", "app-update-*")
+	tmpDir, err := makeTempUpdateDir(s.platform)
 	if err != nil {
 		slog.Error("failed to create temp update dir", "error", err)
 		return fmt.Errorf("creating temp update dir: %w", err)
 	}
+
 	if err := os.Chmod(tmpDir, 0700); err != nil {
 		slog.Error("failed to chmod temp update dir", "path", tmpDir, "error", err)
 		os.RemoveAll(tmpDir)
@@ -194,13 +197,16 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 		return err
 	}
 
-	installErr := runInstaller(key, tmpPath, s.platform)
+	installerPath, installErr := runInstaller(key, tmpPath, s.platform)
 	if installErr != nil {
 		slog.Error("install failed, cleaning up", "path", tmpDir, "error", installErr)
 		os.RemoveAll(tmpDir)
-	}
 
-	s.app.Event.Emit("updater:restart")
+		s.app.Event.Emit("updater:fail")
+	} else {
+		s.stagedInstaller = installerPath
+		s.app.Event.Emit("updater:restart")
+	}
 
 	return installErr
 }
@@ -310,12 +316,83 @@ func (pw *progressWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Picks the right temp directory based on platform/variant:
+//
+//   - Windows portable: same drive as the binary, because applyUpdate uses
+//     os.Rename which fails across drive letters (ERROR_NOT_SAME_DEVICE).
+//
+//   - Windows installer: os.TempDir() (%TEMP%) - the binary lives in
+//     Program Files and is not writable without elevation. NSIS handles
+//     the actual file placement, so cross-drive is irrelevant.
+//
+//   - All other platforms: os.TempDir() is always fine.
+func makeTempUpdateDir(p Platform) (string, error) {
+	var base string
+	if p.IsPortableWindows() {
+		self, err := resolveExecutable()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Dir(self) // same drive as binary for atomic rename
+	} else {
+		base = os.TempDir() // user-writable, no elevation needed
+	}
+	return os.MkdirTemp(base, "app-update-*")
+}
+
+func (s *UpdateService) cleanupUpdateArtifacts() {
+	self, err := resolveExecutable()
+	if err != nil {
+		return
+	}
+	dir := filepath.Dir(self)
+	base := filepath.Base(self)
+
+	// .old backup — only exists for portable builds
+	if s.platform.IsPortableWindows() {
+		oldPath := filepath.Join(dir, "."+base+".old")
+		if err := os.Remove(oldPath); err == nil {
+			slog.Info("cleaned up old binary", "path", oldPath)
+		}
+	}
+
+	// app-update-* temp dirs
+	var scanDirs []string
+	if s.platform.IsPortableWindows() {
+		scanDirs = []string{dir} // portable: next to binary
+	} else {
+		scanDirs = []string{os.TempDir()} // installer/linux/mac: system temp
+	}
+
+	for _, scanDir := range scanDirs {
+		entries, err := os.ReadDir(scanDir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if e.IsDir() && strings.HasPrefix(e.Name(), "app-update-") {
+				p := filepath.Join(scanDir, e.Name())
+				if err := os.RemoveAll(p); err == nil {
+					slog.Info("cleaned up temp update dir", "path", p)
+				}
+			}
+		}
+	}
+}
+
 func (s *UpdateService) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
 	slog.Info("updater service started")
+
 	s.app = application.Get()
 	s.OnProgress = func(p DownloadProgress) {
 		s.app.Event.Emit("updater:progress", p)
 	}
+
+	// Clean up any leftover update artifacts from previous runs:
+	//   - app-update-* temp dirs  (download was interrupted or install failed)
+	//   - .filamint.exe.old       (held open by the old process, now released)
+	go s.cleanupUpdateArtifacts()
+
 	return nil
 }
 

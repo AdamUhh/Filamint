@@ -1,3 +1,4 @@
+import { SpoolService } from "@bindings/services";
 import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -13,7 +14,7 @@ export function Updater() {
                 const info = await UpdateService.CheckForUpdate();
                 if (cancelled || !info?.available) return;
 
-                toast.success(`New update available - v${info.newVersion}`, {
+                toast.info(`New update available - v${info.newVersion}`, {
                     duration: Infinity,
                     action: {
                         label: "Update",
@@ -32,8 +33,25 @@ export function Updater() {
     }, []);
 
     useEffect(() => {
-        Events.On("updater:restart", () =>
-            toast.success(`Restart to update`, {
+        const unsubscribe = Events.On("updater:fail", () =>
+            toast.error("Update Failed", {
+                duration: Infinity,
+                description: "Check logs to know why",
+                action: {
+                    label: "View Logs",
+                    onClick: () => SpoolService.OpenDBDir(),
+                },
+            })
+        );
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = Events.On("updater:restart", () =>
+            toast.success("Restart to update", {
                 duration: Infinity,
                 action: {
                     label: "Restart",
@@ -41,6 +59,10 @@ export function Updater() {
                 },
             })
         );
+
+        return () => {
+            unsubscribe();
+        };
     }, []);
 
     return null;
