@@ -28,7 +28,7 @@ Unicode true
 ## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 ####
-## !define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
+!define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
 ####
 ## Include the wails tools
 ####
@@ -102,6 +102,19 @@ Function .onInit
 FunctionEnd
 
 Section
+    ;
+    ${GetParameters} $R0
+    ${GetOptions} $R0 "/PID=" $R1
+    ${If} $R1 != ""
+        DetailPrint "Waiting for app (PID $R1) to exit..."
+        System::Call 'kernel32::OpenProcess(i 0x100000, i 0, i R1) i .R2'
+        ${If} $R2 != 0
+            System::Call 'kernel32::WaitForSingleObject(i R2, i 10000)'
+            System::Call 'kernel32::CloseHandle(i R2)'
+        ${EndIf}
+    ${EndIf}
+    ;
+
     !insertmacro wails.setShellContext
     !insertmacro wails.webview2runtime
 
@@ -119,6 +132,12 @@ Section
     ; Save the install location so upgrades reuse it
     SetRegView 64
     WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+
+    ; Relaunch the app after update
+    ${If} $IsUpgrade == "1"
+    ${AndIf} ${FileExists} "$INSTDIR\${PRODUCT_EXECUTABLE}"
+        Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
+    ${EndIf}
 SectionEnd
 
 Section "uninstall" 
@@ -126,7 +145,7 @@ Section "uninstall"
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
-    MDir /r $INSTDIR
+    RMDir /r $INSTDIR
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"

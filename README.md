@@ -44,7 +44,9 @@ Basic unit tests for spool and print services (generated with Claude)
 ```bash
 go test ./internal/services/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
 go test ./internal/updater/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
+go test ./internal/shortcuts/... -v | awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'
 ```
+If on windows, remove `| awk '/^--- (PASS|FAIL)/{print; print ""; next} 1'`
 
 ### File Locations
 

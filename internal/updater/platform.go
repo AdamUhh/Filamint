@@ -2,6 +2,7 @@ package updater
 
 import (
 	"fmt"
+	"log/slog"
 	"runtime"
 )
 
@@ -20,6 +21,7 @@ type Platform struct {
 
 // Reads runtime.GOOS/GOARCH and the link-time vars to build the Platform for the current process.
 func DetectPlatform() Platform {
+	slog.Info("BuildType", "type", buildType)
 	return Platform{
 		OS:      runtime.GOOS,
 		Arch:    normaliseArch(runtime.GOARCH),

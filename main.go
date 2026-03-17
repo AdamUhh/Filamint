@@ -52,7 +52,8 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-	manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+	// manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+	manifestURL := "http://localhost:8765/latest.json"
 	// testing manifest locally
 	if localURL := os.Getenv("UPDATE_MANIFEST_URL"); localURL != "" {
 		manifestURL = localURL

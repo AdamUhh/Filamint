@@ -6,20 +6,31 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"golang.org/x/sys/windows"
 )
 
+// NOTE: BUGS:
+// Currently, it does not clean the temp updater folder/files (need to only remove those in temp)
+// It is not safe code
 func installWindows(path string) error {
 	exePath := path + ".exe"
 	if err := os.Rename(path, exePath); err != nil {
 		slog.Error("failed to rename installer", "path", path, "error", err)
 		return fmt.Errorf("renaming installer: %w", err)
 	}
-	if err := exec.Command(exePath, "/S").Start(); err != nil {
-		slog.Error("failed to start Windows installer", "path", exePath, "error", err)
-		os.Remove(exePath)
-		return fmt.Errorf("starting Windows installer: %w", err)
+
+	verb, _ := windows.UTF16PtrFromString("runas")
+	file, _ := windows.UTF16PtrFromString(exePath)
+	args, _ := windows.UTF16PtrFromString(fmt.Sprintf("/S /PID=%d", os.Getpid()))
+
+	if err := windows.ShellExecute(0, verb, file, args, nil, windows.SW_SHOWNORMAL); err != nil {
+		slog.Error("failed to launch installer", "path", exePath, "error", err)
+		return fmt.Errorf("launching installer: %w", err)
 	}
-	// NSIS reads from its own exe; let it finish. OS temp cleanup handles the file.
+
+	slog.Info("installer launched, exiting", "pid", os.Getpid())
+	os.Exit(0)
 	return nil
 }
 
