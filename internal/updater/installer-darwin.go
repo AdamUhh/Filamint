@@ -82,9 +82,9 @@ func installDarwin(path string) error {
 // copyAppElevated follows the same .old swap pattern as go-update,
 // but via osascript since /Applications requires admin privileges:
 //
-//  1. cp src   → dst.new   (elevated)
-//  2. mv dst   → dst.old   (elevated, atomic within /Applications)
-//  3. mv dst.new → dst     (elevated, atomic within /Applications)
+//  1. cp src   -> dst.new   (elevated)
+//  2. mv dst   -> dst.old   (elevated, atomic within /Applications)
+//  3. mv dst.new -> dst     (elevated, atomic within /Applications)
 //  4. rm dst.old           (elevated, best-effort)
 func copyAppElevated(src, dst string) error {
 	dstNew := dst + ".new"

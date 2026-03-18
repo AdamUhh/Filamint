@@ -32,7 +32,7 @@ export function UpdateSettings() {
     const [state, setState] = useState<UpdateState>({ status: "idle" });
 
     useEffect(() => {
-        // Live download progress from Go's OnProgress callback → app.Event.Emit("updater:progress", p)
+        // Live download progress from Go's OnProgress callback -> app.Event.Emit("updater:progress", p)
         const offProgress = Events.On("updater:progress", (event) => {
             const p = event.data as DownloadProgress;
             setState({ status: "downloading", percent: p.percent });

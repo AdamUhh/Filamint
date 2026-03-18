@@ -110,8 +110,8 @@ func installLinuxDeb(tmpPath string) error {
 // applyUpdate atomically replaces the running binary with the downloaded update.
 // Steps:
 //  1. sync tmpPath to disk
-//  2. rename target  → .old  (atomic on same device)
-//  3. rename tmpPath → target (atomic on same device, falls back to copy if cross-device)
+//  2. rename target  -> .old  (atomic on same device)
+//  3. rename tmpPath -> target (atomic on same device, falls back to copy if cross-device)
 //  4. remove .old
 //
 // Cross-device fallback exists because portable binaries can live anywhere -

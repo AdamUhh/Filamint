@@ -47,8 +47,13 @@ func restartApp(installerPath string) error {
 		watchdogArgs = append(watchdogArgs, os.Args[1:]...)
 	}
 
+	r, w, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("creating readiness pipe: %w", err)
+	}
+
 	cmd := exec.Command(self, watchdogArgs...)
-	cmd.Stdout = nil
+	cmd.Stdout = w // watchdog writes its ready byte here
 	cmd.Stderr = nil
 	cmd.Stdin = nil
 	// Creates the child in a new process group, fully detached from the current console session.
@@ -58,19 +63,23 @@ func restartApp(installerPath string) error {
 		}
 
 	if err := cmd.Start(); err != nil {
+		r.Close()
+		w.Close()
 		return fmt.Errorf("starting watchdog process: %w", err)
 	}
+	w.Close() // parent closes its write end; only watchdog holds it open now
 
-	// Give the watchdog time to call OpenProcess before we exit and release our handle.
 	ready := make(chan struct{})
 	go func() {
-		// Read one byte from watchdog to confirm it has called OpenProcess
 		buf := make([]byte, 1)
-		cmd.Stdout.(io.Reader).Read(buf)
+		r.Read(buf) // blocks until watchdog writes or closes the pipe
+		r.Close()
 		close(ready)
 	}()
+
 	select {
 	case <-ready:
+		slog.Info("watchdog signalled readiness")
 	case <-time.After(2 * time.Second):
 		slog.Warn("watchdog did not signal readiness in time, exiting anyway")
 	}
@@ -105,17 +114,18 @@ func RunWatchdogIfRequested() bool {
 	slog.Info("watchdog: waiting for parent to exit", "parentPID", parentPID, "variant", variant)
 	waitForPID(parentPID)
 
-	if !filepath.IsAbs(installerPath) {
-		slog.Error("watchdog: installer path is not absolute", "path", installerPath)
-		return true
-	}
-	if ext := strings.ToLower(filepath.Ext(installerPath)); ext != ".exe" {
-		slog.Error("watchdog: unexpected installer extension", "path", installerPath)
-		return true
-	}
-
 	switch variant {
 	case "installer":
+
+		if !filepath.IsAbs(installerPath) {
+			slog.Error("watchdog: installer path is not absolute", "path", installerPath)
+			return true
+		}
+		if ext := strings.ToLower(filepath.Ext(installerPath)); ext != ".exe" {
+			slog.Error("watchdog: unexpected installer extension", "path", installerPath)
+			return true
+		}
+
 		// Launch the NSIS installer with elevation. The UAC prompt will appear,
 		// and NSIS's finish-page checkbox handles relaunching the app.
 		slog.Info("watchdog: launching NSIS installer", "path", installerPath)
@@ -170,19 +180,25 @@ func RunWatchdogIfRequested() bool {
 // Will block until the process with the given PID exits, upto 30seconds
 func waitForPID(pid int) {
 	handle, err := windows.OpenProcess(windows.SYNCHRONIZE, false, uint32(pid))
+
+	// Signal parent that we've called OpenProcess, regardless of outcome.
+	// os.Stdout is the pipe end the parent is reading from.
+	os.Stdout.Write([]byte{1})
+	os.Stdout.Close()
+
 	if err != nil {
 		slog.Warn("watchdog: could not open parent process, assuming already exited", "error", err)
 		return
 	}
 	defer windows.CloseHandle(handle)
 
-	result, _ := windows.WaitForSingleObject(handle, 30_000)
-	if err != nil {
-		slog.Error("watchdog: WaitForSingleObject error", "error", err)
+	result, waitErr := windows.WaitForSingleObject(handle, 30_000)
+	if waitErr != nil {
+		slog.Error("watchdog: WaitForSingleObject error", "error", waitErr)
 		return
 	}
 	if result != windows.WAIT_OBJECT_0 {
-		slog.Error("watchdog: parent did not exit in time, aborting update to avoid running two instances", "result", result)
+		slog.Error("watchdog: parent did not exit in time", "result", result)
 		os.Exit(1)
 	}
 }
@@ -201,7 +217,7 @@ func runInstaller(key, tmpPath string, p Platform) (string, error) {
 	}
 }
 
-// installWindows renames the downloaded file to .exe and returns its path.
+// Renames the downloaded file to .exe and returns its path.
 // The caller stores this path and passes it to restartApp.
 func installWindows(path string) (string, error) {
 	exePath := path + ".exe"
@@ -220,7 +236,7 @@ func installWindowsPortable(tmpPath string) error {
 	return applyUpdate(tmpPath, self)
 }
 
-// applyUpdate: sync → rename target→.old → rename tmp→target → hide .old
+// Sync -> rename target->.old -> rename tmp->target -> hide .old
 func applyUpdate(tmpPath, target string) error {
 	if err := syncFile(tmpPath); err != nil {
 		return fmt.Errorf("syncing update file: %w", err)
@@ -260,7 +276,8 @@ func applyUpdate(tmpPath, target string) error {
 	return nil
 }
 
-// isErrCrossDevice detects ERROR_NOT_SAME_DEVICE (win32: 0x11 / errno: EXDEV).
+// Detects ERROR_NOT_SAME_DEVICE (win32: 0x11 / errno: EXDEV).
+// Used for cross-device/drive rename fallback
 func isErrCrossDevice(err error) bool {
 	if le, ok := err.(*os.LinkError); ok {
 		if errno, ok := le.Err.(syscall.Errno); ok {
@@ -332,6 +349,7 @@ func writeAndSync(path string, r io.Reader, mode os.FileMode) error {
 		os.Remove(path)
 		return fmt.Errorf("writing file: %w", err)
 	}
+
 	if err := f.Sync(); err != nil {
 		f.Close()
 		os.Remove(path)

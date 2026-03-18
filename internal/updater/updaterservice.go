@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -51,18 +52,22 @@ type HTTPClient interface {
 }
 
 type UpdateService struct {
-	currentVersion  string
-	manifestURL     string
-	client          HTTPClient
-	platform        Platform
-	app             *application.App
-	OnProgress      func(DownloadProgress)
-	stagedInstaller string // path to staged NSIS .exe (installer variant only)
+	currentVersion string
+	manifestURL    string
+	client         HTTPClient
+	platform       Platform
+	app            *application.App
+
+	OnProgress       func(DownloadProgress)
+	OnReadyToRestart func(installerPath string)
+	OnInstallFailed  func(err error)
 
 	mu       sync.Mutex
 	cond     *sync.Cond
 	inflight bool
 	cache    cachedResult
+
+	stagedInstaller atomic.Value // path to staged NSIS .exe (installer variant only)
 }
 
 type cachedResult struct {
@@ -75,6 +80,10 @@ type cachedResult struct {
 func (c *cachedResult) valid() bool {
 	return !c.at.IsZero() && time.Since(c.at) < c.ttl
 }
+
+// Prefix used for temporary update directories.
+// Used both when creating them (MkdirTemp glob) and when scanning for leftovers to clean up.
+const tempDirPrefix = "app-update-"
 
 func NewUpdater(currentVersion, manifestURL string) *UpdateService {
 	s := &UpdateService{
@@ -89,7 +98,9 @@ func NewUpdater(currentVersion, manifestURL string) *UpdateService {
 }
 
 func (s *UpdateService) RestartApp() error {
-	err := restartApp(s.stagedInstaller)
+	path, _ := s.stagedInstaller.Load().(string)
+
+	err := restartApp(path)
 	if err != nil {
 		slog.Error("Failed to restart app", "error", err)
 		return fmt.Errorf("Failed to restart app: %w", err)
@@ -179,19 +190,15 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 
 	tmpDir, err := makeTempUpdateDir(s.platform)
 	if err != nil {
-		slog.Error("failed to create temp update dir", "error", err)
 		return fmt.Errorf("creating temp update dir: %w", err)
 	}
 
 	if err := os.Chmod(tmpDir, 0700); err != nil {
-		slog.Error("failed to chmod temp update dir", "path", tmpDir, "error", err)
 		os.RemoveAll(tmpDir)
 		return fmt.Errorf("chmod temp update dir: %w", err)
 	}
 
 	tmpPath := filepath.Join(tmpDir, "update")
-	slog.Info("starting update download", "url", downloadURL, "key", key, "temp_path", tmpPath)
-
 	if err := s.downloadToFile(downloadURL, tmpPath); err != nil {
 		os.RemoveAll(tmpDir)
 		return err
@@ -199,16 +206,19 @@ func (s *UpdateService) DownloadAndInstall(downloadURL string) error {
 
 	installerPath, installErr := runInstaller(key, tmpPath, s.platform)
 	if installErr != nil {
-		slog.Error("install failed, cleaning up", "path", tmpDir, "error", installErr)
 		os.RemoveAll(tmpDir)
-
-		s.app.Event.Emit("updater:fail")
-	} else {
-		s.stagedInstaller = installerPath
-		s.app.Event.Emit("updater:restart")
+		if s.OnInstallFailed != nil {
+			s.OnInstallFailed(installErr)
+		}
+		return installErr
 	}
 
-	return installErr
+	s.stagedInstaller.Store(installerPath)
+
+	if s.OnReadyToRestart != nil {
+		s.OnReadyToRestart(installerPath)
+	}
+	return nil
 }
 
 func (s *UpdateService) downloadToFile(url, dst string) error {
@@ -337,10 +347,17 @@ func makeTempUpdateDir(p Platform) (string, error) {
 	} else {
 		base = os.TempDir() // user-writable, no elevation needed
 	}
-	return os.MkdirTemp(base, "app-update-*")
+	return os.MkdirTemp(base, tempDirPrefix+"*")
 }
 
-func (s *UpdateService) cleanupUpdateArtifacts() {
+// Removes leftover artifacts from interrupted or failed updates.
+// Checks ctx.Done() before each slow filesystem operation so the
+// app can shut down promptly.
+//
+// Removes:
+//   - .appname.exe.old  (portable only - was locked by the old process)
+//   - app-update-* dirs (download was interrupted or install failed)
+func (s *UpdateService) cleanupUpdateArtifacts(ctx context.Context) {
 	self, err := resolveExecutable()
 	if err != nil {
 		return
@@ -348,50 +365,73 @@ func (s *UpdateService) cleanupUpdateArtifacts() {
 	dir := filepath.Dir(self)
 	base := filepath.Base(self)
 
-	// .old backup - only exists for portable builds
 	if s.platform.IsPortableWindows() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		oldPath := filepath.Join(dir, "."+base+".old")
 		if err := os.Remove(oldPath); err == nil {
 			slog.Info("cleaned up old binary", "path", oldPath)
 		}
 	}
 
-	// app-update-* temp dirs
 	var scanDirs []string
 	if s.platform.IsPortableWindows() {
-		scanDirs = []string{dir} // portable: next to binary
+		scanDirs = []string{dir}
 	} else {
-		scanDirs = []string{os.TempDir()} // installer/linux/mac: system temp
+		scanDirs = []string{os.TempDir()}
 	}
 
 	for _, scanDir := range scanDirs {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		entries, err := os.ReadDir(scanDir)
 		if err != nil {
 			continue
 		}
 		for _, e := range entries {
-			if e.IsDir() && strings.HasPrefix(e.Name(), "app-update-") {
-				p := filepath.Join(scanDir, e.Name())
-				if err := os.RemoveAll(p); err == nil {
-					slog.Info("cleaned up temp update dir", "path", p)
-				}
+			if !e.IsDir() || !strings.HasPrefix(e.Name(), tempDirPrefix) {
+				continue
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			p := filepath.Join(scanDir, e.Name())
+			if err := os.RemoveAll(p); err == nil {
+				slog.Info("cleaned up temp update dir", "path", p)
 			}
 		}
 	}
 }
 
-func (s *UpdateService) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
+func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	slog.Info("updater service started")
 
 	s.app = application.Get()
+
 	s.OnProgress = func(p DownloadProgress) {
 		s.app.Event.Emit("updater:progress", p)
 	}
+	s.OnReadyToRestart = func(_ string) {
+		s.app.Event.Emit("updater:restart")
+	}
+	s.OnInstallFailed = func(err error) {
+		slog.Error("Failed to update app", "error", err)
+		s.app.Event.Emit("updater:fail")
+	}
 
-	// Clean up any leftover update artifacts from previous runs:
-	//   - app-update-* temp dirs  (download was interrupted or install failed)
-	//   - .filamint.exe.old       (held open by the old process, now released)
-	go s.cleanupUpdateArtifacts()
+	go s.cleanupUpdateArtifacts(ctx)
 
 	return nil
 }
