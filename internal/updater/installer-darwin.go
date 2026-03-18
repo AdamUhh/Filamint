@@ -91,10 +91,11 @@ func copyAppElevated(src, dst string) error {
 	dstOld := dst + ".old"
 
 	shCmd := fmt.Sprintf(
-		"cp -R %s %s && mv -f %s %s && mv -f %s %s; rm -rf %s",
+		"cp -R %s %s && mv -f %s %s && { mv -f %s %s || { mv -f %s %s; exit 1; }; } && rm -rf %s",
 		shellQuote(src), shellQuote(dstNew),
 		shellQuote(dst), shellQuote(dstOld),
 		shellQuote(dstNew), shellQuote(dst),
+		shellQuote(dstOld), shellQuote(dst), // rollback for err will happen within the same shell
 		shellQuote(dstOld),
 	)
 	script := fmt.Sprintf(
@@ -105,10 +106,6 @@ func copyAppElevated(src, dst string) error {
 	out, err := exec.Command("osascript", "-e", script).CombinedOutput()
 	if err != nil {
 		slog.Error("elevated copy failed", "src", src, "dst", dst, "output", string(out), "error", err)
-		_ = exec.Command("osascript", "-e", fmt.Sprintf(
-			`do shell script "mv -f %s %s" with administrator privileges`,
-			osascriptQuote(dstOld), osascriptQuote(dst),
-		)).Run()
 		return fmt.Errorf("installing app to /Applications: %w (output: %s)", err, out)
 	}
 	return nil
@@ -124,6 +121,9 @@ func parseDMGMountPoint(out string) (string, error) {
 	}
 	if mountPoint == "" {
 		return "", fmt.Errorf("could not determine dmg mount point from: %q", out)
+	}
+	if _, err := os.Stat(mountPoint); err != nil {
+		return "", fmt.Errorf("dmg mount point %q does not exist: %w", mountPoint, err)
 	}
 	return mountPoint, nil
 }

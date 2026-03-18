@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"syscall"
 )
 
@@ -87,7 +86,14 @@ func installLinuxExecutable(tmpPath string) error {
 
 	// On Linux, rename(2) is atomic and the running process holds
 	// the old inode open - so we can rename freely over the path.
-	return applyUpdate(tmpPath, self)
+	if err := applyUpdate(tmpPath, self); err != nil {
+		return err
+	}
+
+	if err := os.Remove(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
+		slog.Warn("could not remove temp update dir", "path", filepath.Dir(tmpPath), "error", err)
+	}
+	return nil
 }
 
 func installLinuxDeb(tmpPath string) error {
@@ -101,6 +107,9 @@ func installLinuxDeb(tmpPath string) error {
 	}
 	if err := os.Remove(tmpPath); err != nil && !os.IsNotExist(err) {
 		slog.Warn("could not remove deb package", "path", tmpPath, "error", err)
+	}
+	if err := os.Remove(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
+		slog.Warn("could not remove temp update dir", "path", filepath.Dir(tmpPath), "error", err)
 	}
 
 	slog.Info("deb update applied, waiting for user restart")
@@ -186,8 +195,4 @@ func syncFile(path string) error {
 		return err
 	}
 	return f.Close()
-}
-
-func singleQuote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
