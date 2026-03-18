@@ -33,35 +33,53 @@ export function Updater() {
     }, []);
 
     useEffect(() => {
-        const unsubscribe = Events.On("updater:fail", () =>
+        let toastId: string | number | undefined;
+
+        const unsubProgress = Events.On("updater:progress", (ev) => {
+            const p = ev.data as {
+                percent: number;
+                bytesDownloaded: number;
+                totalBytes: number;
+            };
+            if (toastId === undefined) {
+                toastId = toast.loading(`Downloading update... ${p.percent}%`, {
+                    duration: Infinity,
+                });
+            } else {
+                toast.loading(`Downloading update... ${p.percent}%`, {
+                    id: toastId,
+                    duration: Infinity,
+                });
+            }
+        });
+
+        const unsubRestart = Events.On("updater:restart", () => {
+            toast.success("Restart to update", {
+                id: toastId,
+                duration: Infinity,
+                action: {
+                    label: "Restart",
+                    onClick: () => UpdateService.RestartApp(),
+                },
+            });
+        });
+
+        const unsubFail = Events.On("updater:fail", () => {
             toast.error("Update Failed", {
+                id: toastId,
                 duration: Infinity,
                 description: "Check logs to know why",
                 action: {
                     label: "View Logs",
                     onClick: () => SpoolService.OpenDBDir(),
                 },
-            })
-        );
+            });
+        });
 
         return () => {
-            unsubscribe();
-        };
-    }, []);
-
-    useEffect(() => {
-        const unsubscribe = Events.On("updater:restart", () =>
-            toast.success("Restart to update", {
-                duration: Infinity,
-                action: {
-                    label: "Restart",
-                    onClick: () => UpdateService.RestartApp(),
-                },
-            })
-        );
-
-        return () => {
-            unsubscribe();
+            unsubProgress();
+            unsubRestart();
+            unsubFail();
         };
     }, []);
 

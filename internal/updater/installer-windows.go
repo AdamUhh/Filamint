@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -41,7 +42,7 @@ func restartApp(installerPath string) error {
 	}
 
 	// For portable, forward app args so the relaunched binary gets them.
-	// For installer, NSIS handles the relaunch — no need to forward args.
+	// For installer, NSIS handles the relaunch - no need to forward args.
 	if p.Variant == "portable" {
 		watchdogArgs = append(watchdogArgs, os.Args[1:]...)
 	}
@@ -50,20 +51,35 @@ func restartApp(installerPath string) error {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	cmd.Stdin = nil
-	cmd.SysProcAttr = detachedProcAttr()
+	// Creates the child in a new process group, fully detached from the current console session.
+	cmd.SysProcAttr =
+		&syscall.SysProcAttr{
+			CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS | windows.CREATE_NO_WINDOW,
+		}
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("starting watchdog process: %w", err)
 	}
 
 	// Give the watchdog time to call OpenProcess before we exit and release our handle.
-	time.Sleep(500 * time.Millisecond)
+	ready := make(chan struct{})
+	go func() {
+		// Read one byte from watchdog to confirm it has called OpenProcess
+		buf := make([]byte, 1)
+		cmd.Stdout.(io.Reader).Read(buf)
+		close(ready)
+	}()
+	select {
+	case <-ready:
+	case <-time.After(2 * time.Second):
+		slog.Warn("watchdog did not signal readiness in time, exiting anyway")
+	}
 	os.Exit(0)
-	return nil // unreachable
+	panic("unreachable")
 }
 
-// RunWatchdogIfRequested checks os.Args for the watchdog flag injected by
-// restartApp. Call this at the very top of main(), before any other init.
+// Checks os.Args for the watchdog flag injected by restartApp.
+// Call this at the very top of main(), before any other init.
 // Returns true if we are the watchdog (caller should exit after this returns).
 func RunWatchdogIfRequested() bool {
 	args := os.Args
@@ -79,43 +95,57 @@ func RunWatchdogIfRequested() bool {
 	variant := args[3]
 	installerPath := args[4]
 
-	logPath := filepath.Join(os.TempDir(), "filamint-watchdog.log")
-	if logFile, logErr := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600); logErr == nil {
-		slog.SetDefault(slog.New(slog.NewTextHandler(logFile, nil)))
-		defer logFile.Close()
-	}
+	// log watchdog logs
+	// logPath := filepath.Join(os.TempDir(), "filamint-watchdog.log")
+	// if logFile, logErr := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600); logErr == nil {
+	// 	slog.SetDefault(slog.New(slog.NewTextHandler(logFile, nil)))
+	// 	defer logFile.Close()
+	// }
 
 	slog.Info("watchdog: waiting for parent to exit", "parentPID", parentPID, "variant", variant)
 	waitForPID(parentPID)
+
+	if !filepath.IsAbs(installerPath) {
+		slog.Error("watchdog: installer path is not absolute", "path", installerPath)
+		return true
+	}
+	if ext := strings.ToLower(filepath.Ext(installerPath)); ext != ".exe" {
+		slog.Error("watchdog: unexpected installer extension", "path", installerPath)
+		return true
+	}
 
 	switch variant {
 	case "installer":
 		// Launch the NSIS installer with elevation. The UAC prompt will appear,
 		// and NSIS's finish-page checkbox handles relaunching the app.
 		slog.Info("watchdog: launching NSIS installer", "path", installerPath)
-		script := fmt.Sprintf(`Start-Process -FilePath '%s' -Verb RunAs`, installerPath)
-		cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+
+		cmd := exec.Command("powershell", "-NoProfile", "-Command",
+			"Start-Process", "-FilePath", installerPath, "-Verb", "RunAs")
 		cmd.Stdout = nil
 		cmd.Stderr = nil
+		// Hides the window
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			CreationFlags: windows.CREATE_NO_WINDOW,
 		}
+
 		if err := cmd.Run(); err != nil {
 			slog.Error("watchdog: NSIS installer failed", "error", err)
 		}
 
 	case "portable":
-		// Binary was already replaced in-place by applyUpdate. Just relaunch it.
+		// Binary was already replaced in-place by applyUpdate. Just relaunch it
 		launchPath, err := resolveExecutable()
 		if err != nil {
 			slog.Error("watchdog: could not resolve executable", "error", err)
 			return true
 		}
 
+		// Prevent infinite watchdog loops: drop all forwarded args if they contain our flag
 		forwardedArgs := args[5:]
 		for _, a := range forwardedArgs {
 			if a == "--updater-watchdog-restart" {
-				slog.Error("watchdog: forwarded args contain watchdog flag — dropping all forwarded args")
+				slog.Error("watchdog: forwarded args contain watchdog flag - dropping all forwarded args")
 				forwardedArgs = nil
 				break
 			}
@@ -137,7 +167,7 @@ func RunWatchdogIfRequested() bool {
 	return true
 }
 
-// waitForPID blocks until the process with the given PID exits.
+// Will block until the process with the given PID exits, upto 30seconds
 func waitForPID(pid int) {
 	handle, err := windows.OpenProcess(windows.SYNCHRONIZE, false, uint32(pid))
 	if err != nil {
@@ -147,21 +177,17 @@ func waitForPID(pid int) {
 	defer windows.CloseHandle(handle)
 
 	result, _ := windows.WaitForSingleObject(handle, 30_000)
-	if result != windows.WAIT_OBJECT_0 {
-		slog.Warn("watchdog: parent did not exit cleanly in time", "result", result)
+	if err != nil {
+		slog.Error("watchdog: WaitForSingleObject error", "error", err)
+		return
 	}
-}
-
-// detachedProcAttr creates the child in a new process group, fully detached
-// from the current console session.
-func detachedProcAttr() *syscall.SysProcAttr {
-	return &syscall.SysProcAttr{
-		CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS | windows.CREATE_NO_WINDOW,
+	if result != windows.WAIT_OBJECT_0 {
+		slog.Error("watchdog: parent did not exit in time, aborting update to avoid running two instances", "result", result)
+		os.Exit(1)
 	}
 }
 
 // --- installer logic ---
-
 func runInstaller(key, tmpPath string, p Platform) (string, error) {
 	switch p.Variant {
 	case "portable":
@@ -212,7 +238,7 @@ func applyUpdate(tmpPath, target string) error {
 
 	if err := os.Rename(tmpPath, target); err != nil {
 		if isErrCrossDevice(err) {
-			// Temp dir is on a different drive — fall back to copy+sync.
+			// Temp dir is on a different drive - fall back to copy+sync.
 			slog.Warn("cross-device rename, falling back to copy", "src", tmpPath, "dst", target)
 			if cerr := copyFile(tmpPath, target); cerr != nil {
 				_ = os.Rename(oldPath, target) // rollback
@@ -251,11 +277,11 @@ func copyFile(src, dst string) error {
 	}
 	defer in.Close()
 
-	tmp := dst + ".tmp"
-	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	out, err := os.CreateTemp(filepath.Dir(dst), ".update-*.tmp")
 	if err != nil {
 		return err
 	}
+	tmp := out.Name()
 	defer func() { _ = os.Remove(tmp) }() // no-op if rename succeeds
 
 	if _, err := io.Copy(out, in); err != nil {

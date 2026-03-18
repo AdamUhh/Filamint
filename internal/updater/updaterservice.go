@@ -348,7 +348,7 @@ func (s *UpdateService) cleanupUpdateArtifacts() {
 	dir := filepath.Dir(self)
 	base := filepath.Base(self)
 
-	// .old backup — only exists for portable builds
+	// .old backup - only exists for portable builds
 	if s.platform.IsPortableWindows() {
 		oldPath := filepath.Join(dir, "."+base+".old")
 		if err := os.Remove(oldPath); err == nil {

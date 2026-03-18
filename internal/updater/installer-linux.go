@@ -27,7 +27,7 @@ func RunWatchdogIfRequested() bool {
 // FIX: rebuild the absolute path from os.Args[0] + working directory so we
 // walk the filesystem and always land on whatever inode sits at that path
 // right now - i.e. the freshly installed binary
-func restartApp() error {
+func restartApp(installerPath string) error {
 	self, err := executableFromArgs()
 	if err != nil {
 		return err
