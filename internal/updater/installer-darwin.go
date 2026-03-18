@@ -19,7 +19,7 @@ func RunWatchdogIfRequested() bool {
 // RestartApp re-execs the current binary in-place.
 // The OS replaces the current process image - PID stays the same,
 // so no orphan processes and no need to manage child PIDs.
-func restartApp(installerPath string) error {
+func restartApp(_ string) error {
 	self, err := resolveExecutable()
 	if err != nil {
 		return fmt.Errorf("resolving executable: %w", err)

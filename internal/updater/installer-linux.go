@@ -26,7 +26,7 @@ func RunWatchdogIfRequested() bool {
 // FIX: rebuild the absolute path from os.Args[0] + working directory so we
 // walk the filesystem and always land on whatever inode sits at that path
 // right now - i.e. the freshly installed binary
-func restartApp(installerPath string) error {
+func restartApp(_ string) error {
 	self, err := executableFromArgs()
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func installLinuxExecutable(tmpPath string) error {
 		return err
 	}
 
-	if err := os.Remove(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
 		slog.Warn("could not remove temp update dir", "path", filepath.Dir(tmpPath), "error", err)
 	}
 	return nil
@@ -108,7 +108,7 @@ func installLinuxDeb(tmpPath string) error {
 	if err := os.Remove(tmpPath); err != nil && !os.IsNotExist(err) {
 		slog.Warn("could not remove deb package", "path", tmpPath, "error", err)
 	}
-	if err := os.Remove(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(filepath.Dir(tmpPath)); err != nil && !os.IsNotExist(err) {
 		slog.Warn("could not remove temp update dir", "path", filepath.Dir(tmpPath), "error", err)
 	}
 
