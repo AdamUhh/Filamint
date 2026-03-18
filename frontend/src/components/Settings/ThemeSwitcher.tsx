@@ -19,7 +19,7 @@ export function ThemeSwitcher() {
             <div>
                 <h2 className="text-lg font-semibold tracking-tight">Theme</h2>
                 <p className="text-sm text-muted-foreground">
-                    Select your theme!
+                    Select your color scheme.
                 </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -33,17 +33,18 @@ export function ThemeSwitcher() {
                     value={theme}
                     onValueChange={(value) => setTheme(value as Theme)}
                 >
-                    <SelectTrigger id="theme" className="w-45">
+                    <SelectTrigger id="theme" className="w-45 capitalize">
                         <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
 
                     <SelectContent>
                         {THEMES.map((value) => (
-                            <SelectItem key={value} value={value}>
-                                <div className="flex items-center gap-2 capitalize">
-                                    {/* <Icon className="h-4 w-4 opacity-80" /> */}
-                                    <span>{value}</span>
-                                </div>
+                            <SelectItem
+                                key={value}
+                                value={value}
+                                className="capitalize"
+                            >
+                                {value}
                             </SelectItem>
                         ))}
                     </SelectContent>

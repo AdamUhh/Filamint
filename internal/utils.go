@@ -86,7 +86,7 @@ func ParseSearchQuery(search string) (qualifiers map[string]string, freeText str
 			key := strings.ToLower(token[:colonIdx])
 			value := token[colonIdx+1:]
 			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-				strings.Trim(value, `"`)
+				value = strings.Trim(value, `"`)
 			}
 			if value != "" {
 				qualifiers[key] = strings.ToLower(value)
@@ -117,8 +117,8 @@ func BuildQualifierClause(column, val string) (clause string, arg any) {
 
 func Truncate(s string, n int) string {
 	r := []rune(s)
-	if len(r) < n {
-		n = len(r)
+	if len(r) <= n {
+		return s
 	}
 	return string(r[:n])
 }

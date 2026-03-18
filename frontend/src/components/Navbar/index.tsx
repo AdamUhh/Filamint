@@ -1,8 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
 import { useState } from "react";
-import { NavLink } from "react-router";
-import { useLocation } from "react-router";
+import { NavLink, useLocation } from "react-router";
 
 import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
@@ -47,11 +46,13 @@ export function Navbar() {
                         href="/spools"
                         action="spool:redirect"
                         name="spools"
+                        icon={LayersIcon}
                     />
                     <NavbarLink
                         href="/prints"
                         action="print:redirect"
                         name="prints"
+                        icon={PrinterIcon}
                     />
 
                     <button
@@ -82,13 +83,14 @@ function NavbarLink({
     href,
     name,
     action,
+    icon: Icon,
 }: {
     href: string;
     name: string;
     action: string;
+    icon: React.ComponentType<{ className?: string }>;
 }) {
     const comboKey = useKeyCombo(action);
-
     return (
         <LazyTooltip content={comboKey}>
             <div>
@@ -98,11 +100,7 @@ function NavbarLink({
                         `group ${navItem} ${isActive ? activeItem : inactiveItem}`
                     }
                 >
-                    {name === "spools" ? (
-                        <LayersIcon className={iconItem} />
-                    ) : (
-                        <PrinterIcon className={iconItem} />
-                    )}
+                    <Icon className={iconItem} />
                     <span className="capitalize">{name}</span>
                 </NavLink>
             </div>
