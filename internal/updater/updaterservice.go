@@ -108,6 +108,10 @@ func (s *UpdateService) RestartApp() error {
 	return nil
 }
 
+func (s *UpdateService) GetVersion() string {
+	return s.currentVersion
+}
+
 // Returns cached results when fresh; otherwise fetches the manifest.
 // Concurrent callers wait for the single in-flight request to
 // finish before reading from the cache.

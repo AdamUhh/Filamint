@@ -11,7 +11,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     return (
         <Sonner
             // theme={"system" as ToasterProps["theme"]}
-            className="toaster group"
+            className="toaster group pointer-events-auto!"
             icons={{
                 success: <CircleCheckIcon className="size-4" />,
                 info: <InfoIcon className="size-4" />,
@@ -30,6 +30,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             toastOptions={{
                 classNames: {
                     toast: "cn-toast",
+                    description: "pointer-events-none! select-none!",
+                    title: "pointer-events-none! select-none!",
                 },
             }}
             {...props}

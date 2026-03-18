@@ -12,9 +12,9 @@ import {
     DialogTitle,
 } from "@/shadcn/dialog";
 
-import { useKeyCombo } from "@/hooks/useKeyCombo";
+import { AppSettings } from "@/components/Settings";
 
-import { AppSettings } from "./Settings";
+import { useKeyCombo } from "@/hooks/useKeyCombo";
 
 const navItem =
     "relative flex min-w-16 hover:cursor-pointer flex-col items-center justify-center gap-0.5  px-3 py-1.5 font-medium transition-colors duration-300";

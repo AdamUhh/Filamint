@@ -68,7 +68,7 @@ export function Updater() {
             toast.error("Update Failed", {
                 id: toastId,
                 duration: Infinity,
-                description: "Check logs to know why",
+                description: "Try checking the logs",
                 action: {
                     label: "View Logs",
                     onClick: () => SpoolService.OpenDBDir(),

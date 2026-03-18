@@ -79,7 +79,7 @@ func installLinuxExecutable(tmpPath string) error {
 		return fmt.Errorf("chmod binary: %w", err)
 	}
 
-	self, err := resolveExecutable()
+	self, err := executableFromArgs()
 	if err != nil {
 		return err
 	}

@@ -69,6 +69,15 @@ function DialogContent({
                 onEscapeKeyDown={(e) => {
                     if (!allowEsc) e.preventDefault();
                 }}
+                onInteractOutside={(e) => {
+                    const { originalEvent } = e.detail;
+                    if (
+                        originalEvent.target instanceof Element &&
+                        originalEvent.target.closest(".group.toaster")
+                    ) {
+                        e.preventDefault();
+                    }
+                }}
                 {...props}
             >
                 {children}
