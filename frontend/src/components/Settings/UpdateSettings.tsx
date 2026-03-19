@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 
-import { tryParseJson } from "@/lib/util-format";
+import { toErrorMessage } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
 import { UpdateService } from "@bindings/updater";
@@ -93,10 +93,7 @@ export function UpdateSettings() {
         } catch (err: unknown) {
             setState({
                 status: "error",
-                message:
-                    err instanceof Error
-                        ? (tryParseJson(err.message)?.message ?? err.message)
-                        : "Download failed.",
+                message: toErrorMessage(err) || "Download failed",
             });
         }
     }
@@ -242,7 +239,7 @@ export function UpdateSettings() {
 
                     {isDownloading && (
                         <div className="flex flex-col gap-2">
-                            <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
+                            <div className="h-0.75 w-full overflow-hidden rounded-full bg-muted">
                                 <div
                                     className="h-full rounded-full bg-foreground/70 transition-all duration-300 ease-out"
                                     style={{ width: `${state.percent}%` }}

@@ -29,7 +29,7 @@ import {
 
 import { useFieldContext } from "@/components/Prints/lib/hooks";
 
-import { tryParseJson } from "@/lib/util-format";
+import { toErrorMessage } from "@/lib/util-format";
 
 import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";
@@ -203,7 +203,7 @@ export function PrintSpoolParamFormField({ editingId }: { editingId: number }) {
     return (
         <p className="text-xs text-destructive">
             There was an error logging the spool:{" "}
-            {tryParseJson(displayError)?.message ?? displayError}
+            {toErrorMessage(displayError) || displayError}
         </p>
     );
 }

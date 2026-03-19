@@ -22,7 +22,7 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
-import { formatBytesToMB, tryParseJson } from "@/lib/util-format";
+import { formatBytesToMB, toErrorMessage } from "@/lib/util-format";
 
 type Step = "models" | "app";
 
@@ -108,11 +108,7 @@ export function OpenInAppDialog({
                 } catch (err: unknown) {
                     errors.push({
                         name: `${m.name}.${m.ext}`,
-                        error:
-                            err instanceof Error
-                                ? (tryParseJson(err.message)?.message ??
-                                  err.message)
-                                : "Failed to open file.",
+                        error: toErrorMessage(err) || "Failed to open file",
                     });
                 }
             })

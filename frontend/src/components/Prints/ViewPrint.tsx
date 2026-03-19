@@ -21,7 +21,7 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
-import { formatBytesToMB, tryParseJson } from "@/lib/util-format";
+import { formatBytesToMB, toErrorMessage } from "@/lib/util-format";
 
 export function ViewPrintDialog({
     viewState,
@@ -54,11 +54,7 @@ export function ViewPrintDialog({
                 setIsLoading(false);
             })
             .catch((err: unknown) => {
-                setFetchError(
-                    err instanceof Error
-                        ? (tryParseJson(err.message)?.message ?? err.message)
-                        : "Failed to load models."
-                );
+                setFetchError(toErrorMessage(err) || "Failed to load models");
                 setModels([]);
                 setIsLoading(false);
             });
@@ -84,10 +80,7 @@ export function ViewPrintDialog({
             .catch((err: unknown) => {
                 if (!cancelled) {
                     setFetchError(
-                        err instanceof Error
-                            ? (tryParseJson(err.message)?.message ??
-                                  err.message)
-                            : "Failed to load models."
+                        toErrorMessage(err) || "Failed to load models"
                     );
                     setModels([]);
                     setIsLoading(false);
@@ -126,11 +119,7 @@ export function ViewPrintDialog({
                 } catch (err: unknown) {
                     errors.push({
                         name: `${m.name}.${m.ext}`,
-                        error:
-                            err instanceof Error
-                                ? (tryParseJson(err.message)?.message ??
-                                  err.message)
-                                : "Failed to load file.",
+                        error: toErrorMessage(err) || "Failed to load file",
                     });
                 }
             })

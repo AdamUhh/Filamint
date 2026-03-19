@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ShortcutService } from "@bindings/shortcuts";
 import { CheckIcon, PencilIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import {
     MODIFIER_KEYS,
     SPECIAL_KEYS,
 } from "@/lib/constant-mod-keys";
-import { tryParseJson } from "@/lib/util-format";
+import { toErrorMessage } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
 interface Shortcut {
@@ -30,12 +31,27 @@ interface Shortcut {
     action: string;
 }
 
+interface EditState {
+    id: number;
+    action: string;
+    value: string;
+    validationError: string;
+}
+
 export function ShortcutsSettings() {
     const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [editValue, setEditValue] = useState("");
-    const [error, setError] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+
+    const [editState, setEditState] = useState<EditState | null>(null);
+    const [apiError, setApiError] = useState("");
+
+    const [pendingActions, setPendingActions] = useState<Set<string>>(
+        new Set()
+    );
+
+    // Separate flag for bulk operations (reset all)
+    const [isBulkLoading, setIsBulkLoading] = useState(false);
+    const [confirmResetAll, setConfirmResetAll] = useState(false);
+
     const inputRef = useRef<HTMLInputElement>(null);
 
     const fetchShortcuts = async () => {
@@ -48,8 +64,8 @@ export function ShortcutsSettings() {
                         a.action.localeCompare(b.action)
                 )
             );
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setApiError(toErrorMessage(err));
         }
     };
 
@@ -58,38 +74,38 @@ export function ShortcutsSettings() {
     }, []);
 
     useEffect(() => {
-        if (editingId !== null) inputRef.current?.focus();
-    }, [editingId]);
+        if (editState !== null) inputRef.current?.focus();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editState?.id]);
+
+    const isActionPending = (action: string) => pendingActions.has(action);
+
+    const startPendingAction = (action: string) =>
+        setPendingActions((prev) => new Set(prev).add(action));
+
+    const stopPendingAction = (action: string) =>
+        setPendingActions((prev) => {
+            const next = new Set(prev);
+            next.delete(action);
+            return next;
+        });
 
     const handleCancel = () => {
-        setEditingId(null);
-        setEditValue("");
-        setError("");
+        setEditState(null);
+        setApiError("");
     };
 
-    function validateShortcut(combo: string): {
-        isValid: boolean;
-        message?: string;
-    } {
+    function validateShortcut(combo: string): string | null {
         if (!combo || combo.trim() === "") {
-            return { isValid: false, message: "Shortcut cannot be empty." };
+            return "Shortcut cannot be empty.";
         }
-
         const parts = combo.split("+").map((p) => p.trim().toLowerCase());
-
-        // Must contain at least one non-modifier key
         const modifiers = MODIFIER_KEYS.map((m) => m.toLowerCase());
-
         const hasNonModifier = parts.some((part) => !modifiers.includes(part));
-
         if (!hasNonModifier) {
-            return {
-                isValid: false,
-                message: "Shortcut must include at least one non-modifier key.",
-            };
+            return "Shortcut must include at least one non-modifier key.";
         }
-
-        return { isValid: true };
+        return null;
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -101,15 +117,19 @@ export function ShortcutsSettings() {
             return;
         }
 
-        // Save on Enter
-        if (e.key === "Enter" && editingId !== null) {
-            handleSave(shortcuts.find((s) => s.id === editingId)?.action || "");
+        if (e.key === "Enter" && editState !== null) {
+            handleSave();
             return;
         }
 
         if (FORBIDDEN_KEYS.includes(e.key)) {
-            setError(
-                `"${e.key == " " ? "Space" : e.key}" is not allowed as a shortcut.`
+            setEditState((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          validationError: `"${e.key === " " ? "Space" : e.key}" is not allowed as a shortcut.`,
+                      }
+                    : prev
             );
             return;
         }
@@ -135,59 +155,71 @@ export function ShortcutsSettings() {
         }
 
         const combo = parts.join("+");
-        setEditValue(combo);
-        setError("");
+        setEditState((prev) =>
+            prev ? { ...prev, value: combo, validationError: "" } : prev
+        );
     };
 
-    const handleSave = async (action: string) => {
-        const validation = validateShortcut(editValue);
+    const handleSave = async () => {
+        if (!editState) return;
 
-        if (!validation.isValid) {
-            setError(validation.message ?? "");
+        const validationError = validateShortcut(editState.value);
+        if (validationError) {
+            setEditState((prev) =>
+                prev ? { ...prev, validationError } : prev
+            );
             inputRef.current?.focus();
             return;
         }
 
-        setIsLoading(true);
-
+        startPendingAction(editState.action);
         try {
-            await ShortcutService.UpdateShortcut(action, editValue);
+            await ShortcutService.UpdateShortcut(
+                editState.action,
+                editState.value
+            );
             await fetchShortcuts();
             handleCancel();
-        } catch (err: any) {
-            setError(
-                tryParseJson(err.message)?.message ??
-                    err.message ??
-                    "Unknown error"
-            );
+        } catch (err) {
+            setApiError(toErrorMessage(err));
         } finally {
-            setIsLoading(false);
+            stopPendingAction(editState.action);
         }
     };
 
     const handleReset = async (action: string) => {
-        setIsLoading(true);
+        setApiError("");
+        startPendingAction(action);
         try {
             await ShortcutService.ResetShortcut(action);
             await fetchShortcuts();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setApiError(toErrorMessage(err));
         } finally {
-            setIsLoading(false);
+            stopPendingAction(action);
         }
     };
 
     const handleResetAll = async () => {
-        setIsLoading(true);
+        if (!confirmResetAll) {
+            setConfirmResetAll(true);
+            return;
+        }
+        setConfirmResetAll(false);
+
+        setApiError("");
+        setIsBulkLoading(true);
         try {
             await ShortcutService.ResetAllShortcuts();
             await fetchShortcuts();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setApiError(toErrorMessage(err));
         } finally {
-            setIsLoading(false);
+            setIsBulkLoading(false);
         }
     };
+
+    const isEditing = editState !== null;
 
     return (
         <section className="space-y-3">
@@ -200,9 +232,9 @@ export function ShortcutsSettings() {
                 </p>
             </div>
 
-            {error && (
+            {apiError && (
                 <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-                    {error}
+                    {apiError}
                 </div>
             )}
 
@@ -220,10 +252,21 @@ export function ShortcutsSettings() {
                     </TableHeader>
                     <TableBody>
                         {shortcuts.map((shortcut) => {
-                            const isEditing = editingId === shortcut.id;
+                            const isRowEditing = editState?.id === shortcut.id;
+                            // Visually dim other rows while a row is being edited.
+                            const isRowDisabled = isEditing && !isRowEditing;
+                            const rowLoading =
+                                isActionPending(shortcut.action) ||
+                                isBulkLoading;
 
                             return (
-                                <TableRow key={shortcut.id}>
+                                <TableRow
+                                    key={shortcut.id}
+                                    className={cn(
+                                        isRowDisabled &&
+                                            "pointer-events-none opacity-40"
+                                    )}
+                                >
                                     <TableCell className="text-xs font-medium capitalize">
                                         {shortcut.category}
                                     </TableCell>
@@ -231,19 +274,29 @@ export function ShortcutsSettings() {
                                         {shortcut.description}
                                     </TableCell>
                                     <TableCell>
-                                        {isEditing ? (
-                                            <Input
-                                                ref={inputRef}
-                                                type="text"
-                                                value={editValue}
-                                                onKeyDown={handleKeyDown}
-                                                readOnly
-                                                placeholder="Press keys..."
-                                                className={cn(
-                                                    "h-7 w-48 cursor-pointer font-mono ring-2 ring-blue-500",
-                                                    error && "ring-destructive"
+                                        {isRowEditing ? (
+                                            <div className="flex flex-col gap-1">
+                                                <Input
+                                                    ref={inputRef}
+                                                    type="text"
+                                                    value={editState.value}
+                                                    onKeyDown={handleKeyDown}
+                                                    readOnly
+                                                    placeholder="Press keys..."
+                                                    className={cn(
+                                                        "h-7 w-48 cursor-pointer font-mono ring-2 ring-blue-500",
+                                                        editState.validationError &&
+                                                            "ring-destructive"
+                                                    )}
+                                                />
+                                                {editState.validationError && (
+                                                    <p className="text-xs text-destructive">
+                                                        {
+                                                            editState.validationError
+                                                        }
+                                                    </p>
                                                 )}
-                                            />
+                                            </div>
                                         ) : (
                                             <div className="w-48 font-mono text-xs tracking-widest">
                                                 {shortcut.keyCombo}
@@ -252,22 +305,18 @@ export function ShortcutsSettings() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            {isEditing ? (
+                                            {isRowEditing ? (
                                                 <>
                                                     <Button
-                                                        onClick={() =>
-                                                            handleSave(
-                                                                shortcut.action
-                                                            )
-                                                        }
-                                                        disabled={isLoading}
+                                                        onClick={handleSave}
+                                                        disabled={rowLoading}
                                                         size="sm"
                                                     >
                                                         <CheckIcon className="h-4 w-4" />
                                                     </Button>
                                                     <Button
                                                         onClick={handleCancel}
-                                                        disabled={isLoading}
+                                                        disabled={rowLoading}
                                                         variant="outline"
                                                         size="sm"
                                                     >
@@ -276,34 +325,51 @@ export function ShortcutsSettings() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Button
-                                                        onClick={() => {
-                                                            setEditingId(
-                                                                shortcut.id
-                                                            );
-                                                            setEditValue(
-                                                                shortcut.keyCombo
-                                                            );
-                                                            setError("");
-                                                        }}
-                                                        disabled={isLoading}
-                                                        variant="ghost"
-                                                        size="sm"
+                                                    <LazyTooltip
+                                                        content={`Edit Shortcut: ${shortcut.action}`}
                                                     >
-                                                        <PencilIcon className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() =>
-                                                            handleReset(
-                                                                shortcut.action
-                                                            )
-                                                        }
-                                                        disabled={isLoading}
-                                                        variant="ghost"
-                                                        size="sm"
+                                                        <Button
+                                                            onClick={() => {
+                                                                setEditState({
+                                                                    id: shortcut.id,
+                                                                    // FIX #7: Capture action up front.
+                                                                    action: shortcut.action,
+                                                                    value: shortcut.keyCombo,
+                                                                    validationError:
+                                                                        "",
+                                                                });
+                                                                setApiError("");
+                                                            }}
+                                                            disabled={
+                                                                rowLoading ||
+                                                                isBulkLoading
+                                                            }
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <PencilIcon className="h-4 w-4" />
+                                                        </Button>
+                                                    </LazyTooltip>
+
+                                                    <LazyTooltip
+                                                        content={`Reset Shortcut: ${shortcut.action}`}
                                                     >
-                                                        <RotateCcwIcon className="h-4 w-4" />
-                                                    </Button>
+                                                        <Button
+                                                            onClick={() =>
+                                                                handleReset(
+                                                                    shortcut.action
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                rowLoading ||
+                                                                isBulkLoading
+                                                            }
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <RotateCcwIcon className="h-4 w-4" />
+                                                        </Button>
+                                                    </LazyTooltip>
                                                 </>
                                             )}
                                         </div>
@@ -316,21 +382,51 @@ export function ShortcutsSettings() {
             </div>
 
             <div className="flex items-center justify-between">
-                {editingId !== null && (
+                {isEditing && (
                     <span className="text-sm text-blue-600">
                         Press your desired key combination. Press Escape to
-                        cancel.
+                        cancel, Enter to submit.
                     </span>
                 )}
-                <Button
-                    onClick={handleResetAll}
-                    disabled={isLoading}
-                    variant="outline"
-                    className={editingId === null ? "ml-auto" : ""}
-                >
-                    <RotateCcwIcon className="mr-2 h-4 w-4" />
-                    Reset All to Defaults
-                </Button>
+
+                {confirmResetAll ? (
+                    <div
+                        className={cn(
+                            "flex items-center gap-2",
+                            !isEditing && "ml-auto"
+                        )}
+                    >
+                        <span className="text-sm text-muted-foreground">
+                            Reset all shortcuts to defaults?
+                        </span>
+                        <Button
+                            onClick={handleResetAll}
+                            disabled={isBulkLoading}
+                            variant="destructive"
+                            size="sm"
+                        >
+                            Confirm reset
+                        </Button>
+                        <Button
+                            onClick={() => setConfirmResetAll(false)}
+                            disabled={isBulkLoading}
+                            variant="outline"
+                            size="sm"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                ) : (
+                    <Button
+                        onClick={handleResetAll}
+                        disabled={isBulkLoading || isEditing}
+                        variant="outline"
+                        className={!isEditing ? "ml-auto" : ""}
+                    >
+                        <RotateCcwIcon className="mr-2 h-4 w-4" />
+                        Reset All to Defaults
+                    </Button>
+                )}
             </div>
         </section>
     );

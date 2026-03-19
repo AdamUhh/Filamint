@@ -16,3 +16,10 @@ export const tryParseJson = (str: string) => {
         return null;
     }
 };
+
+export const toErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+        return tryParseJson(err.message)?.message ?? err.message;
+    }
+    return String(err);
+};
