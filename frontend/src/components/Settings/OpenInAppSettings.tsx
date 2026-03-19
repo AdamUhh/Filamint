@@ -14,6 +14,7 @@ import {
     DEFAULT_OPEN_IN_APP,
 } from "@/lib/constant-spools";
 import { tryParseJson } from "@/lib/util-format";
+import { cn } from "@/lib/utils";
 
 function prettyJson(value: AppOptions["openInApp"]) {
     return JSON.stringify(value, null, 2);
@@ -51,24 +52,23 @@ export function OpenInAppSettings() {
 
     const platformDefaults = getDefaultOpenInApp(options.platform);
 
-    const [sourceText, setSourceText] = useState(() =>
-        prettyJson(options.openInApp ?? [])
-    );
-    const [text, setText] = useState(sourceText);
+    const initialText = prettyJson(options.openInApp ?? []);
+    const [text, setText] = useState(initialText);
+    const [lastSavedText, setLastSavedText] = useState(initialText);
 
     const parsed = parseValue(text);
     const isJsonValid = parsed !== null;
-    const isDirty = text !== sourceText;
+    const isDirty = text !== lastSavedText;
 
     const handleSave = () => {
         if (!isDirty || !isJsonValid) return;
         const reprettied = prettyJson(parsed!);
         setText(reprettied);
-        setSourceText(reprettied);
+        setLastSavedText(reprettied);
         setOptions((prev) => ({ ...prev, openInApp: parsed! }));
     };
 
-    const handleCancel = () => setText(sourceText);
+    const handleCancel = () => setText(lastSavedText);
 
     return (
         <section className="space-y-4">
@@ -96,15 +96,19 @@ export function OpenInAppSettings() {
                         Reset Defaults
                     </Button>
                 </div>
-                <InputGroup>
+                <InputGroup
+                    className={cn(
+                        !isJsonValid && "bg-background! opacity-100!"
+                    )}
+                >
                     <InputGroupTextarea
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        className={`max-h-96 min-h-64 overflow-scroll font-mono text-xs break-all whitespace-pre-wrap ${
-                            !isJsonValid
-                                ? "border-destructive focus-visible:ring-destructive"
-                                : ""
-                        }`}
+                        className={cn(
+                            "max-h-96 min-h-64 overflow-scroll font-mono text-xs break-all whitespace-pre-wrap",
+                            !isJsonValid &&
+                                "border-destructive focus-visible:ring-destructive"
+                        )}
                         spellCheck={false}
                     />
                     <InputGroupAddon

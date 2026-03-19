@@ -1,5 +1,5 @@
 import { useApp } from "@/context/useContext";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -55,19 +55,31 @@ function DefaultSettings({
     placeholder = "One item per line...",
 }: ListSettingsProps) {
     const { options, setOptions } = useApp();
-    const source = options[field] ?? [];
 
-    const sourceText = source.join("\n");
-    const [text, setText] = useState(sourceText);
+    const source = useMemo(() => options[field] ?? [], [options, field]);
 
-    const isDirty =
-        normalize(text.split("\n")).join("\n") !== normalize(source).join("\n");
+    const initialText = source.join("\n");
+    const [text, setText] = useState(initialText);
+    const lastSavedTextRef = useRef(initialText);
+
+    const isDirty = useMemo(
+        () =>
+            normalize(text.split("\n")).join("\n") !==
+            normalize(source).join("\n"),
+        [text, source]
+    );
 
     const handleSave = () => {
         if (!isDirty) return;
         const normalized = normalize(text.split("\n"));
-        setText(normalized.join("\n")); // collapse empty lines in the textarea too
+        const joined = normalized.join("\n");
+        setText(joined);
+        lastSavedTextRef.current = joined;
         setOptions((prev) => ({ ...prev, [field]: normalized }));
+    };
+
+    const handleCancel = () => {
+        setText(lastSavedTextRef.current);
     };
 
     return (
@@ -104,7 +116,7 @@ function DefaultSettings({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() => setText(sourceText)}
+                                onClick={handleCancel}
                             >
                                 Cancel
                             </Button>

@@ -17,3 +17,4 @@
 - [ ] Add wailsv3 updater (as of 5/Mar/2026, still not implemented by wails)
 - - [ ] Keep in mind, I changed taskfile.yml and project.nsi files for win/linux, so need to change those back once wails3 creates their updater
 - [ ] Cleanup code
+- [ ] Update to latest alpha build and fix any issues (current: alpha.61, latest:alpha.73) (https://v3alpha.wails.io/changelog/)

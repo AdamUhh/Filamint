@@ -2,7 +2,7 @@ import { Separator } from "@/shadcn/separator";
 
 import { CurrencySettings } from "./CurrencySettings";
 import { FileDirLocation } from "./FileDirLocation";
-import { DefaultSpoolSettings } from "./MaterialSettings";
+import { DefaultSpoolSettings } from "./SpoolDefaultSettings";
 import { OpenInAppSettings } from "./OpenInAppSettings";
 import { ShortcutsSettings } from "./ShortcutSettings";
 import { ThemeSwitcher } from "./ThemeSwitcher";

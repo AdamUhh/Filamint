@@ -26,12 +26,20 @@ const Autocomplete = AutocompletePrimitive.Root;
 
 function AutocompleteInput({
     className,
+    align = "inline-end",
     disabled = false,
     showClear = true,
     showSave = false,
     onSave,
     ...props
 }: AutocompletePrimitive.Input.Props & {
+    align?:
+        | "inline-start"
+        | "inline-end"
+        | "block-start"
+        | "block-end"
+        | null
+        | undefined;
     showClear?: boolean;
     showSave?: boolean;
     onSave?: () => void;
@@ -42,10 +50,7 @@ function AutocompleteInput({
                 render={<InputGroupInput disabled={disabled} />}
                 {...props}
             />
-            <InputGroupAddon
-                align="inline-end"
-                className={cn(showSave && "pr-1")}
-            >
+            <InputGroupAddon align={align} className={cn(showSave && "pr-1")}>
                 {showClear && (
                     <AutocompletePrimitive.Clear
                         data-slot="autocomplete-clear"

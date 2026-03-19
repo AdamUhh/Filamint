@@ -1,6 +1,7 @@
 import { useApp } from "@/context/useContext";
 import { useState } from "react";
 
+import { Button } from "@/shadcn/button";
 import {
     Autocomplete,
     AutocompleteContent,
@@ -23,16 +24,15 @@ import { currencies } from "@/lib/constant-currency";
 export function CurrencySettings() {
     const { options, setOptions } = useApp();
     const [currency, setCurrency] = useState(options.currency);
+    const [currencyAlign, setCurrencyAlign] = useState(options.currencyAlign);
 
-    // Determine if there is a change
-    const isDirty = currency !== options.currency;
+    const isDirty =
+        currency !== options.currency ||
+        currencyAlign !== options.currencyAlign;
 
     const handleSave = () => {
-        if (!isDirty) return; // No-op if nothing changed
-        setOptions((prev) => ({
-            ...prev,
-            currency,
-        }));
+        if (!isDirty) return;
+        setOptions((prev) => ({ ...prev, currency, currencyAlign }));
     };
 
     return (
@@ -55,14 +55,10 @@ export function CurrencySettings() {
                     >
                         Alignment
                     </Label>
-
                     <Select
-                        value={options.currencyAlign}
-                        onValueChange={(value: "left" | "right") =>
-                            setOptions((prev) => ({
-                                ...prev,
-                                currencyAlign: value,
-                            }))
+                        value={currencyAlign}
+                        onValueChange={(value) =>
+                            setCurrencyAlign(value as "left" | "right")
                         }
                     >
                         <SelectTrigger id="currency_align" className="w-fit">
@@ -83,23 +79,18 @@ export function CurrencySettings() {
                     >
                         Currency
                     </Label>
-
                     <Autocomplete
                         name="currency"
                         items={currencies}
                         value={currency}
-                        onValueChange={(value: string) => setCurrency(value)}
+                        onValueChange={setCurrency}
                         openOnInputClick
                     >
-                        <div className="flex items-end">
-                            <AutocompleteInput
-                                id="currency"
-                                placeholder="Search currency (e.g. USD)"
-                                autoComplete="off"
-                                showSave={isDirty}
-                                onSave={handleSave}
-                            />
-                        </div>
+                        <AutocompleteInput
+                            id="currency"
+                            placeholder="Search currency (e.g. USD)"
+                            autoComplete="off"
+                        />
                         <AutocompleteContent>
                             <AutocompleteEmpty>
                                 No currency found.
@@ -114,6 +105,7 @@ export function CurrencySettings() {
                         </AutocompleteContent>
                     </Autocomplete>
                 </div>
+                {isDirty && <Button onClick={handleSave}>Save</Button>}
             </div>
         </section>
     );
