@@ -28,7 +28,7 @@ Unicode true
 ## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 ####
-!define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
+!define REQUEST_EXECUTION_LEVEL "user"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
 ####
 ## Include the wails tools
 ####
@@ -105,7 +105,8 @@ FunctionEnd
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
-InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
+InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
+; InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
 ## Runs before any UI is shown
@@ -118,7 +119,7 @@ Function .onInit
 
     # Use the 64-bit registry view so we read/write under the correct hive on 64-bit Windows
     SetRegView 64
-    ReadRegStr $R0 HKLM "${UNINST_KEY}" "InstallLocation"
+    ReadRegStr $R0 HKCU "${UNINST_KEY}" "InstallLocation"
 
     ${If} $R0 != ""
         # A previous installation exists - reuse its directory and mark this as an upgrade
@@ -165,7 +166,7 @@ Section "Install ${INFO_PRODUCTNAME}"
 
     # Persist the install location so future upgrades can find and reuse it
     SetRegView 64
-    WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
 SectionEnd
 
 Section "uninstall" 
@@ -181,6 +182,8 @@ Section "uninstall"
     # Remove shortcuts
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
+
+    DeleteRegKey HKCU "${UNINST_KEY}"
 
     !insertmacro wails.unassociateFiles            # Remove file type associations
     !insertmacro wails.unassociateCustomProtocols  # Remove custom URI protocol handlers
