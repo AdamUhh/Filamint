@@ -21,24 +21,20 @@ function prettyJson(value: AppOptions["openInApp"]) {
 }
 
 function parseValue(text: string): AppOptions["openInApp"] | null {
-    try {
-        const parsed = tryParseJson(text);
-        if (
-            Array.isArray(parsed) &&
-            parsed.every(
-                (item) =>
-                    typeof item === "object" &&
-                    item !== null &&
-                    !Array.isArray(item) &&
-                    Object.values(item).every((v) => typeof v === "string")
-            )
-        ) {
-            return parsed as AppOptions["openInApp"];
-        }
-        return null;
-    } catch {
-        return null;
+    const parsed = tryParseJson(text);
+    if (
+        Array.isArray(parsed) &&
+        parsed.every(
+            (item) =>
+                typeof item === "object" &&
+                item !== null &&
+                !Array.isArray(item) &&
+                Object.values(item).every((v) => typeof v === "string")
+        )
+    ) {
+        return parsed as AppOptions["openInApp"];
     }
+    return null;
 }
 
 function getDefaultOpenInApp(platform?: string): AppOptions["openInApp"] {
@@ -61,11 +57,11 @@ export function OpenInAppSettings() {
     const isDirty = text !== lastSavedText;
 
     const handleSave = () => {
-        if (!isDirty || !isJsonValid) return;
-        const reprettied = prettyJson(parsed!);
+        if (!isDirty || !parsed) return;
+        const reprettied = prettyJson(parsed);
         setText(reprettied);
         setLastSavedText(reprettied);
-        setOptions((prev) => ({ ...prev, openInApp: parsed! }));
+        setOptions((prev) => ({ ...prev, openInApp: parsed }));
     };
 
     const handleCancel = () => setText(lastSavedText);
@@ -74,7 +70,7 @@ export function OpenInAppSettings() {
         <section className="space-y-4">
             <div>
                 <h2 className="text-lg font-semibold tracking-tight">
-                    Open In App
+                    Open Slicer
                 </h2>
                 <p className="text-sm text-muted-foreground">
                     Configure external apps and the path used to launch them.

@@ -81,7 +81,7 @@ export function UpdateSettings() {
         } catch (err: unknown) {
             setState({
                 status: "error",
-                message: err instanceof Error ? err.message : String(err),
+                message: toErrorMessage(err) || "Failed to check for updates",
             });
         }
     }
@@ -249,7 +249,7 @@ export function UpdateSettings() {
                     )}
 
                     {isError && (
-                        <p className="text-xs text-destructive/80">
+                        <p className="text-xs text-destructive/80 capitalize">
                             {state.message}
                         </p>
                     )}

@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 import {
     DEFAULT_LINUX_OPEN_IN_APP,
@@ -31,6 +37,7 @@ function detectPlatform(): AppOptions["platform"] {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [options, setOptions] = useState<AppOptions>(() => {
         const platform = detectPlatform();
 
@@ -58,6 +65,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
     });
 
+    const openSettings = useCallback(() => setSettingsOpen(true), []);
+    const closeSettings = useCallback(() => setSettingsOpen(false), []);
+
     // Save options to localStorage whenever they change
     useEffect(() => {
         localStorage.setItem("app-options", JSON.stringify(options));
@@ -67,8 +77,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         () => ({
             options,
             setOptions,
+            settingsOpen,
+            openSettings,
+            closeSettings,
         }),
-        [options]
+        [options, settingsOpen, openSettings, closeSettings]
     );
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -74,7 +74,7 @@ export function SpoolFormDialog({
                     editState.id === 0 ? false : editState.original.isTemplate,
             });
         }
-    }, [editState, form]);
+    }, [editState.isOpen, editState.id, editState.original, form]);
 
     const handleClose = () => {
         form.reset();

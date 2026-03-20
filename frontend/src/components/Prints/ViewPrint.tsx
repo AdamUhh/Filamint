@@ -288,7 +288,7 @@ export function ViewPrintDialog({
     );
 }
 
-function ViewPrintLoader() {
+export function ViewPrintLoader() {
     return (
         <TableRow className="animate-pulse">
             <TableCell>
@@ -307,7 +307,7 @@ function ViewPrintLoader() {
     );
 }
 
-function ViewPrintNoModels() {
+export function ViewPrintNoModels() {
     return (
         <TableRow>
             <TableCell colSpan={4}>

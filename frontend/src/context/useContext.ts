@@ -14,6 +14,9 @@ export interface AppOptions {
 export interface AppContextValue {
     options: AppOptions;
     setOptions: React.Dispatch<React.SetStateAction<AppOptions>>;
+    settingsOpen: boolean;
+    openSettings: () => void;
+    closeSettings: () => void;
 }
 
 export const AppContext = createContext<AppContextValue | undefined>(undefined);

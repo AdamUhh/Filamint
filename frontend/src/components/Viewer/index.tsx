@@ -26,12 +26,13 @@ function useModelBuffer(): { data: ModelBuffer | null; error: string | null } {
             return;
         }
 
-        const ext = modelPath.split(".").pop() as ModelBuffer["ext"];
-        if (!ext) {
-            setError("Unknown model extension");
+        const rawExt = modelPath.split(".").pop()?.toLowerCase();
+        if (!rawExt || (rawExt !== "stl" && rawExt !== "3mf")) {
+            setError("Unsupported file type");
             setData(null);
             return;
         }
+        const ext = rawExt as ModelBuffer["ext"];
 
         let cancelled = false;
 
@@ -48,13 +49,11 @@ function useModelBuffer(): { data: ModelBuffer | null; error: string | null } {
                 }
 
                 const binary = atob(base64);
-                const buffer = new ArrayBuffer(binary.length);
-                const view = new Uint8Array(buffer);
-                for (let i = 0; i < binary.length; i++) {
-                    view[i] = binary.charCodeAt(i);
-                }
+                const buffer = Uint8Array.from(binary, (c) =>
+                    c.charCodeAt(0)
+                ).buffer;
 
-                if (!cancelled) setData({ buffer, ext });
+                if (!cancelled) setData({ buffer, ext: ext });
             } catch {
                 if (!cancelled)
                     setError(`Failed to load model: /models/${modelPath}`);
@@ -68,15 +67,6 @@ function useModelBuffer(): { data: ModelBuffer | null; error: string | null } {
     }, [modelPath]);
 
     return { data, error };
-}
-
-function Model({ data, onReady }: { data: ModelBuffer; onReady: () => void }) {
-    if (data.ext === "stl") {
-        return <STLScene buffer={data.buffer} onReady={onReady} />;
-    } else if (data.ext === "3mf") {
-        return <ThreeMFScene buffer={data.buffer} onReady={onReady} />;
-    }
-    return null;
 }
 
 export default function ViewerPage() {
@@ -153,7 +143,18 @@ export default function ViewerPage() {
 
                 {data && (
                     <Suspense fallback={null}>
-                        <Model data={data} onReady={handleReady} />
+                        {data?.ext === "stl" && (
+                            <STLScene
+                                buffer={data.buffer}
+                                onReady={handleReady}
+                            />
+                        )}
+                        {data?.ext === "3mf" && (
+                            <ThreeMFScene
+                                buffer={data.buffer}
+                                onReady={handleReady}
+                            />
+                        )}
                     </Suspense>
                 )}
             </Canvas>
@@ -167,6 +168,6 @@ function CameraRig() {
         const spread = PLATE_SIZE + PLATE_GAP;
         camera.position.set(0, spread * 0.5, spread * 0.9);
         camera.lookAt(0, 0, 0);
-    }, [camera]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
     return null;
 }

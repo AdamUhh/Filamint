@@ -13,7 +13,7 @@ export type ArrayElementOf<T> = T extends (infer U)[] ? U : never;
  *
  * @example
  * type User = { id?: string; name: string };
- * type StrictUser = WithRequired<User, "id">;
+ * type StrictUser = SetRequired<User, "id">;
  * // { id: string; name: string }
  */
 export type SetRequired<T, K extends keyof T> = Omit<T, K> &
@@ -24,7 +24,7 @@ export type SetRequired<T, K extends keyof T> = Omit<T, K> &
  *
  * @example
  * type User = { id: string; name: string };
- * type PartialUser = WithPartial<User, "id">;
+ * type PartialUser = SetPartial<User, "id">;
  * // { id?: string; name: string }
  */
 export type SetPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

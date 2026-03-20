@@ -76,10 +76,12 @@ func tokenize(search string) []string {
 	return tokenizeRe.FindAllString(strings.TrimSpace(search), -1)
 }
 
-func ParseSearchQuery(search string) (qualifiers map[string]string, freeText string) {
-	qualifiers = make(map[string]string)
+// ParseSearchQuery splits a search string into qualifiers and free text.
+// Each qualifier key maps to a slice to support multiple occurrences,
+// e.g. "vendor:gen* vendor:bamb*" → { "vendor": ["gen*", "bamb*"] }
+func ParseSearchQuery(search string) (qualifiers map[string][]string, freeText string) {
+	qualifiers = make(map[string][]string)
 	var freeTextParts []string
-
 	for _, token := range tokenize(search) {
 		colonIdx := strings.Index(token, ":")
 		if colonIdx > 0 {
@@ -89,7 +91,8 @@ func ParseSearchQuery(search string) (qualifiers map[string]string, freeText str
 				value = strings.Trim(value, `"`)
 			}
 			if value != "" {
-				qualifiers[key] = strings.ToLower(value)
+				// Append - don't overwrite - so duplicate keys accumulate
+				qualifiers[key] = append(qualifiers[key], strings.ToLower(value))
 				continue
 			}
 		}
@@ -97,18 +100,30 @@ func ParseSearchQuery(search string) (qualifiers map[string]string, freeText str
 			freeTextParts = append(freeTextParts, token)
 		}
 	}
-
 	freeText = strings.Join(freeTextParts, " ")
 	return
 }
 
-// BuildQualifierClause returns a WHERE fragment and arg for a single qualifier.
+// Returns a WHERE fragment and arg for a single qualifier value.
 // Wildcards (*) are converted to SQL LIKE patterns.
 func BuildQualifierClause(column, val string) (clause string, arg any) {
 	if strings.Contains(val, "*") {
 		return fmt.Sprintf("LOWER(%s) LIKE ?", column), strings.ReplaceAll(val, "*", "%")
 	}
 	return fmt.Sprintf("LOWER(%s) = ?", column), val
+}
+
+// Returns an OR group for multiple values on one key,
+// e.g. vendor:gen* vendor:bamb* → (LOWER(vendor) LIKE ? OR LOWER(vendor) LIKE ?)
+func BuildMultiQualifierClause(column string, values []string) (clause string, args []any) {
+	clauses := make([]string, 0, len(values))
+	for _, v := range values {
+		c, arg := BuildQualifierClause(column, v)
+		clauses = append(clauses, c)
+		args = append(args, arg)
+	}
+	// Wrap in parens so the OR doesn't bleed into surrounding ANDs
+	return "(" + strings.Join(clauses, " OR ") + ")", args
 }
 
 // ----------

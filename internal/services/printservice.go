@@ -421,7 +421,7 @@ func (s *PrintService) QueryPrints(params PrintQueryParams) (*PrintQueryResult, 
 		params.Limit = 15
 	}
 
-	// Validate sort inputs here — this is business logic, not data access.
+	// Validate sort inputs here - this is business logic, not data access.
 	if !validPrintSortColumns[params.SortBy] {
 		params.SortBy = "created_at"
 	}

@@ -12,7 +12,7 @@ import {
     SquareArrowOutUpRightIcon,
     TrashIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Button } from "@/shadcn/button";
 import {
@@ -85,12 +85,9 @@ export function PrintTable({
         open: false,
     });
 
-    const handleOpenInApp = (print: Print) => {
-        setOpenInAppState({
-            printId: print.id,
-            open: true,
-        });
-    };
+    const handleOpenInApp = useCallback((print: Print) => {
+        setOpenInAppState({ printId: print.id, open: true });
+    }, []);
 
     const handleOnView = (print: Print) => {
         setViewState({

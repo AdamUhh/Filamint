@@ -253,13 +253,18 @@ export function ThreeMFScene({
     // Each plate slot is PLATE_SIZE wide with PLATE_GAP between them
     // We subtract half the total row width so the whole arrangement
     // is centred, making it easy for the camera to frame everything
-    const totalWidth =
-        plateGroups.length * PLATE_SIZE + (plateGroups.length - 1) * PLATE_GAP;
+    const totalWidth = useMemo(
+        () =>
+            plateGroups.length * PLATE_SIZE +
+            (plateGroups.length - 1) * PLATE_GAP,
+        [plateGroups]
+    );
 
     // Fire onReady once plateGroups are computed (geometry is ready to render)
     useEffect(() => {
         if (plateGroups.length > 0) onReady();
-    }, [plateGroups, onReady]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [plateGroups]); // intentionally omit onReady
 
     return (
         <group>

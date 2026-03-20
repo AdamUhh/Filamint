@@ -197,26 +197,39 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 
 	if params.Search != "" {
 		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
-		if val, ok := qualifiers["name"]; ok {
-			clause, arg := internal.BuildQualifierClause("name", val)
+
+		// name - OR group across all provided values
+		if values, ok := qualifiers["name"]; ok {
+			clause, clauseArgs := internal.BuildMultiQualifierClause("name", values)
 			whereClauses = append(whereClauses, clause)
-			args = append(args, arg)
+			args = append(args, clauseArgs...)
 		}
-		if val, ok := qualifiers["status"]; ok {
-			clause, arg := internal.BuildQualifierClause("status", val)
+
+		// status - OR group across all provided values
+		if values, ok := qualifiers["status"]; ok {
+			clause, clauseArgs := internal.BuildMultiQualifierClause("status", values)
 			whereClauses = append(whereClauses, clause)
-			args = append(args, arg)
+			args = append(args, clauseArgs...)
 		}
-		if val, ok := qualifiers["spool"]; ok {
-			subquery := `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?))`
-			arg := any(val)
-			if strings.Contains(val, "*") {
-				subquery = `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) LIKE ?))`
-				arg = strings.ReplaceAll(val, "*", "%")
+
+		// spool - each value becomes its own subquery, all joined with OR
+		if values, ok := qualifiers["spool"]; ok {
+			spoolClauses := make([]string, 0, len(values))
+			for _, val := range values {
+				lower := strings.ToLower(val)
+				if strings.Contains(val, "*") {
+					pattern := strings.ReplaceAll(lower, "*", "%")
+					spoolClauses = append(spoolClauses, `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) LIKE ?))`)
+					args = append(args, pattern)
+				} else {
+					spoolClauses = append(spoolClauses, `id IN (SELECT print_id FROM print_spools WHERE spool_id IN (SELECT id FROM spools WHERE LOWER(spool_code) = ?))`)
+					args = append(args, lower)
+				}
 			}
-			whereClauses = append(whereClauses, subquery)
-			args = append(args, arg)
+			// Wrap multiple spool subqueries in an OR group
+			whereClauses = append(whereClauses, "("+strings.Join(spoolClauses, " OR ")+")")
 		}
+
 		if freeText != "" {
 			searchPattern := "%" + strings.ToLower(freeText) + "%"
 			whereClauses = append(whereClauses, "(LOWER(name) LIKE ? OR LOWER(notes) LIKE ?)")
@@ -233,7 +246,6 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 		"SELECT *, COUNT(*) OVER() AS total_count FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?",
 		whereClause, params.SortBy, params.SortOrder,
 	)
-
 	pageArgs := make([]any, len(args), len(args)+2)
 	copy(pageArgs, args)
 	pageArgs = append(pageArgs, params.Limit, params.Offset)

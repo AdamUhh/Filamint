@@ -15,11 +15,14 @@ import { RouterProvider } from "react-router/dom";
 
 import { Toaster } from "@/shadcn/sonner";
 
-import { AppEventHandler, RouteTracker } from "@/components/AppEventHandler";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
+import {
+    NavigationEvents,
+    RouteTracker,
+} from "@/components/Events/NavigationEvents";
+import { UpdaterEvents } from "@/components/Events/UpdaterEvents";
 import { Navbar } from "@/components/Navbar";
 import { PrintsPage } from "@/components/Prints";
-import { Updater } from "@/components/Updater";
 
 import { getThemeScript } from "@/lib/util-theme";
 
@@ -54,11 +57,11 @@ function RootLayout() {
         <>
             <script dangerouslySetInnerHTML={{ __html: getThemeScript }} />
             <RouteTracker />
-            <AppEventHandler />
-            <Updater />
+            <NavigationEvents />
             <Toaster />
             <QueryClientProvider client={queryClient}>
                 <AppProvider>
+                    <UpdaterEvents />
                     <Outlet />
                     <Navbar />
                 </AppProvider>

@@ -170,11 +170,12 @@ func (r *SpoolRepository) Query(params SpoolQueryParams) (*SpoolQueryResult, err
 	if params.Search != "" {
 		qualifiers, freeText := internal.ParseSearchQuery(params.Search)
 
+		// Each qualifier key may have multiple values - emit one OR group per key
 		for qualifier, column := range qualifierColumns {
-			if val, ok := qualifiers[qualifier]; ok {
-				clause, arg := internal.BuildQualifierClause(column, val)
+			if values, ok := qualifiers[qualifier]; ok {
+				clause, clauseArgs := internal.BuildMultiQualifierClause(column, values)
 				whereClauses = append(whereClauses, clause)
-				args = append(args, arg)
+				args = append(args, clauseArgs...)
 			}
 		}
 

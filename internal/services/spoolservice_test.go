@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -242,7 +243,12 @@ func TestGetSpoolById(t *testing.T) {
 func TestGetSpoolById_NotFound(t *testing.T) {
 	svc := newTestService(t)
 
-	_, err := svc.GetSpoolById(9999)
+	id, err := svc.CreateSpool(validSpool())
+	if err != nil {
+		t.Fatalf("CreateSpool() setup error: %v", err)
+	}
+
+	_, err = svc.GetSpoolById(id + 1)
 	if err == nil {
 		t.Error("GetSpoolById() expected error for non-existent id, got nil")
 	}
@@ -334,116 +340,6 @@ func TestDeleteSpool_InvalidID(t *testing.T) {
 	err := svc.DeleteSpool(0)
 	if err == nil {
 		t.Error("DeleteSpool() expected error for id=0, got nil")
-	}
-}
-
-// --- QuerySpools Tests ---
-
-func TestQuerySpools_Defaults(t *testing.T) {
-	svc := newTestService(t)
-
-	for range 3 {
-		if _, err := svc.CreateSpool(validSpool()); err != nil {
-			t.Fatalf("CreateSpool() error: %v", err)
-		}
-	}
-
-	result, err := svc.QuerySpools(SpoolQueryParams{})
-	if err != nil {
-		t.Fatalf("QuerySpools() error: %v", err)
-	}
-	if result.Total != 3 {
-		t.Errorf("QuerySpools() total = %d, want %d", result.Total, 3)
-	}
-	if len(result.Spools) != 3 {
-		t.Errorf("QuerySpools() len = %d, want %d", len(result.Spools), 3)
-	}
-}
-
-func TestQuerySpools_SearchFreeText(t *testing.T) {
-	svc := newTestService(t)
-
-	s1 := validSpool()
-	s1.Material = "PETG"
-	s1.Color = "Green"
-	svc.CreateSpool(s1)
-
-	s2 := validSpool()
-	s2.Material = "ABS"
-	s2.Color = "Blue"
-	svc.CreateSpool(s2)
-
-	result, err := svc.QuerySpools(SpoolQueryParams{Search: "PETG"})
-	if err != nil {
-		t.Fatalf("QuerySpools() error: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("QuerySpools(search=PETG) total = %d, want 1", result.Total)
-	}
-}
-
-func TestQuerySpools_IsTemplateFilter(t *testing.T) {
-	svc := newTestService(t)
-
-	tmpl := validSpool()
-	tmpl.IsTemplate = true
-	svc.CreateSpool(tmpl)
-
-	regular := validSpool()
-	regular.IsTemplate = false
-	svc.CreateSpool(regular)
-
-	isTemplate := true
-	result, err := svc.QuerySpools(SpoolQueryParams{IsTemplate: &isTemplate})
-	if err != nil {
-		t.Fatalf("QuerySpools() error: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("QuerySpools(isTemplate=true) total = %d, want 1", result.Total)
-	}
-	if !result.Spools[0].IsTemplate {
-		t.Error("QuerySpools() returned non-template spool")
-	}
-}
-
-func TestQuerySpools_Pagination(t *testing.T) {
-	svc := newTestService(t)
-
-	for range 5 {
-		svc.CreateSpool(validSpool())
-	}
-
-	result, err := svc.QuerySpools(SpoolQueryParams{Limit: 2, Offset: 0})
-	if err != nil {
-		t.Fatalf("QuerySpools() error: %v", err)
-	}
-	if result.Total != 5 {
-		t.Errorf("QuerySpools() total = %d, want 5", result.Total)
-	}
-	if len(result.Spools) != 2 {
-		t.Errorf("QuerySpools() page len = %d, want 2", len(result.Spools))
-	}
-
-	page2, err := svc.QuerySpools(SpoolQueryParams{Limit: 2, Offset: 2})
-	if err != nil {
-		t.Fatalf("QuerySpools() page2 error: %v", err)
-	}
-	if len(page2.Spools) != 2 {
-		t.Errorf("QuerySpools() page2 len = %d, want 2", len(page2.Spools))
-	}
-}
-
-func TestQuerySpools_InvalidSortColumnDefaultsToUpdatedAt(t *testing.T) {
-	svc := newTestService(t)
-	svc.CreateSpool(validSpool())
-
-	// Should not error even with a potentially injected column name
-	result, err := svc.QuerySpools(SpoolQueryParams{SortBy: "'; DROP TABLE spools; --"})
-	if err != nil {
-		t.Fatalf("QuerySpools() error: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("QuerySpools() with bad sort column: total = %d, want 1", result.Total)
 	}
 }
 
@@ -578,5 +474,256 @@ func TestRepository_GetPrints_Empty(t *testing.T) {
 	}
 	if len(prints) != 0 {
 		t.Errorf("GetPrints() len = %d, want 0", len(prints))
+	}
+}
+
+// --- QuerySpools Tests ---
+
+func insertSpool(t *testing.T, svc *SpoolService, code, vendor, material, color string) int64 {
+	t.Helper()
+	result, err := svc.repo.db.Exec(`
+		INSERT INTO spools (spool_code, vendor, material, material_type, color, color_hex, total_weight, used_weight, cost, reference_link, notes, created_at, updated_at)
+		VALUES (?, ?, ?, 'Basic', ?, '#000000', 1000, 0, 0, '', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		code, vendor, material, color,
+	)
+	if err != nil {
+		t.Fatalf("insertSpool(%q) error: %v", code, err)
+	}
+	id, _ := result.LastInsertId()
+	return id
+}
+
+func TestQuerySpools_IsTemplateFilter(t *testing.T) {
+	svc := newTestService(t)
+
+	tmpl := validSpool()
+	tmpl.IsTemplate = true
+	svc.CreateSpool(tmpl)
+
+	regular := validSpool()
+	regular.IsTemplate = false
+	svc.CreateSpool(regular)
+
+	isTemplate := true
+	result, err := svc.QuerySpools(SpoolQueryParams{IsTemplate: &isTemplate})
+	if err != nil {
+		t.Fatalf("QuerySpools() error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("QuerySpools(isTemplate=true) total = %d, want 1", result.Total)
+	}
+	if !result.Spools[0].IsTemplate {
+		t.Error("QuerySpools() returned non-template spool")
+	}
+
+	isTemplate = false
+	result, err = svc.QuerySpools(SpoolQueryParams{IsTemplate: &isTemplate})
+	if err != nil {
+		t.Fatalf("QuerySpools() error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("QuerySpools(isTemplate=false) total = %d, want 1", result.Total)
+	}
+	if result.Spools[0].IsTemplate {
+		t.Error("QuerySpools() returned template spool when filtering for non-templates")
+	}
+}
+
+func TestQuerySpools_InvalidSortColumnDefaultsToUpdatedAt(t *testing.T) {
+	svc := newTestService(t)
+	svc.CreateSpool(validSpool())
+
+	// Should not error even with a potentially injected column name
+	result, err := svc.QuerySpools(SpoolQueryParams{SortBy: "'; DROP TABLE spools; --"})
+	if err != nil {
+		t.Fatalf("QuerySpools() error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("QuerySpools() with bad sort column: total = %d, want 1", result.Total)
+	}
+}
+
+func TestQuerySpools_FreeText(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Prusa", "ABS", "Blue")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "PLA"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+	if result.Spools[0].SpoolCode != "PLA-RED-001" {
+		t.Errorf("unexpected spool: %s", result.Spools[0].SpoolCode)
+	}
+}
+
+func TestQuerySpools_SingleQualifier(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Prusa", "ABS", "Blue")
+	insertSpool(t, svc, "PLA-BLU-003", "Generic", "PLA", "Blue")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:bambu"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+	if result.Spools[0].SpoolCode != "PLA-RED-001" {
+		t.Errorf("unexpected spool: %s", result.Spools[0].SpoolCode)
+	}
+}
+
+func TestQuerySpools_SingleQualifierWildcard(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu Lab", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Bambu", "ABS", "Blue")
+	insertSpool(t, svc, "PLA-GRN-003", "Prusa", "PLA", "Green")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:bambu*"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Multi-value: vendor:bambu* vendor:prusa should return all three spools
+func TestQuerySpools_MultiQualifier_OR(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Prusa", "ABS", "Blue")
+	insertSpool(t, svc, "PLA-GRN-003", "Generic", "PLA", "Green")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:bambu vendor:prusa"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Multi-value wildcards: vendor:bam* vendor:gen* should match Bambu and Generic
+func TestQuerySpools_MultiQualifier_Wildcards(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Prusa", "ABS", "Blue")
+	insertSpool(t, svc, "PLA-GRN-003", "Generic", "PLA", "Green")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:bam* vendor:gen*"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Combining multi-value qualifier with free text — free text further narrows results
+func TestQuerySpools_MultiQualifier_WithFreeText(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-RED-002", "Bambu", "ABS", "Red")
+	insertSpool(t, svc, "PLA-GRN-003", "Generic", "PLA", "Green")
+
+	// vendor:bambu vendor:generic AND free text "PLA" — should match PLA-RED-001 and PLA-GRN-003
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:bambu vendor:generic PLA"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Different qualifier keys are ANDed — material:PLA vendor:bambu should only match the overlap
+func TestQuerySpools_DifferentQualifiers_AND(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Bambu", "ABS", "Blue")
+	insertSpool(t, svc, "PLA-GRN-003", "Prusa", "PLA", "Green")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "material:pla vendor:bambu"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+	if result.Spools[0].SpoolCode != "PLA-RED-001" {
+		t.Errorf("unexpected spool: %s", result.Spools[0].SpoolCode)
+	}
+}
+
+func TestQuerySpools_Empty(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{Search: "vendor:nobody"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 0 {
+		t.Errorf("expected 0 results, got %d", result.Total)
+	}
+}
+
+func TestQuerySpools_NoSearch(t *testing.T) {
+	svc := newTestService(t)
+	insertSpool(t, svc, "PLA-RED-001", "Bambu", "PLA", "Red")
+	insertSpool(t, svc, "ABS-BLU-002", "Prusa", "ABS", "Blue")
+
+	result, err := svc.QuerySpools(SpoolQueryParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+func TestQuerySpools_Pagination(t *testing.T) {
+	svc := newTestService(t)
+	for i := range 5 {
+		insertSpool(t, svc, fmt.Sprintf("SPOOL-%03d", i), "Vendor", "PLA", "Red")
+	}
+
+	// Page 1
+	result, err := svc.QuerySpools(SpoolQueryParams{Limit: 2, Offset: 0})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 5 {
+		t.Errorf("expected total=5, got %d", result.Total)
+	}
+	if len(result.Spools) != 2 {
+		t.Errorf("expected 2 spools on page 1, got %d", len(result.Spools))
+	}
+
+	// Page 2
+	result, err = svc.QuerySpools(SpoolQueryParams{Limit: 2, Offset: 2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 5 {
+		t.Errorf("expected total=5 on page 2, got %d", result.Total)
+	}
+	if len(result.Spools) != 2 {
+		t.Errorf("expected 2 spools on page 2, got %d", len(result.Spools))
+	}
+
+	// Last page (partial)
+	result, err = svc.QuerySpools(SpoolQueryParams{Limit: 2, Offset: 4})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Spools) != 1 {
+		t.Errorf("expected 1 spool on last page, got %d", len(result.Spools))
 	}
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -278,7 +279,7 @@ func TestUpdatePrint_RemoveSpool(t *testing.T) {
 	p.Spools = []PrintSpool{{SpoolID: spoolID, GramsUsed: 60}}
 	id, _ := svc.CreatePrint(p)
 
-	// Update with no spools — should subtract weight back
+	// Update with no spools - should subtract weight back
 	updated := validPrint()
 	updated.ID = id
 	updated.Spools = []PrintSpool{}
@@ -302,19 +303,31 @@ func TestUpdatePrint_ChangeGrams(t *testing.T) {
 	p.Spools = []PrintSpool{{SpoolID: spoolID, GramsUsed: 50}}
 	id, _ := svc.CreatePrint(p)
 
-	// Change grams from 50 -> 80 (delta = +30)
+	// Increase: 50 -> 80 (delta = +30)
 	updated := validPrint()
 	updated.ID = id
 	updated.Spools = []PrintSpool{{SpoolID: spoolID, GramsUsed: 80}}
 
 	if err := svc.UpdatePrint(updated); err != nil {
-		t.Fatalf("UpdatePrint() error: %v", err)
+		t.Fatalf("UpdatePrint() increase error: %v", err)
 	}
 
 	var usedWeight int
 	svc.repo.db.Get(&usedWeight, `SELECT used_weight FROM spools WHERE id = ?`, spoolID)
 	if usedWeight != 80 {
-		t.Errorf("UpdatePrint() after grams change: used_weight = %d, want 80", usedWeight)
+		t.Errorf("UpdatePrint() increase: used_weight = %d, want 80", usedWeight)
+	}
+
+	// Decrease: 80 -> 30 (delta = -50)
+	updated.Spools = []PrintSpool{{SpoolID: spoolID, GramsUsed: 30}}
+
+	if err := svc.UpdatePrint(updated); err != nil {
+		t.Fatalf("UpdatePrint() decrease error: %v", err)
+	}
+
+	svc.repo.db.Get(&usedWeight, `SELECT used_weight FROM spools WHERE id = ?`, spoolID)
+	if usedWeight != 30 {
+		t.Errorf("UpdatePrint() decrease: used_weight = %d, want 30", usedWeight)
 	}
 }
 
@@ -357,117 +370,48 @@ func TestDeletePrint_NoRestore(t *testing.T) {
 
 func TestDeletePrint_WithRestore(t *testing.T) {
 	svc := newTestPrintService(t)
-	spoolID := insertTestSpool(t, svc, "PLA-RED-T07")
+	s1 := insertTestSpool(t, svc, "PLA-RED-T07")
+	s2 := insertTestSpool(t, svc, "ABS-BLK-T07")
 
 	p := validPrint()
-	p.Spools = []PrintSpool{{SpoolID: spoolID, GramsUsed: 100}}
+	p.Spools = []PrintSpool{
+		{SpoolID: s1, GramsUsed: 100},
+		{SpoolID: s2, GramsUsed: 45},
+	}
 	id, _ := svc.CreatePrint(p)
 
 	if err := svc.DeletePrint(id, true); err != nil {
 		t.Fatalf("DeletePrint() error: %v", err)
 	}
 
-	// Spool weight should be restored to 0
-	var usedWeight int
-	svc.repo.db.Get(&usedWeight, `SELECT used_weight FROM spools WHERE id = ?`, spoolID)
-	if usedWeight != 0 {
-		t.Errorf("DeletePrint(restoreSpoolGrams=true) used_weight = %d, want 0", usedWeight)
+	var w1, w2 int
+	svc.repo.db.Get(&w1, `SELECT used_weight FROM spools WHERE id = ?`, s1)
+	svc.repo.db.Get(&w2, `SELECT used_weight FROM spools WHERE id = ?`, s2)
+	if w1 != 0 {
+		t.Errorf("DeletePrint(restoreSpoolGrams=true) s1 used_weight = %d, want 0", w1)
 	}
-}
-
-// --- QueryPrints Tests ---
-
-func TestQueryPrints_Defaults(t *testing.T) {
-	svc := newTestPrintService(t)
-
-	for range 3 {
-		svc.CreatePrint(validPrint())
-	}
-
-	result, err := svc.QueryPrints(PrintQueryParams{})
-	if err != nil {
-		t.Fatalf("QueryPrints() error: %v", err)
-	}
-	if result.Total != 3 {
-		t.Errorf("QueryPrints() total = %d, want 3", result.Total)
-	}
-	if len(result.Prints) != 3 {
-		t.Errorf("QueryPrints() len = %d, want 3", len(result.Prints))
-	}
-}
-
-func TestQueryPrints_SearchFreeText(t *testing.T) {
-	svc := newTestPrintService(t)
-
-	p1 := validPrint()
-	p1.Name = "Benchy"
-	svc.CreatePrint(p1)
-
-	p2 := validPrint()
-	p2.Name = "Calibration Cube"
-	svc.CreatePrint(p2)
-
-	result, err := svc.QueryPrints(PrintQueryParams{Search: "Benchy"})
-	if err != nil {
-		t.Fatalf("QueryPrints() error: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("QueryPrints(search=Benchy) total = %d, want 1", result.Total)
-	}
-}
-
-func TestQueryPrints_Pagination(t *testing.T) {
-	svc := newTestPrintService(t)
-
-	for range 5 {
-		svc.CreatePrint(validPrint())
-	}
-
-	page1, err := svc.QueryPrints(PrintQueryParams{Limit: 2, Offset: 0})
-	if err != nil {
-		t.Fatalf("QueryPrints() error: %v", err)
-	}
-	if page1.Total != 5 {
-		t.Errorf("QueryPrints() total = %d, want 5", page1.Total)
-	}
-	if len(page1.Prints) != 2 {
-		t.Errorf("QueryPrints() page1 len = %d, want 2", len(page1.Prints))
-	}
-
-	page2, _ := svc.QueryPrints(PrintQueryParams{Limit: 2, Offset: 2})
-	if len(page2.Prints) != 2 {
-		t.Errorf("QueryPrints() page2 len = %d, want 2", len(page2.Prints))
-	}
-}
-
-func TestQueryPrints_InvalidSortColumn(t *testing.T) {
-	svc := newTestPrintService(t)
-	svc.CreatePrint(validPrint())
-
-	result, err := svc.QueryPrints(PrintQueryParams{SortBy: "'; DROP TABLE prints; --"})
-	if err != nil {
-		t.Fatalf("QueryPrints() error with bad sort column: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("QueryPrints() with bad sort column: total = %d, want 1", result.Total)
+	if w2 != 0 {
+		t.Errorf("DeletePrint(restoreSpoolGrams=true) s2 used_weight = %d, want 0", w2)
 	}
 }
 
 // --- computeSHA256 Tests ---
 
+// new
 func TestComputeSHA256(t *testing.T) {
 	data := []byte("hello world")
 	got := computeSHA256(data)
-	want := "b94d27b9934d3e08a52e52d7da7dabfac484efe04294e576e5e6d66e92fb8c97"
+	want := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
 
-	// Just verify it's a 64-char hex string and is deterministic
 	if len(got) != 64 {
 		t.Errorf("computeSHA256() len = %d, want 64", len(got))
+	}
+	if got != want {
+		t.Errorf("computeSHA256() = %q, want %q", got, want)
 	}
 	if got != computeSHA256(data) {
 		t.Error("computeSHA256() is not deterministic")
 	}
-	_ = want
 }
 
 func TestComputeSHA256_DifferentInputs(t *testing.T) {
@@ -560,7 +504,7 @@ func TestDeletePrintModel_SharedModelKept(t *testing.T) {
 	models, _ := svc.GetPrintModels(p1)
 	modelID := models[0].ID
 
-	// Unlink from p1 only — model is still referenced by p2
+	// Unlink from p1 only - model is still referenced by p2
 	if err := svc.DeletePrintModel(p1, modelID); err != nil {
 		t.Fatalf("DeletePrintModel() error: %v", err)
 	}
@@ -612,5 +556,269 @@ func TestCreatePrint_SetsFirstUsedAt(t *testing.T) {
 	svc.repo.db.Get(&firstUsedAt, `SELECT first_used_at FROM spools WHERE id = ?`, spoolID)
 	if firstUsedAt == nil {
 		t.Error("CreatePrint() first_used_at was not set on spool")
+	}
+}
+
+// --- QueryPrints Tests ---
+
+func insertPrint(t *testing.T, svc *PrintService, name, status string) int64 {
+	t.Helper()
+	result, err := svc.repo.db.Exec(`
+		INSERT INTO prints (name, status, notes, created_at, updated_at)
+		VALUES (?, ?, '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		name, status,
+	)
+	if err != nil {
+		t.Fatalf("insertPrint(%q) error: %v", name, err)
+	}
+	id, _ := result.LastInsertId()
+	return id
+}
+
+func linkSpoolToPrint(t *testing.T, svc *PrintService, printID, spoolID int64) {
+	t.Helper()
+	_, err := svc.repo.db.Exec(`
+		INSERT INTO print_spools (print_id, spool_id, grams_used, created_at, updated_at)
+		VALUES (?, ?, 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		printID, spoolID,
+	)
+	if err != nil {
+		t.Fatalf("linkSpoolToPrint(%d, %d) error: %v", printID, spoolID, err)
+	}
+}
+
+func TestQueryPrints_InvalidSortColumn(t *testing.T) {
+	svc := newTestPrintService(t)
+	svc.CreatePrint(validPrint())
+
+	result, err := svc.QueryPrints(PrintQueryParams{SortBy: "'; DROP TABLE prints; --"})
+	if err != nil {
+		t.Fatalf("QueryPrints() error with bad sort column: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("QueryPrints() with bad sort column: total = %d, want 1", result.Total)
+	}
+}
+
+func TestQueryPrints_StatusQualifier(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "printing")
+	insertPrint(t, svc, "Bracket", "done")
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "status:done"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Multi-value status: status:done status:printing should return all three
+func TestQueryPrints_StatusQualifier_MultiValue(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "printing")
+	insertPrint(t, svc, "Bracket", "failed")
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "status:done status:printing"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+func TestQueryPrints_NameQualifier(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "done")
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "name:benchy"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+}
+
+// Multi-value name: name:benchy name:vase should return both
+func TestQueryPrints_NameQualifier_MultiValue(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "done")
+	insertPrint(t, svc, "Bracket", "done")
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "name:benchy name:vase"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+func TestQueryPrints_SpoolQualifier_Exact(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolID := insertTestSpool(t, svc, "PLA-RED-001")
+	printID := insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "done") // not linked to any spool
+	linkSpoolToPrint(t, svc, printID, spoolID)
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "spool:pla-red-001"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+	if result.Prints[0].Name != "Benchy" {
+		t.Errorf("unexpected print: %s", result.Prints[0].Name)
+	}
+}
+
+func TestQueryPrints_SpoolQualifier_Wildcard(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolA := insertTestSpool(t, svc, "PLA-RED-001")
+	spoolB := insertTestSpool(t, svc, "PLA-BLU-002")
+	printA := insertPrint(t, svc, "Benchy", "done")
+	printB := insertPrint(t, svc, "Vase", "done")
+	insertPrint(t, svc, "Bracket", "done") // no spool
+	linkSpoolToPrint(t, svc, printA, spoolA)
+	linkSpoolToPrint(t, svc, printB, spoolB)
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "spool:pla-*"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Multi-value spool: spool:pla-red-001 spool:pla-blu-002 should return both linked prints
+func TestQueryPrints_SpoolQualifier_MultiValue(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolA := insertTestSpool(t, svc, "PLA-RED-001")
+	spoolB := insertTestSpool(t, svc, "PLA-BLU-002")
+	printA := insertPrint(t, svc, "Benchy", "done")
+	printB := insertPrint(t, svc, "Vase", "done")
+	insertPrint(t, svc, "Bracket", "done") // unlinked, should not appear
+	linkSpoolToPrint(t, svc, printA, spoolA)
+	linkSpoolToPrint(t, svc, printB, spoolB)
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "spool:pla-red-001 spool:pla-blu-002"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Multi-value spool wildcards: spool:pla-* spool:abs-* should match prints linked to either
+func TestQueryPrints_SpoolQualifier_MultiWildcard(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolPLA := insertTestSpool(t, svc, "PLA-RED-001")
+	spoolABS := insertTestSpool(t, svc, "ABS-BLU-002")
+	printA := insertPrint(t, svc, "Benchy", "done")
+	printB := insertPrint(t, svc, "Vase", "done")
+	insertPrint(t, svc, "Bracket", "done") // no spool linked
+	linkSpoolToPrint(t, svc, printA, spoolPLA)
+	linkSpoolToPrint(t, svc, printB, spoolABS)
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "spool:pla-* spool:abs-*"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+// Different qualifier keys are ANDed — status:done + spool:pla-* should intersect
+func TestQueryPrints_DifferentQualifiers_AND(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolID := insertTestSpool(t, svc, "PLA-RED-001")
+	printDone := insertPrint(t, svc, "Benchy", "done")
+	printPrinting := insertPrint(t, svc, "Vase", "printing")
+	linkSpoolToPrint(t, svc, printDone, spoolID)
+	linkSpoolToPrint(t, svc, printPrinting, spoolID)
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "status:done spool:pla-red-001"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("expected 1 result, got %d", result.Total)
+	}
+	if result.Prints[0].Name != "Benchy" {
+		t.Errorf("unexpected print: %s", result.Prints[0].Name)
+	}
+}
+
+func TestQueryPrints_NoSearch(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+	insertPrint(t, svc, "Vase", "printing")
+
+	result, err := svc.QueryPrints(PrintQueryParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("expected 2 results, got %d", result.Total)
+	}
+}
+
+func TestQueryPrints_Empty(t *testing.T) {
+	svc := newTestPrintService(t)
+	insertPrint(t, svc, "Benchy", "done")
+
+	result, err := svc.QueryPrints(PrintQueryParams{Search: "status:failed"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 0 {
+		t.Errorf("expected 0 results, got %d", result.Total)
+	}
+}
+
+func TestQueryPrints_Pagination(t *testing.T) {
+	svc := newTestPrintService(t)
+	for i := range 5 {
+		insertPrint(t, svc, fmt.Sprintf("Print-%03d", i), "done")
+	}
+
+	result, err := svc.QueryPrints(PrintQueryParams{Limit: 2, Offset: 0})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 5 {
+		t.Errorf("expected total=5, got %d", result.Total)
+	}
+	if len(result.Prints) != 2 {
+		t.Errorf("expected 2 prints on page, got %d", len(result.Prints))
+	}
+}
+
+func TestQueryPrints_SpoolsLoaded(t *testing.T) {
+	svc := newTestPrintService(t)
+	spoolID := insertTestSpool(t, svc, "PLA-RED-001")
+	printID := insertPrint(t, svc, "Benchy", "done")
+	linkSpoolToPrint(t, svc, printID, spoolID)
+
+	result, err := svc.QueryPrints(PrintQueryParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Prints) != 1 {
+		t.Fatalf("expected 1 print, got %d", len(result.Prints))
+	}
+	if len(result.Prints[0].Spools) != 1 {
+		t.Errorf("expected 1 spool loaded, got %d", len(result.Prints[0].Spools))
 	}
 }

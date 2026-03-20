@@ -49,7 +49,7 @@ export default function SpoolsPage() {
 
     const { spools, total, isFetching } = useSpools({
         ...queryParams,
-        isTemplate: templateOpen ? true : false,
+        isTemplate: templateOpen,
     });
 
     const deleteMutation = useDeleteSpool();
@@ -173,7 +173,7 @@ export default function SpoolsPage() {
                 setEditState={setEditState}
             />
 
-            {deleteIntent && deleteIntent.spoolId && (
+            {deleteIntent !== null && deleteIntent.spoolId > 0 && (
                 <DeleteSpoolDialog
                     intent={deleteIntent}
                     onIntentChange={setDeleteIntent}

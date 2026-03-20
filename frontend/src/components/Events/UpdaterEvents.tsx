@@ -5,15 +5,14 @@ import { toast } from "sonner";
 
 import { UpdateService } from "@bindings/updater";
 
-export function Updater() {
+export function UpdaterEvents() {
+    // Check for updates on mount and show a toast if one is available
     useEffect(() => {
         let cancelled = false;
-
         (async () => {
             try {
                 const info = await UpdateService.CheckForUpdate();
                 if (cancelled || !info?.available) return;
-
                 toast.info(`New update available - v${info.newVersion}`, {
                     duration: Infinity,
                     action: {
@@ -26,31 +25,21 @@ export function Updater() {
                 console.error("Update check failed", err);
             }
         })();
-
         return () => {
             cancelled = true;
         };
     }, []);
 
+    // Track download progress, restart prompt, and failure via Wails events
     useEffect(() => {
         let toastId: string | number | undefined;
 
         const unsubProgress = Events.On("updater:progress", (ev) => {
-            const p = ev.data as {
-                percent: number;
-                bytesDownloaded: number;
-                totalBytes: number;
-            };
-            if (toastId === undefined) {
-                toastId = toast.loading(`Downloading update... ${p.percent}%`, {
-                    duration: Infinity,
-                });
-            } else {
-                toast.loading(`Downloading update... ${p.percent}%`, {
-                    id: toastId,
-                    duration: Infinity,
-                });
-            }
+            const p = ev.data as { percent: number };
+            toastId = toast.loading(`Downloading update... ${p.percent}%`, {
+                id: toastId,
+                duration: Infinity,
+            });
         });
 
         const unsubRestart = Events.On("updater:restart", () => {

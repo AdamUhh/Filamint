@@ -1,15 +1,8 @@
-import { Events } from "@wailsio/runtime";
+import { useApp } from "@/context/useContext";
 import { LayersIcon, PrinterIcon, SettingsIcon } from "lucide-react";
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router";
 
 import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/shadcn/dialog";
 
 import { AppSettings } from "@/components/Settings";
 
@@ -25,13 +18,9 @@ const iconItem =
     "size-3 transition-transform duration-200 group-hover:scale-110";
 
 export function Navbar() {
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const location = useLocation();
+    const { openSettings } = useApp();
 
-    const handleDialogChange = (open: boolean) => {
-        setSettingsOpen(open);
-        Events.Emit("shortcuts:set_enabled", !open);
-    };
+    const location = useLocation();
 
     // Hide navbar on /viewer routes
     if (location.pathname.startsWith("/viewer")) {
@@ -56,7 +45,7 @@ export function Navbar() {
                     />
 
                     <button
-                        onClick={() => handleDialogChange(true)}
+                        onClick={openSettings}
                         className={`${navItem} ${inactiveItem}`}
                     >
                         <SettingsIcon className={iconItem} />
@@ -65,16 +54,7 @@ export function Navbar() {
                 </div>
             </div>
 
-            <Dialog open={settingsOpen} onOpenChange={handleDialogChange}>
-                <DialogContent className="px-0 py-6 sm:max-w-4xl">
-                    <DialogHeader className="px-6">
-                        <DialogTitle>Settings</DialogTitle>
-                    </DialogHeader>
-                    <div className="max-h-[85vh] overflow-y-scroll px-6 [&::-webkit-scrollbar]:w-2">
-                        <AppSettings />
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <AppSettings />
         </>
     );
 }

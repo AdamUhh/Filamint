@@ -1,31 +1,36 @@
 import { useFrame } from "@react-three/fiber";
-import { useState } from "react";
+import { useRef } from "react";
+import { Group } from "three";
 
 import { PLATE_SIZE, PLATE_Y } from "@/lib/constant-three";
 
 export function BuildPlate() {
-    const [visible, setVisible] = useState(true);
+    const groupRef = useRef<Group>(null);
 
     useFrame(({ camera }) => {
-        setVisible(camera.position.y > PLATE_Y);
+        if (groupRef.current) {
+            groupRef.current.visible = camera.position.y > PLATE_Y;
+        }
     });
 
-    if (!visible) return null;
-
     return (
-        <mesh position={[0, PLATE_Y, 0]} receiveShadow>
-            <boxGeometry args={[PLATE_SIZE, 0, PLATE_SIZE]} />
-            <meshStandardMaterial color="#bbb" roughness={1} metalness={0} />
-            {/* Minor grid */}
+        <group ref={groupRef} position={[0, PLATE_Y, 0]}>
+            <mesh receiveShadow>
+                <boxGeometry args={[PLATE_SIZE, 0, PLATE_SIZE]} />
+                <meshStandardMaterial
+                    color="#bbb"
+                    roughness={1}
+                    metalness={0}
+                />
+            </mesh>
             <gridHelper
                 args={[PLATE_SIZE - 8, 40, "#555", "#555"]}
                 position={[0, 0.05, 0]}
             />
-            {/* Major grid */}
             <gridHelper
                 args={[PLATE_SIZE - 8, 8, "#999", "#999"]}
                 position={[0, 0.05, 0]}
             />
-        </mesh>
+        </group>
     );
 }

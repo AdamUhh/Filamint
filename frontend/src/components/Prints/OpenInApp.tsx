@@ -1,6 +1,6 @@
 import { useApp } from "@/context/useContext";
 import { PrintModel, PrintService } from "@bindings/services";
-import { AlertCircleIcon, ExternalLinkIcon, FileIcon } from "lucide-react";
+import { AlertCircleIcon, ExternalLinkIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/shadcn/button";
@@ -23,6 +23,8 @@ import {
 } from "@/shadcn/table";
 
 import { formatBytesToMB, toErrorMessage } from "@/lib/util-format";
+
+import { ViewPrintLoader, ViewPrintNoModels } from "./ViewPrint";
 
 type Step = "models" | "app";
 
@@ -70,9 +72,7 @@ export function OpenInAppDialog({
             .catch((err: unknown) => {
                 if (!cancelled) {
                     setFetchError(
-                        err instanceof Error
-                            ? err.message
-                            : "Failed to load models. Please try again."
+                        toErrorMessage(err) || "Failed to load models"
                     );
                     setModels([]);
                     setIsLoading(false);
@@ -156,9 +156,8 @@ export function OpenInAppDialog({
                                         })
                                         .catch((err: unknown) => {
                                             setFetchError(
-                                                err instanceof Error
-                                                    ? err.message
-                                                    : "Failed to load models. Please try again."
+                                                toErrorMessage(err) ||
+                                                    "Failed to load models"
                                             );
                                             setIsLoading(false);
                                         });
@@ -367,37 +366,5 @@ function FetchError({
                 Try again
             </Button>
         </div>
-    );
-}
-
-function ViewPrintLoader() {
-    return (
-        <TableRow className="animate-pulse">
-            <TableCell>
-                <div className="h-4 w-4 rounded bg-zinc-200 dark:bg-zinc-700" />
-            </TableCell>
-            <TableCell>
-                <div className="h-4 rounded bg-zinc-200 dark:bg-zinc-700" />
-            </TableCell>
-            <TableCell>
-                <div className="h-4 w-14 rounded bg-zinc-200 dark:bg-zinc-700" />
-            </TableCell>
-            <TableCell>
-                <div className="h-4 w-16 rounded bg-zinc-200 dark:bg-zinc-700" />
-            </TableCell>
-        </TableRow>
-    );
-}
-
-function ViewPrintNoModels() {
-    return (
-        <TableRow>
-            <TableCell colSpan={4}>
-                <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
-                    <FileIcon className="h-8 w-8 opacity-30" />
-                    <span>No models found</span>
-                </div>
-            </TableCell>
-        </TableRow>
     );
 }

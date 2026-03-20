@@ -1,6 +1,6 @@
 import { ShortcutService } from "@bindings/shortcuts";
 import { Events } from "@wailsio/runtime";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useKeyCombo(action: string) {
     const [combo, setCombo] = useState<string>("");
@@ -14,12 +14,7 @@ export function useKeyCombo(action: string) {
         };
 
         load();
-
-        const handler = () => {
-            load();
-        };
-
-        const unsubscribe = Events.On("window:reload_shortcuts", handler);
+        const unsubscribe = Events.On("window:reload_shortcuts", load);
 
         return () => {
             active = false;
@@ -30,14 +25,10 @@ export function useKeyCombo(action: string) {
     return combo;
 }
 
-export function useKeyCombos(_actions: string[]) {
+export function useKeyCombos(actions: string[]) {
     const [combos, setCombos] = useState<string[]>([]);
-    const [actions] = useState(_actions);
 
-    const actionsKey = useMemo(
-        () => actions.slice().sort().join(","),
-        [actions]
-    );
+    const actionsKey = [...actions].sort().join(",");
 
     useEffect(() => {
         let cancelled = false;
@@ -48,7 +39,6 @@ export function useKeyCombos(_actions: string[]) {
         };
 
         load();
-
         const unsubscribe = Events.On("window:reload_shortcuts", load);
 
         return () => {

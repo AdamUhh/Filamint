@@ -1,3 +1,4 @@
+import { SpoolService } from "@bindings/services";
 import { FolderOpenIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -6,8 +7,6 @@ import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import { Separator } from "@/shadcn/separator";
 
 import { cn } from "@/lib/utils";
-
-import { SpoolService } from "@bindings/services";
 
 import { CopyOnClick } from "../CopyToClipboard";
 
@@ -33,7 +32,7 @@ export function FileDirLocation() {
         <div className="flex flex-col gap-2 rounded border border-border px-4 py-2">
             <div className="group flex items-center gap-4">
                 <span className="text-xs font-medium tracking-widest text-nowrap text-muted-foreground/50 uppercase select-none">
-                    App Path
+                    Data Path
                 </span>
                 <Separator orientation="vertical" className="my-2" />
                 <CopyOnClick
