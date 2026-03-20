@@ -91,8 +91,11 @@ export function OpenInAppDialog({
     const handleSelect = (id: number, checked: boolean) => {
         setSelected((prev) => {
             const next = new Set(prev);
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            checked ? next.add(id) : next.delete(id);
+            if (checked) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
             return next;
         });
     };

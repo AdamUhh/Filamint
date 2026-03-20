@@ -18,7 +18,7 @@ const iconItem =
     "size-3 transition-transform duration-200 group-hover:scale-110";
 
 export function Navbar() {
-    const { openSettings } = useApp();
+    const { setSettingsOpen } = useApp();
 
     const location = useLocation();
 
@@ -45,7 +45,7 @@ export function Navbar() {
                     />
 
                     <button
-                        onClick={openSettings}
+                        onClick={() => setSettingsOpen(true)}
                         className={`${navItem} ${inactiveItem}`}
                     >
                         <SettingsIcon className={iconItem} />

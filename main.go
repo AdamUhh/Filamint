@@ -52,7 +52,7 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-	// Must be the very first thing in main — before any Wails/logger/db init.
+	// Must be the very first thing in main - before any Wails/logger/db init.
 	// The watchdog is a re-invocation of this binary with a special flag; it
 	// waits for the old process to fully exit, launches the updated binary,
 	// then exits itself. If we let Wails init first, os.Exit(0) tears it down.
@@ -60,12 +60,10 @@ func main() {
 		return
 	}
 
-	// manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
-	manifestURL := "http://localhost:8765/latest.json"
-	// testing manifest locally
-	if localURL := os.Getenv("UPDATE_MANIFEST_URL"); localURL != "" {
-		manifestURL = localURL
-	}
+	manifestURL := "https://github.com/AdamUhh/filamint/releases/latest/download/latest.json"
+
+	// Testing manifest locally
+	// manifestURL := "http://localhost:8765/latest.json"
 
 	appDataDir, err := internal.GetAppDataDir()
 	if err != nil {

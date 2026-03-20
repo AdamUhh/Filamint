@@ -1,5 +1,6 @@
 import { useApp } from "@/context/useContext";
 import { Events } from "@wailsio/runtime";
+import { useEffect } from "react";
 
 import {
     Dialog,
@@ -18,15 +19,17 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 import { UpdateSettings } from "./UpdateSettings";
 
 export function AppSettings() {
-    const { settingsOpen, closeSettings } = useApp();
+    const { settingsOpen, setSettingsOpen } = useApp();
 
-    const handleOpenChange = (open: boolean) => {
-        if (!open) closeSettings();
-        Events.Emit("shortcuts:set_enabled", open);
-    };
+    useEffect(() => {
+        Events.Emit("shortcuts:set_enabled", !settingsOpen);
+        return () => {
+            Events.Emit("shortcuts:set_enabled", true);
+        };
+    }, [settingsOpen]);
 
     return (
-        <Dialog open={settingsOpen} onOpenChange={handleOpenChange}>
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogContent className="px-0 py-6 sm:max-w-4xl">
                 <DialogHeader className="px-6">
                     <DialogTitle>Settings</DialogTitle>

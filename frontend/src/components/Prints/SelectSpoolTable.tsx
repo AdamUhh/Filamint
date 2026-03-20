@@ -2,10 +2,16 @@ import { useApp } from "@/context/useContext";
 import type { PrintSpool, Spool } from "@bindings/services";
 import type { UpdateMetaOptions } from "@tanstack/react-form";
 import { format } from "date-fns/format";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
+import {
+    ArrowDownIcon,
+    ArrowUpDownIcon,
+    ArrowUpIcon,
+    RotateCwIcon,
+} from "lucide-react";
 
 import { Button } from "@/shadcn/button";
 import { Checkbox } from "@/shadcn/checkbox";
+import { LazyTooltip } from "@/shadcn/custom/lazy-tooltip";
 import {
     Table,
     TableBody,
@@ -18,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { CopyToClipboard } from "../CopyToClipboard";
+import { useInvalidateSpools } from "../Spools/lib/fetch-hooks";
 
 export function SelectSpoolTable({
     editingId,
@@ -283,7 +290,36 @@ function MyTableHeaders({
                     column="cost"
                     label="Cost"
                 />
+
+                <TableHead>
+                    <RefreshSpools />
+                </TableHead>
             </TableRow>
         </TableHeader>
+    );
+}
+
+function RefreshSpools() {
+    const { invalidate, isFetching, secondsLeft, isCoolingDown } =
+        useInvalidateSpools();
+
+    const tooltipText = isFetching
+        ? "Refreshing..."
+        : isCoolingDown
+          ? `Retry in ${secondsLeft}s`
+          : "Refresh Spool Data";
+
+    return (
+        <LazyTooltip content={tooltipText}>
+            <div>
+                <Button
+                    variant="ghost"
+                    onClick={invalidate}
+                    disabled={isFetching || isCoolingDown}
+                >
+                    <RotateCwIcon />
+                </Button>
+            </div>
+        </LazyTooltip>
     );
 }

@@ -1,10 +1,4 @@
-import {
-    type ReactNode,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
     DEFAULT_LINUX_OPEN_IN_APP,
@@ -36,37 +30,29 @@ function detectPlatform(): AppOptions["platform"] {
     return "windows";
 }
 
+function loadOptions(): AppOptions {
+    const platform = detectPlatform();
+    try {
+        const saved = localStorage.getItem("app-options");
+        if (saved) return { ...JSON.parse(saved), platform };
+    } catch (err) {
+        console.error("Failed to parse saved options:", err);
+    }
+    return {
+        currency: "AED",
+        currencyAlign: "left",
+        vendors: DEFAULT_SPOOL_VENDORS,
+        materials: DEFAULT_SPOOL_MATERIALS,
+        materialTypes: DEFAULT_SPOOL_MATERIALTYPES,
+        colors: DEFAULT_SPOOL_COLORS,
+        openInApp: getDefaultOpenInApp(platform),
+        platform,
+    };
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [options, setOptions] = useState<AppOptions>(() => {
-        const platform = detectPlatform();
-
-        try {
-            const saved = localStorage.getItem("app-options");
-            if (saved) {
-                return {
-                    ...(JSON.parse(saved) as AppOptions),
-                    platform, // always override with fresh detection
-                };
-            }
-        } catch (err) {
-            console.error("Failed to parse saved options:", err);
-        }
-
-        return {
-            currency: "AED",
-            currencyAlign: "left",
-            vendors: DEFAULT_SPOOL_VENDORS,
-            materials: DEFAULT_SPOOL_MATERIALS,
-            materialTypes: DEFAULT_SPOOL_MATERIALTYPES,
-            colors: DEFAULT_SPOOL_COLORS,
-            openInApp: getDefaultOpenInApp(platform),
-            platform,
-        };
-    });
-
-    const openSettings = useCallback(() => setSettingsOpen(true), []);
-    const closeSettings = useCallback(() => setSettingsOpen(false), []);
+    const [options, setOptions] = useState<AppOptions>(loadOptions);
 
     // Save options to localStorage whenever they change
     useEffect(() => {
@@ -78,10 +64,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             options,
             setOptions,
             settingsOpen,
-            openSettings,
-            closeSettings,
+            setSettingsOpen,
         }),
-        [options, settingsOpen, openSettings, closeSettings]
+        [options, settingsOpen, setSettingsOpen]
     );
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
