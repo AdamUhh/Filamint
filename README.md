@@ -3,9 +3,22 @@
   Filamint - A 3D Print & Filament Tracker
 </h1>
 
-https://github.com/user-attachments/assets/ba3d763d-f333-4219-9c79-fe037de2bebd
+https://github.com/user-attachments/assets/00419d57-8451-4cf8-82ba-4d6baf59afa7
 
 **Keep track of your spools, and prints**
+
+<details>
+  <summary><strong>App Preview</strong></summary>
+
+  <br/>
+
+https://github.com/user-attachments/assets/8785ab12-05c9-40b0-a71c-6ed151197321
+
+https://github.com/user-attachments/assets/b1d53375-2cda-48b6-998e-2ab02ce80196
+
+https://github.com/user-attachments/assets/70968fc6-c527-4430-a031-a96535e66d3d
+
+</details>
 
 ## Features
 
