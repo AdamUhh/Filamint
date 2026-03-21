@@ -163,11 +163,26 @@ export function SpoolTable({
                                                         className="w-40"
                                                         align="start"
                                                     >
-                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuGroup>
                                                             <DropdownMenuLabel>
                                                                 Prints
                                                             </DropdownMenuLabel>
+
+                                                            {!templateOpen && (
+                                                                <DropdownMenuItem
+                                                                    onSelect={() =>
+                                                                        onLogAPrint(
+                                                                            spool
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <FilePlusIcon className="mb-0.5" />
+                                                                    <span>
+                                                                        Log a
+                                                                        print
+                                                                    </span>
+                                                                </DropdownMenuItem>
+                                                            )}
 
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
@@ -179,18 +194,6 @@ export function SpoolTable({
                                                                 <CopyPlusIcon className="mb-0.5" />
                                                                 <span>
                                                                     Duplicate
-                                                                </span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onSelect={() =>
-                                                                    onLogAPrint(
-                                                                        spool
-                                                                    )
-                                                                }
-                                                            >
-                                                                <FilePlusIcon className="mb-0.5" />
-                                                                <span>
-                                                                    Log a print
                                                                 </span>
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
@@ -239,27 +242,21 @@ export function SpoolTable({
                                         </TableRow>
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
-                                        <ContextMenuSeparator />
                                         <ContextMenuGroup>
                                             <ContextMenuLabel>
                                                 Prints
                                             </ContextMenuLabel>
+                                            {!templateOpen && (
+                                                <ContextMenuItem
+                                                    onSelect={() =>
+                                                        onLogAPrint(spool)
+                                                    }
+                                                >
+                                                    <FilePlusIcon className="mb-0.5" />
+                                                    <span>Log a print</span>
+                                                </ContextMenuItem>
+                                            )}
 
-                                            <ContextMenuItem
-                                                onSelect={() =>
-                                                    onLogAPrint(spool)
-                                                }
-                                            >
-                                                <FilePlusIcon className="mb-0.5" />
-                                                <span>Log a print</span>
-                                            </ContextMenuItem>
-                                        </ContextMenuGroup>
-
-                                        <ContextMenuSeparator />
-                                        <ContextMenuGroup>
-                                            <ContextMenuLabel>
-                                                Options
-                                            </ContextMenuLabel>
                                             <ContextMenuItem
                                                 onSelect={() =>
                                                     onDuplicate(spool)
@@ -268,6 +265,13 @@ export function SpoolTable({
                                                 <CopyPlusIcon className="mb-0.5" />
                                                 <span>Duplicate</span>
                                             </ContextMenuItem>
+                                        </ContextMenuGroup>
+                                        <ContextMenuSeparator />
+
+                                        <ContextMenuGroup>
+                                            <ContextMenuLabel>
+                                                Options
+                                            </ContextMenuLabel>
 
                                             <ContextMenuItem
                                                 onSelect={() => onEdit(spool)}
