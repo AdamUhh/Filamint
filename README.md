@@ -110,6 +110,51 @@ Filamint/
 └── README.md                         # This file
 ```
 
+### How to release
+
+Covers two flows: feature-branch → main, or directly on main.
+
+```bash
+# 1. Sync
+# On feature-branch:
+git checkout feature-branch
+git fetch origin
+git rebase origin/main
+# Resolve conflicts if any:
+git rebase --continue  # skip if no rebase needed
+
+# On main directly:
+git checkout main
+git pull origin main
+
+# 2. Make changes (optional)
+git add .
+git commit -m "feat: your change"
+
+# 3. Bump version BEFORE release
+# Edit build/config.yml manually
+
+# 4. Generate assets
+wails3 task common:update:build-assets
+
+# 5. Commit version + assets together
+git add .
+git commit -m "chore(release): v1.0.2"
+
+# 6a. Push feature-branch → main
+git checkout main
+git merge --ff-only feature-branch
+git push origin main
+
+# 6b. Push main → main
+git push origin main
+
+# 7. Tag → triggers GH Actions
+git tag v1.0.2
+git push origin v1.0.2
+```
+- Releases are created as drafts; update the description on the GitHub Releases page before publishing.
+
 ### Commit Message Convention
 
 - `feat:` - New features 
