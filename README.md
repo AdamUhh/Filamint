@@ -3,6 +3,8 @@
   Filamint - A 3D Print & Filament Tracker
 </h1>
 
+https://github.com/user-attachments/assets/ba3d763d-f333-4219-9c79-fe037de2bebd
+
 **Keep track of your spools, and prints**
 
 ## Features
