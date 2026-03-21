@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/00419d57-8451-4cf8-82ba-4d6baf59afa7
 **Keep track of your spools, and prints**
 
 <details>
-  <summary><strong>App Preview</strong></summary>
+  <summary><strong>App Previews</strong></summary>
 
   <br/>
 
@@ -34,17 +34,23 @@ https://github.com/user-attachments/assets/70968fc6-c527-4430-a031-a96535e66d3d
 
 ## Installation
 
+### Releases
+Download the latest release from the [releases](https://github.com/AdamUhh/Filamint/releases) page.
+
 ### From Source
 
 Requires Go 1.25+ and Wails v3 - see the [Wails installation guide](https://v3alpha.wails.io/quick-start/installation/) to get set up.
 ```bash
 git clone https://github.com/AdamUhh/Filamint.git
 cd Filamint
-wails3 build
+wails3 package
 ```
 Built files will be located in the project's `/bin` directory.
 
-## Development
+<details>
+  <summary><h2>Development</h2></summary>
+
+  <br/>
 
 Requires Go 1.25+ and [Wails v3](https://v3alpha.wails.io/quick-start/installation/)
 ```bash
@@ -173,6 +179,7 @@ git commit -m "chore(deps): upgrade React to 19.0.0"
 git commit -m "refactor(db): simplify spool query logic"
 git commit -m "perf(cache): memoize expensive layout calculations"
 ```
+</details>
 
 ## License
 
