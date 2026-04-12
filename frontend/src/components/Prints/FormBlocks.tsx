@@ -29,7 +29,7 @@ import {
 
 import { useFieldContext } from "@/components/Prints/lib/hooks";
 
-import { toErrorMessage } from "@/lib/util-format";
+import { formatGrams, toErrorMessage } from "@/lib/util-format";
 
 import { AppPagination } from "../Pagination";
 import { AppSearch } from "../Search";
@@ -136,8 +136,7 @@ export function PrintGramsUsedFormField() {
                     onBlur={field.handleBlur}
                     onChange={(e) =>
                         field.handleChange(
-                            Math.round(parseFloat(e.target.value) * 10) / 10 ||
-                                0
+                            formatGrams(parseFloat(e.target.value))
                         )
                     }
                     aria-invalid={isInvalid}
@@ -296,7 +295,7 @@ export function PrintSpoolContainerFormField({
                                 <span className="text-muted-foreground">
                                     {" "}
                                     · {s.vendor} · {s.material} · {s.color} ·{" "}
-                                    {s.totalWeight - s.usedWeight}g
+                                    {formatGrams(s.totalWeight - s.usedWeight)}g
                                 </span>
                             </span>
                         </div>

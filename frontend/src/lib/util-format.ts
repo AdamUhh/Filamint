@@ -23,3 +23,8 @@ export const toErrorMessage = (err: unknown): string => {
     }
     return String(err);
 };
+
+// 2 decimal places max
+export const formatGrams = (num: number) => {
+    return Math.round(num * 100) / 100 || 0;
+};

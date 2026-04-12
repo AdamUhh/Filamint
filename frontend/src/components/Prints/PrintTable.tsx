@@ -43,6 +43,8 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
+import { formatGrams } from "@/lib/util-format";
+
 import { CopyOnClick } from "../CopyToClipboard";
 import { OpenInAppDialog } from "./OpenInApp";
 import { ViewPrintDialog } from "./ViewPrint";
@@ -122,7 +124,16 @@ export function PrintTable({
                                                         "PPp"
                                                     )}
                                             </TableCell>
-                                            <TableCell>{print.name}</TableCell>
+                                            <TableCell>
+                                                <div className="w-fit">
+                                                    <CopyOnClick
+                                                        textToCopy={print.name}
+                                                        tooltipContent="Copy Print Name"
+                                                    >
+                                                        {print.name}
+                                                    </CopyOnClick>
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-1">
                                                     {print.spools?.map(
@@ -149,7 +160,7 @@ export function PrintTable({
                                                                     key={
                                                                         ps.spoolId
                                                                     }
-                                                                    className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] transition-transform hover:cursor-copy active:scale-90"
+                                                                    className="-mt-0.5 h-4 w-4 rounded shadow-[0_0_4px_0_#55555540] transition-transform hover:cursor-pointer active:scale-90"
                                                                     style={{
                                                                         backgroundColor:
                                                                             ps.colorHex,
@@ -163,13 +174,13 @@ export function PrintTable({
                                             <TableCell>
                                                 {print.spools?.length
                                                     ? print.spools
-                                                          .map(
-                                                              (ps) =>
-                                                                  ps.gramsUsed ||
-                                                                  0
+                                                          .map((ps) =>
+                                                              formatGrams(
+                                                                  ps.gramsUsed
+                                                              )
                                                           )
                                                           .join(" / ") +
-                                                      ` (${print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0)})`
+                                                      ` (${formatGrams(print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0))})`
                                                     : "NaN"}
                                             </TableCell>
                                             <TableCell>

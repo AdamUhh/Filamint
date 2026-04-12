@@ -14,6 +14,8 @@ import { defaultPrintValues } from "@/components/Prints/lib/defaults";
 import { withForm } from "@/components/Prints/lib/hooks";
 import type { TPrintSchema } from "@/components/Prints/lib/schema";
 
+import { formatGrams } from "@/lib/util-format";
+
 import type { EditState } from "./lib/types";
 
 export const PrintForm = withForm({
@@ -145,8 +147,10 @@ export const PrintForm = withForm({
                                                             · {s.vendor} ·{" "}
                                                             {s.material} ·{" "}
                                                             {s.color} ·{" "}
-                                                            {s.totalWeight -
-                                                                s.usedWeight}
+                                                            {formatGrams(
+                                                                s.totalWeight -
+                                                                    s.usedWeight
+                                                            )}{" "}
                                                             g
                                                         </span>
                                                     </span>

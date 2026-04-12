@@ -32,6 +32,8 @@ import {
 
 import { useFieldContext, useFormContext } from "@/components/Spools/lib/hooks";
 
+import { formatGrams } from "@/lib/util-format";
+
 export function SpoolVendorFormField({
     editingId,
     onReset,
@@ -391,7 +393,9 @@ export function SpoolTotalWeightFormField({
                     value={Number(field.state.value).toString()}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
-                        field.handleChange(parseFloat(e.target.value) || 0)
+                        field.handleChange(
+                            formatGrams(parseFloat(e.target.value))
+                        )
                     }
                     aria-invalid={isInvalid}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -476,8 +480,7 @@ export function SpoolUsedWeightFormField({
                     onBlur={field.handleBlur}
                     onChange={(e) =>
                         field.handleChange(
-                            Math.round(parseFloat(e.target.value) * 10) / 10 ||
-                                0
+                            formatGrams(parseFloat(e.target.value))
                         )
                     }
                     aria-invalid={isInvalid}
@@ -492,9 +495,8 @@ export function SpoolUsedWeightFormField({
 export function SpoolRemainingWeight() {
     const { store } = useFormContext();
 
-    const remaining = useStore(
-        store,
-        (state) => state.values.totalWeight - state.values.usedWeight
+    const remaining = useStore(store, (state) =>
+        formatGrams(state.values.totalWeight - state.values.usedWeight)
     );
 
     return (
@@ -586,7 +588,9 @@ export function SpoolCostFormField({
                     value={Number(field.state.value).toString()}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
-                        field.handleChange(parseFloat(e.target.value) || 0)
+                        field.handleChange(
+                            formatGrams(parseFloat(e.target.value))
+                        )
                     }
                     aria-invalid={isInvalid}
                     step="0.01"

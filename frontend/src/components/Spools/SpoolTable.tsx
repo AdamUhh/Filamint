@@ -42,7 +42,9 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
-import { CopyToClipboard } from "../CopyToClipboard";
+import { formatGrams } from "@/lib/util-format";
+
+import { CopyOnClick } from "../CopyToClipboard";
 import { useInvalidateSpools } from "./lib/fetch-hooks";
 
 export function SpoolTable({
@@ -98,12 +100,17 @@ export function SpoolTable({
                                             <TableCell>
                                                 {format(spool.updatedAt, "PPp")}
                                             </TableCell>
-                                            <TableCell className="group z-100 flex items-center gap-2">
-                                                <span>{spool.spoolCode}</span>
-                                                <CopyToClipboard
-                                                    textToCopy={spool.spoolCode}
-                                                    tooltipContent="Copy Spool Code"
-                                                />
+                                            <TableCell>
+                                                <div className="group z-100 flex items-center gap-2">
+                                                    <CopyOnClick
+                                                        textToCopy={
+                                                            spool.spoolCode
+                                                        }
+                                                        tooltipContent="Copy Spool Code"
+                                                    >
+                                                        {spool.spoolCode}
+                                                    </CopyOnClick>
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {spool.vendor}
@@ -130,8 +137,10 @@ export function SpoolTable({
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {spool.totalWeight -
-                                                    spool.usedWeight}
+                                                {formatGrams(
+                                                    spool.totalWeight -
+                                                        spool.usedWeight
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 {options.currencyAlign ===

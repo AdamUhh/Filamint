@@ -187,6 +187,8 @@ export function PrintFormDialog({
                     return {
                         totalWeight: ps.totalWeight,
                         usedWeight: ps.usedWeight,
+                        originalGramsUsed:
+                            (editState.id > 0 && ps.gramsUsed) || 0,
                         gramsUsed: ps.gramsUsed,
                         spoolId: ps.spoolId,
                         spoolCode: ps.spoolCode,

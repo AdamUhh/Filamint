@@ -9,6 +9,8 @@ import {
     AlertDialogTitle,
 } from "@/shadcn/alert-dialog";
 
+import { formatGrams } from "@/lib/util-format";
+
 import { useSpoolPrints } from "./lib/fetch-hooks";
 
 export type DeleteState = {
@@ -62,7 +64,7 @@ export function DeleteSpoolDialog({
                                         {s.printName}
                                     </span>
                                     <span className="text-muted-foreground">
-                                        {s.gramsUsed}g
+                                        {formatGrams(s.gramsUsed)}g
                                     </span>
                                 </li>
                             ))}

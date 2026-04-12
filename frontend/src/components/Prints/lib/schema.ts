@@ -1,5 +1,7 @@
 import * as z from "zod/mini";
 
+import { formatGrams } from "@/lib/util-format";
+
 const modelSchema = z.union([
     z.custom<File>(), // for new uploads
     z.object({
@@ -43,13 +45,17 @@ export const printSchema = z.object({
                         z.gte(1, "How many grams did this print use?"),
                         z.lte(10000)
                     ),
+                originalGramsUsed: z.optional(z.number()),
             })
         )
         .check(
             z.minLength(1, "At least one spool is required"),
             z.superRefine((spools, ctx) => {
                 spools.forEach((spool, index) => {
-                    const remaining = spool.totalWeight - spool.usedWeight;
+                    const original = spool.originalGramsUsed ?? 0;
+                    const remaining = formatGrams(
+                        spool.totalWeight - spool.usedWeight + original
+                    );
                     if (spool.gramsUsed > remaining) {
                         ctx.addIssue({
                             code: "custom",

@@ -21,6 +21,7 @@ import {
     TableRow,
 } from "@/shadcn/table";
 
+import { formatGrams } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
 import { CopyToClipboard } from "../CopyToClipboard";
@@ -133,7 +134,9 @@ export function SelectSpoolTable({
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    {spool.totalWeight - spool.usedWeight}
+                                    {formatGrams(
+                                        spool.totalWeight - spool.usedWeight
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     {options.currencyAlign === "left" ? (
