@@ -45,7 +45,7 @@ export function CopyToClipboard({
                 className={cn(
                     "pointer-events-none opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100",
                     copied && "bg-green-500 hover:bg-green-500",
-                    !disabled && "pointer-events-none!"
+                    disabled && "pointer-events-none!"
                 )}
             >
                 {copied ? (

@@ -38,14 +38,14 @@ func (r *PrintRepository) InsertPrintSpool(tx *sqlx.Tx, printID int64, ps PrintS
 	return err
 }
 
-func (r *PrintRepository) AddSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now any) error {
+func (r *PrintRepository) AddSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams float64, now any) error {
 	_, err := tx.Exec(
 		`UPDATE spools
-		 SET used_weight = used_weight + ?,
+  	         SET used_weight = ROUND(used_weight + ?, 1),
 		     last_used_at = ?,
 		     first_used_at = COALESCE(first_used_at, ?),
 		     updated_at = ?
-		 WHERE id = ?`,
+	         WHERE id = ?`,
 		grams, now, now, now, spoolID,
 	)
 	return err
@@ -76,9 +76,9 @@ func (r *PrintRepository) DeletePrintSpool(tx *sqlx.Tx, printID, spoolID int64) 
 	return err
 }
 
-func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams int, now any) error {
+func (r *PrintRepository) SubtractSpoolUsedWeight(tx *sqlx.Tx, spoolID int64, grams float64, now any) error {
 	_, err := tx.Exec(
-		`UPDATE spools SET used_weight = used_weight - ?, updated_at = ? WHERE id = ?`,
+		`UPDATE spools SET used_weight = ROUND(used_weight - ?, 1), updated_at = ? WHERE id = ?`,
 		grams, now, spoolID,
 	)
 	return err

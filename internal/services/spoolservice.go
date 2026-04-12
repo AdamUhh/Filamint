@@ -23,12 +23,12 @@ type Spool struct {
 	Color        string `db:"color" json:"color"`
 	ColorHex     string `db:"color_hex" json:"colorHex"`
 
-	TotalWeight   int    `db:"total_weight" json:"totalWeight"`
-	UsedWeight    int    `db:"used_weight" json:"usedWeight"`
-	Cost          int    `db:"cost" json:"cost"`
-	ReferenceLink string `db:"reference_link" json:"referenceLink"`
-	Notes         string `db:"notes" json:"notes"`
-	IsTemplate    bool   `db:"is_template" json:"isTemplate"`
+	TotalWeight   float64 `db:"total_weight" json:"totalWeight"`
+	UsedWeight    float64 `db:"used_weight" json:"usedWeight"`
+	Cost          float64 `db:"cost" json:"cost"`
+	ReferenceLink string  `db:"reference_link" json:"referenceLink"`
+	Notes         string  `db:"notes" json:"notes"`
+	IsTemplate    bool    `db:"is_template" json:"isTemplate"`
 
 	FirstUsedAt *time.Time `db:"first_used_at" json:"firstUsedAt"`
 	LastUsedAt  *time.Time `db:"last_used_at" json:"lastUsedAt"`
@@ -52,9 +52,9 @@ type SpoolQueryResult struct {
 }
 
 type SpoolPrint struct {
-	PrintID   int64  `db:"print_id" json:"printId"`
-	PrintName string `db:"print_name" json:"printName"`
-	GramsUsed int    `db:"grams_used" json:"gramsUsed"`
+	PrintID   int64   `db:"print_id" json:"printId"`
+	PrintName string  `db:"print_name" json:"printName"`
+	GramsUsed float64 `db:"grams_used" json:"gramsUsed"`
 }
 
 type SpoolService struct {

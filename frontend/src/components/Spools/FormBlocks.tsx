@@ -391,7 +391,7 @@ export function SpoolTotalWeightFormField({
                     value={Number(field.state.value).toString()}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
-                        field.handleChange(parseInt(e.target.value) || 0)
+                        field.handleChange(parseFloat(e.target.value) || 0)
                     }
                     aria-invalid={isInvalid}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -475,7 +475,10 @@ export function SpoolUsedWeightFormField({
                     value={Number(field.state.value).toString()}
                     onBlur={field.handleBlur}
                     onChange={(e) =>
-                        field.handleChange(parseInt(e.target.value) || 0)
+                        field.handleChange(
+                            Math.round(parseFloat(e.target.value) * 10) / 10 ||
+                                0
+                        )
                     }
                     aria-invalid={isInvalid}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"

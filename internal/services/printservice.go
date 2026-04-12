@@ -27,18 +27,18 @@ type PrintSpool struct {
 	PrintID int64 `db:"print_id" json:"printId"`
 	SpoolID int64 `db:"spool_id" json:"spoolId"`
 
-	GramsUsed int `db:"grams_used" json:"gramsUsed"`
+	GramsUsed float64 `db:"grams_used" json:"gramsUsed"`
 
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 
-	SpoolCode   string `db:"spool_code" json:"spoolCode"`
-	TotalWeight int    `db:"total_weight" json:"totalWeight"`
-	UsedWeight  int    `db:"used_weight" json:"usedWeight"`
-	Vendor      string `db:"vendor" json:"vendor"`
-	Material    string `db:"material" json:"material"`
-	Color       string `db:"color" json:"color"`
-	ColorHex    string `db:"color_hex" json:"colorHex"`
+	SpoolCode   string  `db:"spool_code" json:"spoolCode"`
+	TotalWeight float64 `db:"total_weight" json:"totalWeight"`
+	UsedWeight  float64 `db:"used_weight" json:"usedWeight"`
+	Vendor      string  `db:"vendor" json:"vendor"`
+	Material    string  `db:"material" json:"material"`
+	Color       string  `db:"color" json:"color"`
+	ColorHex    string  `db:"color_hex" json:"colorHex"`
 }
 
 type PrintModel struct {
@@ -155,7 +155,7 @@ func (s *PrintService) UpdatePrint(p Print) error {
 		return fmt.Errorf("loading existing spools for print %d: %w", p.ID, err)
 	}
 
-	existingMap := make(map[int64]int, len(existingSpools))
+	existingMap := make(map[int64]float64, len(existingSpools))
 	for _, es := range existingSpools {
 		existingMap[es.SpoolID] = es.GramsUsed
 	}

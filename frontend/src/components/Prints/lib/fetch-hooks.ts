@@ -62,7 +62,15 @@ export function useCreatePrint() {
     return useMutation({
         mutationFn: (print: Print) => PrintService.CreatePrint(print),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["prints"] });
+            queryClient.invalidateQueries({
+                queryKey: ["prints"],
+                exact: false,
+            });
+
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
+                exact: false,
+            });
         },
     });
 }
@@ -73,7 +81,10 @@ export function useUpdatePrint() {
     return useMutation({
         mutationFn: (print: Print) => PrintService.UpdatePrint(print),
         onSuccess: (_, updatedPrint) => {
-            queryClient.invalidateQueries({ queryKey: ["prints"] });
+            queryClient.invalidateQueries({
+                queryKey: ["prints"],
+                exact: false,
+            });
 
             queryClient.invalidateQueries({
                 queryKey: ["print", updatedPrint.id],
@@ -81,6 +92,7 @@ export function useUpdatePrint() {
 
             queryClient.invalidateQueries({
                 queryKey: ["spools"],
+                exact: false,
             });
         },
     });
@@ -93,7 +105,10 @@ export function useDeletePrint() {
         mutationFn: (args: { id: number; restoreSpoolGrams: boolean }) =>
             PrintService.DeletePrint(args.id, args.restoreSpoolGrams),
         onSuccess: (_, deletedId) => {
-            queryClient.invalidateQueries({ queryKey: ["prints"] });
+            queryClient.invalidateQueries({
+                queryKey: ["prints"],
+                exact: false,
+            });
 
             queryClient.removeQueries({
                 queryKey: ["print", deletedId],
@@ -101,6 +116,7 @@ export function useDeletePrint() {
 
             queryClient.invalidateQueries({
                 queryKey: ["spools"],
+                exact: false,
             });
         },
     });
@@ -190,7 +206,7 @@ export function useInvalidatePrints(cooldownMs = 5000) {
         if (isFetching) return;
         if (secondsLeft > 0) return;
 
-        queryClient.invalidateQueries({ queryKey: ["prints"] });
+        queryClient.invalidateQueries({ queryKey: ["prints"], exact: false });
         startCooldown();
     };
 

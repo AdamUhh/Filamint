@@ -92,7 +92,10 @@ export function useCreateSpool() {
     return useMutation({
         mutationFn: (spool: Spool) => SpoolService.CreateSpool(spool),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["spools"] });
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
+                exact: false,
+            });
         },
     });
 }
@@ -103,7 +106,10 @@ export function useUpdateSpool() {
     return useMutation({
         mutationFn: (spool: Spool) => SpoolService.UpdateSpool(spool),
         onSuccess: (_, updatedSpool) => {
-            queryClient.invalidateQueries({ queryKey: ["spools"] });
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
+                exact: false,
+            });
 
             queryClient.invalidateQueries({
                 queryKey: ["spool", updatedSpool.id],
@@ -118,7 +124,10 @@ export function useDeleteSpool() {
     return useMutation({
         mutationFn: (id: number) => SpoolService.DeleteSpool(id),
         onSuccess: (_, deletedId) => {
-            queryClient.invalidateQueries({ queryKey: ["spools"] });
+            queryClient.invalidateQueries({
+                queryKey: ["spools"],
+                exact: false,
+            });
 
             queryClient.removeQueries({
                 queryKey: ["spool", deletedId],
@@ -157,7 +166,7 @@ export function useInvalidateSpools(cooldownMs = 5000) {
         if (isFetching) return;
         if (secondsLeft > 0) return;
 
-        queryClient.invalidateQueries({ queryKey: ["spools"] });
+        queryClient.invalidateQueries({ queryKey: ["spools"], exact: false });
         startCooldown();
     };
 

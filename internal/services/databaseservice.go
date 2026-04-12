@@ -93,10 +93,10 @@ func (d *Database) initSchema() error {
 		color TEXT NOT NULL,
 		color_hex TEXT NOT NULL,
 
-		used_weight INTEGER NOT NULL DEFAULT 0 CHECK(used_weight >= 0),
-		total_weight INTEGER NOT NULL CHECK(total_weight > 0),
+		used_weight REAL NOT NULL DEFAULT 0 CHECK(used_weight >= 0),
+		total_weight REAL NOT NULL CHECK(total_weight > 0),
 
-		cost INTEGER NOT NULL DEFAULT 0,
+		cost REAL NOT NULL DEFAULT 0,
 		reference_link TEXT,
 		notes TEXT,
 
@@ -131,7 +131,7 @@ func (d *Database) initSchema() error {
 	    print_id INTEGER NOT NULL,
 	    spool_id INTEGER NOT NULL,
 
-	    grams_used INTEGER NOT NULL CHECK (grams_used > 0),
+	    grams_used REAL NOT NULL CHECK (grams_used > 0),
 
 	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
