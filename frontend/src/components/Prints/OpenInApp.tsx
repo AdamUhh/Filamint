@@ -132,7 +132,7 @@ export function OpenInAppDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleDialogChange}>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="pt-4 sm:max-w-xl">
                 {step === "models" ? (
                     <>
                         <DialogHeader>

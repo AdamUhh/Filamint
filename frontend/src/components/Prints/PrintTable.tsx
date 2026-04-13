@@ -125,13 +125,22 @@ export function PrintTable({
                                                     )}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="w-fit">
-                                                    <CopyOnClick
-                                                        textToCopy={print.name}
-                                                        tooltipContent="Copy Print Name"
-                                                    >
-                                                        {print.name}
-                                                    </CopyOnClick>
+                                                <div className="flex w-full items-center justify-between gap-2">
+                                                    <div className="w-fit">
+                                                        <CopyOnClick
+                                                            textToCopy={
+                                                                print.name
+                                                            }
+                                                            tooltipContent="Copy Print Name"
+                                                        >
+                                                            {print.name}
+                                                        </CopyOnClick>
+                                                    </div>
+                                                    {print.hasModels && (
+                                                        <LazyTooltip content="Has uploaded .3mf/.stl">
+                                                            <BoxIcon className="size-4 text-muted-foreground" />
+                                                        </LazyTooltip>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -180,7 +189,17 @@ export function PrintTable({
                                                               )
                                                           )
                                                           .join(" / ") +
-                                                      ` (${formatGrams(print.spools.reduce((sum, ps) => sum + (ps.gramsUsed || 0), 0))})`
+                                                      (print.spools.length > 1
+                                                          ? ` (${formatGrams(
+                                                                print.spools.reduce(
+                                                                    (sum, ps) =>
+                                                                        sum +
+                                                                        (ps.gramsUsed ||
+                                                                            0),
+                                                                    0
+                                                                )
+                                                            )})`
+                                                          : "")
                                                     : "NaN"}
                                             </TableCell>
                                             <TableCell>

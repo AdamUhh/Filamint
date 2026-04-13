@@ -11,6 +11,7 @@ import {
 
 import { formatGrams } from "@/lib/util-format";
 
+import { CopyOnClick } from "../CopyToClipboard";
 import { useSpoolPrints } from "./lib/fetch-hooks";
 
 export type DeleteState = {
@@ -60,9 +61,14 @@ export function DeleteSpoolDialog({
                                     key={s.printId}
                                     className="flex justify-between px-3 py-1.5 odd:bg-muted/40 even:bg-background"
                                 >
-                                    <span className="capitalize">
-                                        {s.printName}
-                                    </span>
+                                    <CopyOnClick
+                                        textToCopy={s.printName}
+                                        tooltipContent="Copy Print Name"
+                                    >
+                                        <span className="capitalize">
+                                            {s.printName}
+                                        </span>
+                                    </CopyOnClick>
                                     <span className="text-muted-foreground">
                                         {formatGrams(s.gramsUsed)}g
                                     </span>

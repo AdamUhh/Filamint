@@ -29,6 +29,10 @@ import {
 
 import { useFieldContext } from "@/components/Prints/lib/hooks";
 
+import {
+    DROPZONE_ACCEPTED_FILES,
+    DROPZONE_MAX_SIZE_MB,
+} from "@/lib/constant-dropzone";
 import { formatGrams, toErrorMessage } from "@/lib/util-format";
 
 import { AppPagination } from "../Pagination";
@@ -640,11 +644,8 @@ export function PrintFileUploadFormField() {
     return (
         <Field data-invalid={isInvalid} className="group">
             <Dropzone
-                accept={{
-                    "model/3mf": [".3mf"],
-                    "model/stl": [".stl"],
-                }}
-                maxSize={5 * 1024 * 1024}
+                accept={DROPZONE_ACCEPTED_FILES}
+                maxSize={DROPZONE_MAX_SIZE_MB * 1024 * 1024}
                 value={field.state.value}
                 onDelete={field.removeValue}
                 onAdd={field.pushValue}

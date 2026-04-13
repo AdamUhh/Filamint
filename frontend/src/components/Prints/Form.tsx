@@ -70,6 +70,7 @@ export function PrintFormDialog({
                 createdAt: null, // placeholder, ignored by db
                 updatedAt: null, // placeholder
                 models: [],
+                hasModels: false, // placeholder
                 spools: value.spools.map((s) => ({
                     printId: editState.id,
                     spoolId: s.spoolId,
@@ -89,9 +90,18 @@ export function PrintFormDialog({
             setIsSaving(true);
             try {
                 if (editState.id > 0) {
-                    await updateMutation.mutateAsync(printToSave);
+                    const printChanged =
+                        printToSave.name !== editState.original?.name ||
+                        printToSave.status !== editState.original?.status ||
+                        printToSave.notes !== editState.original?.notes ||
+                        new Date(printToSave.datePrinted).getTime() !==
+                            new Date(editState.original?.datePrinted).getTime();
 
-                    // 2️⃣ Upload new files sequentially
+                    if (printChanged) {
+                        await updateMutation.mutateAsync(printToSave);
+                    }
+
+                    // Upload new files sequentially
                     for (const file of filesToUpload) {
                         await uploadModelMutation.mutateAsync({
                             printId: editState.id,
@@ -99,7 +109,7 @@ export function PrintFormDialog({
                         });
                     }
 
-                    // 3️⃣ Delete removed models
+                    // Delete removed models
                     for (const removed of removedModels) {
                         await deleteModelMutation.mutateAsync({
                             printId: editState.id,
@@ -110,7 +120,7 @@ export function PrintFormDialog({
                     const printId =
                         await createMutation.mutateAsync(printToSave);
 
-                    // 2️⃣ Upload new files sequentially
+                    // Upload new files sequentially
                     for (const file of filesToUpload) {
                         await uploadModelMutation.mutateAsync({
                             printId,

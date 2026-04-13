@@ -58,6 +58,8 @@ type Print struct {
 	CreatedAt   time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt   time.Time  `db:"updated_at" json:"updatedAt"`
 
+	HasModels bool `json:"hasModels"`
+
 	Spools []PrintSpool `json:"spools,omitempty"`
 	Models []PrintModel `json:"models,omitempty"`
 }

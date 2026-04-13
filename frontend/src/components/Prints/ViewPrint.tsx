@@ -143,7 +143,7 @@ export function ViewPrintDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleDialogChange}>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="pt-4 sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         View Print Models

@@ -17,6 +17,7 @@ export class Print {
     "datePrinted": time$0.Time | null;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
+    "hasModels": boolean;
     "spools"?: PrintSpool[];
     "models"?: PrintModel[];
 
@@ -43,6 +44,9 @@ export class Print {
         if (!("updatedAt" in $$source)) {
             this["updatedAt"] = null;
         }
+        if (!("hasModels" in $$source)) {
+            this["hasModels"] = false;
+        }
 
         Object.assign(this, $$source);
     }
@@ -51,14 +55,14 @@ export class Print {
      * Creates a new Print instance from a string or object.
      */
     static createFrom($$source: any = {}): Print {
-        const $$createField7_0 = $$createType1;
-        const $$createField8_0 = $$createType3;
+        const $$createField8_0 = $$createType1;
+        const $$createField9_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("spools" in $$parsedSource) {
-            $$parsedSource["spools"] = $$createField7_0($$parsedSource["spools"]);
+            $$parsedSource["spools"] = $$createField8_0($$parsedSource["spools"]);
         }
         if ("models" in $$parsedSource) {
-            $$parsedSource["models"] = $$createField8_0($$parsedSource["models"]);
+            $$parsedSource["models"] = $$createField9_0($$parsedSource["models"]);
         }
         return new Print($$parsedSource as Partial<Print>);
     }

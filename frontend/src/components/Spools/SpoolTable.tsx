@@ -101,7 +101,7 @@ export function SpoolTable({
                                                 {format(spool.updatedAt, "PPp")}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="group z-100 flex items-center gap-2">
+                                                <div className="group flex items-center gap-2">
                                                     <CopyOnClick
                                                         textToCopy={
                                                             spool.spoolCode

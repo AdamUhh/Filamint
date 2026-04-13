@@ -243,16 +243,21 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 	}
 
 	query := fmt.Sprintf(
-		"SELECT *, COUNT(*) OVER() AS total_count FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?",
+		`SELECT *,
+        COUNT(*) OVER() AS total_count,
+        EXISTS(SELECT 1 FROM print_models WHERE print_id = prints.id) AS has_models
+     FROM prints %s ORDER BY %s %s LIMIT ? OFFSET ?`,
 		whereClause, params.SortBy, params.SortOrder,
 	)
+
 	pageArgs := make([]any, len(args), len(args)+2)
 	copy(pageArgs, args)
 	pageArgs = append(pageArgs, params.Limit, params.Offset)
 
 	var rows []struct {
 		Print
-		TotalCount int `db:"total_count"`
+		TotalCount int  `db:"total_count"`
+		HasModels  bool `db:"has_models"`
 	}
 	if err := r.db.Select(&rows, query, pageArgs...); err != nil {
 		return nil, fmt.Errorf("failed to query prints: %w", err)
@@ -265,6 +270,7 @@ func (r *PrintRepository) QueryPrints(params PrintQueryParams) (*PrintQueryResul
 	}
 	for i, r := range rows {
 		prints[i] = r.Print
+		prints[i].HasModels = r.HasModels
 	}
 
 	if len(prints) == 0 {

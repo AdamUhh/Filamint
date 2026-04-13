@@ -24,7 +24,7 @@ import {
 import { formatGrams } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
-import { CopyToClipboard } from "../CopyToClipboard";
+import { CopyOnClick, CopyToClipboard } from "../CopyToClipboard";
 import { useInvalidateSpools } from "../Spools/lib/fetch-hooks";
 
 export function SelectSpoolTable({
@@ -108,12 +108,15 @@ export function SelectSpoolTable({
                                 <TableCell>
                                     {format(spool.updatedAt, "PPp")}
                                 </TableCell>
-                                <TableCell className="group flex items-center gap-2">
-                                    <span>{spool.spoolCode}</span>
-                                    <CopyToClipboard
-                                        textToCopy={spool.spoolCode}
-                                        tooltipContent="Copy Spool Code"
-                                    />
+                                <TableCell>
+                                    <div className="group flex items-center gap-2">
+                                        <CopyOnClick
+                                            textToCopy={spool.spoolCode}
+                                            tooltipContent="Copy Spool Code"
+                                        >
+                                            {spool.spoolCode}
+                                        </CopyOnClick>
+                                    </div>
                                 </TableCell>
                                 <TableCell>{spool.vendor}</TableCell>
                                 <TableCell>{spool.material}</TableCell>

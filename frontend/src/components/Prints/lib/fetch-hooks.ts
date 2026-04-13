@@ -1,6 +1,7 @@
 import {
     type Print,
     type PrintQueryParams,
+    PrintQueryResult,
     PrintService,
 } from "@bindings/services";
 import {
@@ -158,7 +159,20 @@ export function useUploadPrintModel() {
                 byteArray as unknown as string
             );
         },
-        onSuccess: () => {
+        onSuccess: (_, args) => {
+            queryClient.setQueriesData(
+                { queryKey: ["prints"], exact: false },
+                (old: PrintQueryResult) => {
+                    if (!old?.prints) return old;
+                    const idx = old.prints.findIndex(
+                        (p) => p.id === args.printId
+                    );
+                    if (idx === -1) return old;
+                    const prints = [...old.prints];
+                    prints[idx] = { ...prints[idx], hasModels: true };
+                    return { ...old, prints };
+                }
+            );
             queryClient.invalidateQueries({ queryKey: ["print_models"] });
         },
     });
@@ -172,6 +186,10 @@ export function useDeletePrintModel() {
             PrintService.DeletePrintModel(args.printId, args.modelId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["print_models"] });
+            queryClient.invalidateQueries({
+                queryKey: ["prints"],
+                exact: false,
+            });
         },
     });
 }
