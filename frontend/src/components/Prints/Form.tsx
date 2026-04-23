@@ -23,6 +23,8 @@ import {
 import { useAppForm } from "@/components/Prints/lib/hooks";
 import { type TModelSchema, printSchema } from "@/components/Prints/lib/schema";
 
+import { formatGrams } from "@/lib/util-format";
+
 import type { EditState } from "./lib/types";
 
 export function PrintFormDialog({
@@ -97,7 +99,28 @@ export function PrintFormDialog({
                         new Date(printToSave.datePrinted).getTime() !==
                             new Date(editState.original?.datePrinted).getTime();
 
-                    if (printChanged) {
+                    const spoolsChanged =
+                        // A spool was added or its gramsUsed changed
+                        printToSave.spools?.some((spool) => {
+                            const originalSpool =
+                                editState.original?.spools?.find(
+                                    (s) => s.spoolId === spool.spoolId
+                                );
+                            return (
+                                !originalSpool ||
+                                formatGrams(originalSpool.gramsUsed) !==
+                                    formatGrams(spool.gramsUsed)
+                            );
+                        }) ||
+                        // A spool was removed
+                        editState.original?.spools?.some(
+                            (s) =>
+                                !printToSave.spools?.find(
+                                    (spool) => spool.spoolId === s.spoolId
+                                )
+                        );
+
+                    if (printChanged || spoolsChanged) {
                         await updateMutation.mutateAsync(printToSave);
                     }
 
