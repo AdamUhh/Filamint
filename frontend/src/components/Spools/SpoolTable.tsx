@@ -1,4 +1,3 @@
-import { useApp } from "@/context/useContext";
 import type { Spool } from "@bindings/services";
 import { format } from "date-fns/format";
 import {
@@ -45,6 +44,7 @@ import {
 import { formatGrams } from "@/lib/util-format";
 
 import { CopyOnClick } from "../CopyToClipboard";
+import { CurrencyAlign } from "../CurrencyAlign";
 import { useInvalidateSpools } from "./lib/fetch-hooks";
 
 export function SpoolTable({
@@ -70,7 +70,6 @@ export function SpoolTable({
     onDelete: (id: number) => void;
     onSort?: (column: string) => void;
 }) {
-    const { options } = useApp();
     const spoolArray = Array.from(spools.values());
 
     return (
@@ -143,18 +142,9 @@ export function SpoolTable({
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                {options.currencyAlign ===
-                                                "left" ? (
-                                                    <>
-                                                        {options.currency}{" "}
-                                                        {spool.cost}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        {spool.cost}{" "}
-                                                        {options.currency}
-                                                    </>
-                                                )}
+                                                <CurrencyAlign>
+                                                    {spool.cost}
+                                                </CurrencyAlign>
                                             </TableCell>
                                             <TableCell>
                                                 <DropdownMenu>

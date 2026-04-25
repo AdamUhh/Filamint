@@ -152,6 +152,10 @@ git checkout main
 git merge --ff-only feature-branch
 git push origin main
 
+# 6ab. Delete feature branch (cleanup)
+git branch -d feature-branch
+git push origin --delete feature-branch
+
 # 6b. Push main → main
 git push origin main
 

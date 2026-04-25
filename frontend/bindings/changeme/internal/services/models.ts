@@ -189,6 +189,7 @@ export class PrintSpool {
     "material": string;
     "color": string;
     "colorHex": string;
+    "cost": number;
 
     /** Creates a new PrintSpool instance. */
     constructor($$source: Partial<PrintSpool> = {}) {
@@ -230,6 +231,9 @@ export class PrintSpool {
         }
         if (!("colorHex" in $$source)) {
             this["colorHex"] = "";
+        }
+        if (!("cost" in $$source)) {
+            this["cost"] = 0;
         }
 
         Object.assign(this, $$source);

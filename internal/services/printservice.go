@@ -39,6 +39,7 @@ type PrintSpool struct {
 	Material    string  `db:"material" json:"material"`
 	Color       string  `db:"color" json:"color"`
 	ColorHex    string  `db:"color_hex" json:"colorHex"`
+	Cost        float64 `db:"cost" json:"cost"`
 }
 
 type PrintModel struct {

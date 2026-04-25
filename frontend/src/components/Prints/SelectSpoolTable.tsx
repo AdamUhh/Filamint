@@ -24,7 +24,7 @@ import {
 import { formatGrams } from "@/lib/util-format";
 import { cn } from "@/lib/utils";
 
-import { CopyOnClick, CopyToClipboard } from "../CopyToClipboard";
+import { CopyOnClick } from "../CopyToClipboard";
 import { useInvalidateSpools } from "../Spools/lib/fetch-hooks";
 
 export function SelectSpoolTable({
@@ -73,6 +73,7 @@ export function SelectSpoolTable({
                 material: spool.material,
                 color: spool.color,
                 colorHex: spool.colorHex,
+                cost: spool.cost,
             });
         }
     };

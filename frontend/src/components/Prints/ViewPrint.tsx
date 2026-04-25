@@ -49,8 +49,11 @@ export function ViewPrintDialog({
 
         PrintService.GetPrintModels(printId)
             .then((data) => {
-                setModels(data ?? []);
-                setSelected(new Set());
+                const fetched = data ?? [];
+                setModels(fetched);
+                setSelected(
+                    fetched.length > 0 ? new Set([fetched[0].id]) : new Set()
+                );
                 setIsLoading(false);
             })
             .catch((err: unknown) => {
@@ -72,8 +75,13 @@ export function ViewPrintDialog({
         PrintService.GetPrintModels(printId)
             .then((data) => {
                 if (!cancelled) {
-                    setModels(data ?? []);
-                    setSelected(new Set());
+                    const fetched = data ?? [];
+                    setModels(fetched);
+                    setSelected(
+                        fetched.length > 0
+                            ? new Set([fetched[0].id])
+                            : new Set()
+                    );
                     setIsLoading(false);
                 }
             })

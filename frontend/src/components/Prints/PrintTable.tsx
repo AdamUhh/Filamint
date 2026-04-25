@@ -46,6 +46,7 @@ import {
 import { formatGrams } from "@/lib/util-format";
 
 import { CopyOnClick } from "../CopyToClipboard";
+import { CurrencyAlign } from "../CurrencyAlign";
 import { OpenInAppDialog } from "./OpenInApp";
 import { ViewPrintDialog } from "./ViewPrint";
 import { useInvalidatePrints } from "./lib/fetch-hooks";
@@ -179,6 +180,39 @@ export function PrintTable({
                                                         )
                                                     )}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <CurrencyAlign>
+                                                    {print.spools?.length
+                                                        ? print.spools
+                                                              .map((ps) =>
+                                                                  formatGrams(
+                                                                      ps.cost *
+                                                                          ((ps.gramsUsed ||
+                                                                              0) /
+                                                                              1000)
+                                                                  )
+                                                              )
+                                                              .join(" / ") +
+                                                          (print.spools.length >
+                                                          1
+                                                              ? ` (${formatGrams(
+                                                                    print.spools.reduce(
+                                                                        (
+                                                                            sum,
+                                                                            ps
+                                                                        ) =>
+                                                                            sum +
+                                                                            ps.cost *
+                                                                                ((ps.gramsUsed ||
+                                                                                    0) /
+                                                                                    1000),
+                                                                        0
+                                                                    )
+                                                                )})`
+                                                              : "")
+                                                        : "NaN"}
+                                                </CurrencyAlign>
                                             </TableCell>
                                             <TableCell>
                                                 {print.spools?.length
@@ -449,6 +483,7 @@ function PrintTableHeaders({
                     label="Name"
                 />
                 <TableHead>Spools</TableHead>
+                <TableHead>Cost</TableHead>
                 <TableHead>Used (g)</TableHead>
                 <SortableHeader
                     sortBy={sortBy}

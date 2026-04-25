@@ -302,7 +302,7 @@ func (r *PrintRepository) GetSpoolsForPrints(printIDs []int64) ([]PrintSpool, er
 	query, args, err := sqlx.In(`
 		SELECT
 			ps.id, ps.print_id, ps.spool_id, ps.grams_used, ps.created_at, ps.updated_at,
-			s.color, s.color_hex, s.vendor, s.material, s.spool_code, s.total_weight, s.used_weight
+			s.color, s.color_hex, s.vendor, s.material, s.spool_code, s.total_weight, s.used_weight, s.cost
 		FROM print_spools ps
 		JOIN spools s ON s.id = ps.spool_id
 		WHERE ps.print_id IN (?)

@@ -1,6 +1,9 @@
 - [ ] 
 - - [ ] 
 
+> Stats
+- [ ] Add a Stats page, that showcases total cost, total spools and usedGrams, total status completed/failed/cancelled, total prints, total models
+
 > Spools
 - [ ] Unsure: Allow selection of multiple spools across pages, where the user can then select "add a print with these spools" (cba)
 - [ ] Unsure: Allow create and update to change spoolcode (eh... don't think it's necessary)
